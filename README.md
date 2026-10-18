@@ -2,7 +2,7 @@
 
 Appli de vie quotidienne (météo, infos, agenda, maison, trajets, démarches), installable sur le téléphone.
 
-👉 **Ouvrir l'appli :** https://cecilehanan-prog.github.io/vie-quotidienne/
+👉 **Ouvrir l'appli :** https://cecilehanan-prog.github.io/Vie-quotidienne/
 
 Sur le téléphone : ouvre le lien, puis « Ajouter à l'écran d'accueil ».
 
