@@ -1,0 +1,10 @@
+{
+  "name": "Mon Quotidien",
+  "short_name": "Quotidien",
+  "lang": "fr",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#eef2f1",
+  "theme_color": "#2f6b4f",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

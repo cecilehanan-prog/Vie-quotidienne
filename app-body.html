@@ -1,0 +1,1072 @@
+<title>Mon Quotidien</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout : appli mobile, une colonne, barre d'onglets en bas ; cartes posées sur un fond "ciel du matin" */
+:root {
+  --bg: #f3f4f8;
+  --surface: #ffffff;
+  --surface-2: #e3eae8;
+  --fg: #1d2a2b;
+  --muted: #5a6b6c;
+  --line: #d3dcda;
+  --accent: #2f6b4f;      /* vert Beaujolais */
+  --accent-fg: #ffffff;
+  --sun: #c98a1b;         /* ocre */
+  --warn: #b5541c;
+  --ok: #2f7d4f;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --radius: 18px;
+  /* une couleur par rubrique */
+  --c-wx: #2b8ce6; --c-news: #8a4fd8; --c-good: #f5a300; --c-agenda: #e8476a; --c-house: #2fa65a;
+  --c-energy: #ef8a00; --c-chores: #0f9f8a; --c-car: #f26b1d; --c-transit: #0e9fc0; --c-trip: #d23fa8;
+  --c-admin: #4a5fd6; --c-papers: #a0602c;
+  --on-sec: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121a1b; --surface: #1b2526; --surface-2: #243032; --fg: #e6eeec; --muted: #9db0ae;
+    --line: #2e3b3c; --accent: #7cc49e; --accent-fg: #0f1c16; --sun: #e3b155; --warn: #f0905a; --ok: #7cc49e;
+    --c-wx: #5aa9f5; --c-news: #a97cf0; --c-good: #ffc23d; --c-agenda: #ff6f8c; --c-house: #4cc778; --c-energy: #ffa53d; --c-chores: #2cc4ac; --c-car: #ff8a4a; --c-transit: #33c0de; --c-trip: #ee66c4; --c-admin: #7d8ef0; --c-papers: #d08a52; --on-sec: #10151a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121a1b; --surface: #1b2526; --surface-2: #243032; --fg: #e6eeec; --muted: #9db0ae;
+  --line: #2e3b3c; --accent: #7cc49e; --accent-fg: #0f1c16; --sun: #e3b155; --warn: #f0905a; --ok: #7cc49e;
+  --c-wx: #5aa9f5; --c-news: #a97cf0; --c-good: #ffc23d; --c-agenda: #ff6f8c; --c-house: #4cc778; --c-energy: #ffa53d; --c-chores: #2cc4ac; --c-car: #ff8a4a; --c-transit: #33c0de; --c-trip: #ee66c4; --c-admin: #7d8ef0; --c-papers: #d08a52; --on-sec: #10151a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--fg); }
+body { font-family: var(--font-body); font-size: 16px; line-height: 1.5; margin: 0; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+a { color: var(--accent); }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+
+.wrap { max-width: 640px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px 110px; display: grid; gap: 16px; }
+header.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+header.top h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.7rem; margin: 0; letter-spacing: -0.01em; }
+header.top .date { color: var(--muted); font-size: .95rem; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; margin: 0; text-wrap: balance; }
+h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; margin: 0; }
+.label { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+.muted { color: var(--muted); }
+.small { font-size: .88rem; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; }
+.card > * { min-width: 0; }
+#wx-body { display: grid; gap: 12px; }
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+
+.btn { border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 7px 14px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-size: .93rem; color: var(--fg); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.linkbox { display: grid; gap: 2px; padding: 12px; border-radius: 10px; background: var(--surface-2); text-decoration: none; color: var(--fg); min-width: 0; }
+.linkbox strong { font-family: var(--font-display); font-weight: 500; }
+.linkbox span { font-size: .85rem; color: var(--muted); }
+
+input[type=text], input[type=date], input[type=time], input[type=search], select { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+form.inline { display: flex; gap: 8px; flex-wrap: wrap; }
+form.inline > input { flex: 1 1 140px; }
+
+/* Météo */
+.wx-now { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.wx-temp { font-family: var(--font-display); font-size: 3.2rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.wx-icon { width: 56px; height: 56px; color: var(--sun); }
+.wx-days { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; text-align: center; font-variant-numeric: tabular-nums; }
+.wx-days > div { background: var(--surface-2); border-radius: 10px; padding: 8px 2px; display: grid; gap: 2px; justify-items: center; }
+.wx-days svg { width: 26px; height: 26px; color: var(--sun); }
+.wx-hours { overflow-x: auto; display: flex; gap: 12px; padding-bottom: 4px; font-variant-numeric: tabular-nums; }
+.wx-hours > div { display: grid; justify-items: center; font-size: .85rem; min-width: 42px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); font-size: .85rem; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); display: inline-block; }
+.dot.ok { background: var(--ok); } .dot.mid { background: var(--sun); } .dot.bad { background: var(--warn); }
+
+/* Actus */
+.news { list-style: none; margin: 0; padding: 0; display: grid; }
+.news li { padding: 10px 0 10px 12px; border-top: 1px solid var(--line); min-width: 0; box-shadow: inset 4px 0 0 color-mix(in srgb, var(--sec, var(--accent)) 60%, transparent); margin-top: 4px; border-radius: 2px; }
+.news li:first-child { border-top: 0; }
+.news a { color: var(--fg); text-decoration: none; font-weight: 700; }
+.news a:hover { text-decoration: underline; }
+.news .meta { font-size: .8rem; color: var(--muted); }
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+
+/* Listes (agenda, rappels, papiers) */
+.list { display: grid; gap: 8px; }
+.item { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; min-width: 0; }
+.item .when { font-variant-numeric: tabular-nums; font-weight: 700; font-size: .9rem; text-align: center; min-width: 52px; line-height: 1.2; }
+.item .what { min-width: 0; overflow-wrap: anywhere; }
+.item.late { box-shadow: inset 4px 0 0 var(--warn); }
+.item.soon { box-shadow: inset 4px 0 0 var(--sun); }
+.item.done { opacity: .55; }
+.icon-btn { border: 0; background: transparent; cursor: pointer; padding: 6px; border-radius: 8px; color: var(--muted); }
+.icon-btn:hover { background: var(--surface); color: var(--fg); }
+.pill { font-size: .75rem; padding: 2px 8px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); white-space: nowrap; }
+.pill.warn { color: var(--warn); border-color: var(--warn); }
+.pill.soon { color: var(--sun); border-color: var(--sun); }
+
+.notice { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; font-size: .9rem; }
+.notice.accent { border-left: 4px solid var(--accent); }
+.banner { background: var(--accent); color: var(--accent-fg); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 6px; }
+.banner a { color: var(--accent-fg); font-weight: 700; }
+
+/* Maison */
+.shop-group { display: grid; gap: 6px; }
+.shop-item { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 8px 12px; background: var(--surface-2); border-radius: 10px; min-width: 0; }
+.shop-item.done .what { text-decoration: line-through; opacity: .6; }
+.shop-item input[type=checkbox], .item input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); }
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.stat { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; }
+.stat strong { font-family: var(--font-display); font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.bars { display: flex; align-items: flex-end; gap: 6px; height: 130px; padding-top: 8px; margin-top: 6px; }
+.bars > div { flex: 1; display: grid; justify-items: center; align-content: end; gap: 4px; height: 100%; min-width: 0; }
+.bars .bar { width: 100%; max-width: 38px; background: var(--accent); border-radius: 6px 6px 2px 2px; min-height: 2px; }
+.bars .bar.last { background: var(--sun); }
+.bars span { font-size: .7rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+input.num { width: 7.5em; flex: 0 1 auto !important; }
+.seg { display: inline-flex; gap: 4px; background: var(--surface-2); padding: 3px; border-radius: 999px; }
+.seg .btn { border: 0; background: transparent; }
+.seg .btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+
+/* Couleurs par rubrique */
+[data-sec] { --sec: var(--accent); }
+[data-sec=wx] { --sec: var(--c-wx); } [data-sec=news] { --sec: var(--c-news); } [data-sec=good] { --sec: var(--c-good); }
+[data-sec=agenda] { --sec: var(--c-agenda); } [data-sec=house], [data-sec=shop], [data-sec=habits] { --sec: var(--c-house); }
+[data-sec=energy] { --sec: var(--c-energy); } [data-sec=chores] { --sec: var(--c-chores); } [data-sec=car] { --sec: var(--c-car); }
+[data-sec=transit] { --sec: var(--c-transit); } [data-sec=trip] { --sec: var(--c-trip); } [data-sec=admin], [data-sec=links] { --sec: var(--c-admin); }
+[data-sec=papers] { --sec: var(--c-papers); }
+.card[data-sec] { background: color-mix(in srgb, var(--sec) 8%, var(--surface)); border: 2px solid color-mix(in srgb, var(--sec) 28%, transparent); }
+.card[data-sec] h2 { display: flex; align-items: center; gap: 10px; }
+.badge { width: 40px; height: 40px; border-radius: 13px; background: var(--sec); color: var(--on-sec); display: grid; place-items: center; flex: none; }
+.badge svg { width: 24px; height: 24px; }
+.card[data-sec] .btn.primary, .card[data-sec] .btn[aria-pressed="true"] { background: var(--sec); border-color: var(--sec); color: var(--on-sec); font-weight: 700; }
+.card[data-sec] .btn { border-color: color-mix(in srgb, var(--sec) 35%, transparent); background: color-mix(in srgb, var(--sec) 12%, var(--surface)); }
+.card[data-sec] .item, .card[data-sec] .shop-item, .card[data-sec] .stat { background: var(--surface); }
+.card[data-sec] .label { color: color-mix(in srgb, var(--sec) 75%, var(--fg)); }
+.card[data-sec] .bars .bar { background: color-mix(in srgb, var(--sec) 55%, var(--surface)); }
+.card[data-sec] .bars .bar.last { background: var(--sec); }
+.card[data-sec] input[type=checkbox] { accent-color: var(--sec); }
+.emo { font-style: normal; font-size: 1.5rem; line-height: 1; }
+.item .emo, .shop-item .emo { font-size: 1.35rem; margin-right: 4px; vertical-align: -2px; }
+.linkbox { background: var(--surface) !important; justify-items: center; text-align: center; gap: 6px; padding: 14px 8px; border: 2px solid color-mix(in srgb, var(--sec, var(--accent)) 22%, transparent); }
+.linkbox .emo { font-size: 1.9rem; }
+.linkbox span { display: none; }
+.grid2 { grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
+.linkbox strong { overflow-wrap: anywhere; hyphens: auto; font-size: .9rem; }
+
+/* Tuiles d'accueil */
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.tile { position: relative; border: 0; border-radius: 20px; background: var(--sec); color: var(--on-sec); padding: 14px 6px 12px; display: grid; justify-items: center; gap: 6px; cursor: pointer; font-family: var(--font-display); font-weight: 700; font-size: .95rem; }
+.tile svg { width: 34px; height: 34px; }
+.tile .count { position: absolute; top: 6px; right: 8px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--surface); color: var(--fg); font-size: .78rem; display: grid; place-items: center; font-family: var(--font-body); }
+@media (prefers-reduced-motion: no-preference) { .tile { transition: transform .15s; } .tile:active { transform: scale(.95); } }
+
+/* Météo : fond selon le temps qu'il fait */
+.card[data-sec=wx] { color: #fff; border: 0; background: linear-gradient(140deg, #3d9be9, #7cc3f5); }
+.card[data-sec=wx][data-sky=sun] { background: linear-gradient(140deg, #ff9a3c, #ffcf4a); }
+.card[data-sec=wx][data-sky=partly] { background: linear-gradient(140deg, #3d9be9, #f7c35a); }
+.card[data-sec=wx][data-sky=cloud] { background: linear-gradient(140deg, #6f84a3, #a3b4ca); }
+.card[data-sec=wx][data-sky=fog] { background: linear-gradient(140deg, #7f8b99, #b3bcc6); }
+.card[data-sec=wx][data-sky=rain] { background: linear-gradient(140deg, #2f5f9e, #5f8cc4); }
+.card[data-sec=wx][data-sky=snow] { background: linear-gradient(140deg, #5a8fc6, #9ec0e4); }
+.card[data-sec=wx][data-sky=storm] { background: linear-gradient(140deg, #3b3a6e, #75609e); }
+.card[data-sec=wx] .muted, .card[data-sec=wx] a { color: rgba(255,255,255,.92); }
+.card[data-sec=wx] .badge { background: rgba(255,255,255,.25); color: #fff; }
+.card[data-sec=wx] .btn { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.35); color: #fff; }
+.card[data-sec=wx] .btn[aria-pressed="true"] { background: #fff; color: #1d3550; border-color: #fff; }
+.card[data-sec=wx] .wx-icon, .card[data-sec=wx] .wx-days svg, .card[data-sec=wx] .wx-hours svg { color: #fff; }
+.card[data-sec=wx] .wx-days > div { background: rgba(255,255,255,.2); }
+.card[data-sec=wx] .chip { background: rgba(255,255,255,.22); color: #fff; }
+.card[data-sec=wx] .wx-temp { text-shadow: 0 2px 10px rgba(0,0,0,.15); }
+
+/* Barre d'onglets */
+nav.tabbar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); display: flex; justify-content: center; padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); z-index: 5; }
+nav.tabbar .inner { display: grid; grid-template-columns: repeat(6, 1fr); width: 100%; max-width: 640px; }
+nav.tabbar button { border: 0; background: transparent; padding: 8px 2px 10px; display: grid; justify-items: center; gap: 2px; font-size: .72rem; color: var(--muted); cursor: pointer; }
+nav.tabbar button svg { width: 24px; height: 24px; }
+nav.tabbar button { color: var(--sec); }
+nav.tabbar button span { color: var(--muted); }
+nav.tabbar button[aria-current="page"] svg { background: var(--sec); color: var(--on-sec); border-radius: 10px; padding: 3px; width: 32px; height: 28px; }
+nav.tabbar button[aria-current="page"] span { color: var(--fg); font-weight: 700; }
+section.view { display: grid; gap: 16px; }
+details summary { cursor: pointer; font-weight: 700; }
+@media (prefers-reduced-motion: no-preference) { .card { transition: border-color .2s; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1 id="greet">Bonjour</h1>
+    <span class="date" id="today-date"></span>
+  </header>
+
+  <!-- ===== AUJOURD'HUI ===== -->
+  <section class="view" id="view-home">
+    <div id="near-banner" hidden></div>
+    <div class="tiles" id="tiles"></div>
+
+    <article class="card" data-sec="wx" aria-labelledby="wx-title">
+      <div class="card-head">
+        <h2 id="wx-title">Météo</h2>
+        <div class="row" role="group" aria-label="Choisir la ville" id="wx-places"></div>
+      </div>
+      <div id="wx-body"><p class="muted">Chargement de la météo…</p></div>
+      <div class="row small" id="air-body"></div>
+      <a class="small" href="https://vigilance.meteofrance.fr/fr/rhone" target="_blank" rel="noopener">⚠️ Vigilance Rhône</a>
+    </article>
+
+    <article class="card" data-sec="agenda">
+      <div class="card-head"><h2>Rendez-vous</h2><button class="btn" data-goto="agenda">Voir tout</button></div>
+      <div class="list" id="home-agenda"></div>
+    </article>
+
+    <article class="card" data-sec="admin">
+      <div class="card-head"><h2>À ne pas oublier</h2><button class="btn" data-goto="admin">Voir tout</button></div>
+      <div class="list" id="home-reminders"></div>
+    </article>
+
+    <article class="card" data-sec="house">
+      <div class="card-head"><h2>À la maison</h2><button class="btn" data-goto="home2">Voir tout</button></div>
+      <div class="list" id="home-house"></div>
+    </article>
+
+    <article class="card" data-sec="good">
+      <div class="card-head"><h2>Bonnes nouvelles</h2><button class="btn" data-goto="news" data-feed="bonnes">Voir tout</button></div>
+      <ul class="news" id="home-good"><li class="muted">Chargement…</li></ul>
+    </article>
+  </section>
+
+  <!-- ===== INFOS ===== -->
+  <section class="view" id="view-news" hidden>
+    <article class="card" data-sec="news">
+      <div class="card-head"><h2>Les infos</h2><span class="small muted" id="news-updated"></span></div>
+      <div class="tabs" role="group" aria-label="Choisir les infos" id="news-tabs"></div>
+      <ul class="news" id="news-list"></ul>
+      <p class="small muted" id="news-src"></p>
+    </article>
+  </section>
+
+  <!-- ===== AGENDA ===== -->
+  <section class="view" id="view-agenda" hidden>
+    <article class="card" data-sec="agenda">
+      <div class="card-head"><h2>Mon agenda</h2><span class="pill" id="notif-state">Rappels désactivés</span></div>
+      <form class="inline" id="ev-form">
+        <input type="text" id="ev-title" placeholder="Rendez-vous (ex. dentiste)" required aria-label="Intitulé">
+        <input type="date" id="ev-date" required aria-label="Date">
+        <input type="time" id="ev-time" aria-label="Heure">
+        <input type="text" id="ev-place" placeholder="Lieu" aria-label="Lieu">
+        <select id="ev-remind" aria-label="Rappel">
+          <option value="60">Rappel 1 h avant</option>
+          <option value="1440" selected>Rappel la veille</option>
+          <option value="2880">Rappel 2 jours avant</option>
+          <option value="0">Pas de rappel</option>
+        </select>
+        <button class="btn primary" type="submit">Ajouter</button>
+      </form>
+      <div class="list" id="agenda-list"></div>
+      <div class="row">
+        <button class="btn" id="notif-btn" type="button">🔔 Activer les rappels</button>
+        <label class="btn" for="ics-file">📥 Importer Google (.ics)</label>
+        <input type="file" id="ics-file" accept=".ics,text/calendar" hidden>
+      </div>
+      <div class="notice small">🔜 Google Agenda en direct, bientôt. En attendant, importe le fichier .ics de Google.</div>
+    </article>
+  </section>
+
+  <!-- ===== MAISON ===== -->
+  <section class="view" id="view-home2" hidden>
+    <article class="card" data-sec="shop">
+      <div class="card-head"><h2>Liste de courses</h2><span class="pill" id="shop-count"></span></div>
+      <form class="inline" id="shop-form">
+        <input type="text" id="shop-name" placeholder="Ajouter un article (ex. lait)" required aria-label="Article" list="shop-suggest" autocomplete="off">
+        <input type="text" id="shop-qty" placeholder="Qté" aria-label="Quantité" class="num">
+        <button class="btn primary" type="submit">Ajouter</button>
+      </form>
+      <datalist id="shop-suggest"></datalist>
+      <div class="list" id="shop-list"></div>
+      <div class="row">
+        <button class="btn primary" type="button" id="shop-done">✅ Courses finies</button>
+        <button class="btn" type="button" id="shop-habits-add">⭐ + Mes habituels</button>
+      </div>
+      <p class="small muted" id="shop-msg"></p>
+    </article>
+
+    <article class="card" data-sec="habits">
+      <div class="card-head"><h2>Mes habituels</h2><span class="small muted" id="habit-spend"></span></div>
+      <div class="list" id="habit-list"></div>
+      <form class="inline" id="habit-form">
+        <input type="text" id="habit-name" placeholder="Produit (ex. yaourts)" required aria-label="Produit habituel">
+        <select id="habit-every" aria-label="Fréquence">
+          <option value="7">Chaque semaine</option><option value="14">Toutes les 2 semaines</option><option value="30">Chaque mois</option><option value="3">Tous les 3 jours</option>
+        </select>
+        <input type="text" id="habit-price" placeholder="Prix €" inputmode="decimal" aria-label="Prix habituel" class="num">
+        <button class="btn primary" type="submit">Ajouter</button>
+      </form>
+    </article>
+
+    <article class="card" data-sec="energy">
+      <div class="card-head"><h2>Électricité et eau</h2>
+        <div class="seg" role="group" aria-label="Compteur" id="meter-tabs"></div></div>
+      <div class="stat-row" id="meter-stats"></div>
+      <div id="meter-chart"></div>
+      <form class="inline" id="meter-form">
+        <input type="date" id="meter-date" required aria-label="Date du relevé">
+        <input type="text" id="meter-index" inputmode="decimal" required aria-label="Index du compteur" placeholder="Index">
+        <button class="btn primary" type="submit">Enregistrer</button>
+      </form>
+      <div class="row small">
+        <label for="meter-price" id="meter-price-label">Prix</label>
+        <input type="text" id="meter-price" inputmode="decimal" class="num" aria-describedby="meter-price-label">
+        <span class="muted" id="meter-price-hint"></span>
+      </div>
+      <div class="list small" id="meter-list"></div>
+      <div class="grid2" id="meter-links"></div>
+    </article>
+
+    <article class="card" data-sec="chores">
+      <h2>Tâches</h2>
+      <div class="list" id="chore-list"></div>
+      <form class="inline" id="chore-form">
+        <input type="text" id="chore-name" placeholder="Tâche (ex. laver la voiture)" required aria-label="Tâche">
+        <select id="chore-every" aria-label="Fréquence">
+          <option value="1">Chaque jour</option><option value="7" selected>Chaque semaine</option><option value="14">Toutes les 2 semaines</option><option value="30">Chaque mois</option><option value="90">Tous les 3 mois</option><option value="365">Chaque année</option>
+        </select>
+        <button class="btn primary" type="submit">Ajouter</button>
+      </form>
+    </article>
+  </section>
+
+  <!-- ===== DÉPLACEMENTS ===== -->
+  <section class="view" id="view-move" hidden>
+    <article class="card" data-sec="car">
+      <h2>En voiture</h2>
+      <form class="inline" id="gps-form">
+        <input type="search" id="gps-dest" placeholder="Où vas-tu ? (adresse, ville)" required aria-label="Destination">
+        <button class="btn primary" type="submit">Itinéraire</button>
+      </form>
+      <div class="row" id="gps-links"></div>
+      <div class="grid2">
+        <a class="linkbox" href="https://www.bison-fute.gouv.fr/" target="_blank" rel="noopener"><i class="emo">🚦</i><strong>Bison Futé</strong><span>Trafic national, prévisions</span></a>
+        <a class="linkbox" href="https://www.onlymoov.com/" target="_blank" rel="noopener"><i class="emo">🗺️</i><strong>Onlymoov</strong><span>Trafic en direct, Lyon</span></a>
+        <a class="linkbox" href="https://www.prix-carburants.gouv.fr/" target="_blank" rel="noopener"><i class="emo">⛽</i><strong>Prix des carburants</strong><span>Stations les moins chères</span></a>
+      </div>
+      <div id="fuel-body" class="small"></div>
+    </article>
+
+    <article class="card" data-sec="transit">
+      <div class="card-head"><h2>Bus, tram, métro</h2><button class="btn" id="locate-btn" type="button">📍 Où suis-je ?</button></div>
+      <p class="small muted" id="locate-msg">📍 Près de Lyon ou Paris, le bon réseau s'affiche tout seul</p>
+      <div class="row" role="group" aria-label="Choisir le réseau" id="net-tabs"></div>
+      <div class="grid2" id="net-body"></div>
+    </article>
+
+    <article class="card" data-sec="trip">
+      <h2>Voyage</h2>
+      <form class="inline" id="trip-form">
+        <input type="text" id="trip-from" value="Lyon" aria-label="Départ">
+        <input type="text" id="trip-to" placeholder="Destination" required aria-label="Destination">
+        <input type="date" id="trip-date" aria-label="Date de départ">
+        <button class="btn primary" type="submit">Chercher</button>
+      </form>
+      <div id="trip-wx"></div>
+      <div class="grid2" id="trip-links"></div>
+      <details>
+        <summary>🧳 Ma valise</summary>
+        <div class="list" id="pack-list" style="margin-top:10px"></div>
+      </details>
+    </article>
+  </section>
+
+  <!-- ===== DÉMARCHES ===== -->
+  <section class="view" id="view-admin" hidden>
+    <article class="card" data-sec="admin">
+      <div class="card-head"><h2>Démarches</h2></div>
+      <p class="small muted">ⓘ Dates à vérifier chaque année</p>
+      <div class="list" id="admin-list"></div>
+      <form class="inline" id="adm-form">
+        <input type="text" id="adm-title" placeholder="Nouveau rappel" required aria-label="Rappel">
+        <input type="date" id="adm-date" required aria-label="Date limite">
+        <button class="btn primary" type="submit">Ajouter</button>
+      </form>
+    </article>
+
+    <article class="card" data-sec="links">
+      <h2>Accès rapides</h2>
+      <div class="grid2">
+        <a class="linkbox" href="https://www.impots.gouv.fr/accueil" target="_blank" rel="noopener"><i class="emo">💶</i><strong>Impôts</strong><span>Espace particulier</span></a>
+        <a class="linkbox" href="https://www.caf.fr/" target="_blank" rel="noopener"><i class="emo">👨‍👩‍👧</i><strong>CAF</strong><span>Mon compte, déclarations</span></a>
+        <a class="linkbox" href="https://www.ville-tarare.fr/" target="_blank" rel="noopener"><i class="emo">🏛️</i><strong>Ville de Tarare</strong><span>Espace famille, démarches</span></a>
+        <a class="linkbox" href="https://www.ameli.fr/" target="_blank" rel="noopener"><i class="emo">🩺</i><strong>Ameli</strong><span>Assurance maladie</span></a>
+        <a class="linkbox" href="https://www.service-public.fr/" target="_blank" rel="noopener"><i class="emo">🇫🇷</i><strong>Service-public</strong><span>Toutes les démarches</span></a>
+        <a class="linkbox" href="https://ants.gouv.fr/" target="_blank" rel="noopener"><i class="emo">🪪</i><strong>ANTS</strong><span>Carte d'identité, permis, carte grise</span></a>
+      </div>
+    </article>
+
+    <article class="card" data-sec="papers">
+      <h2>Mes papiers</h2>
+      <p class="small muted">🔒 Seules les dates sont gardées</p>
+      <div class="list" id="papers-list"></div>
+      <form class="inline" id="pap-form">
+        <input type="text" id="pap-title" placeholder="Document (ex. passeport)" required aria-label="Document">
+        <input type="date" id="pap-date" aria-label="Expire le">
+        <button class="btn primary" type="submit">Ajouter</button>
+      </form>
+    </article>
+  </section>
+</div>
+
+<nav class="tabbar" aria-label="Rubriques">
+  <div class="inner" id="tabbar"></div>
+</nav>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------- utilitaires ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const el = (tag, attrs = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") n.className = v;
+    else if (k === "text") n.textContent = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) n.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat()) if (c != null) n.append(c.nodeType ? c : document.createTextNode(c));
+  return n;
+};
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("mq:" + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("mq:" + k, JSON.stringify(v)); } catch {} },
+};
+const uid = () => Math.random().toString(36).slice(2, 10);
+const DAY = 86400000;
+const startOfDay = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+const daysUntil = iso => Math.round((startOfDay(iso) - startOfDay(new Date())) / DAY);
+const fmtDay = d => new Date(d).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+const ext = (href, text, cls = "btn") => el("a", { class: cls, href, target: "_blank", rel: "noopener", text });
+async function getJSON(url, ms = 9000) {
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
+  try { const r = await fetch(url, { signal: ctl.signal }); if (!r.ok) throw new Error(r.status); return await r.json(); }
+  finally { clearTimeout(t); }
+}
+
+/* ---------- en-tête ---------- */
+const now = new Date();
+$("#today-date").textContent = now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+const h = now.getHours();
+$("#greet").textContent = h < 5 ? "Bonne nuit" : h < 12 ? "Bonjour" : h < 18 ? "Bon après-midi" : "Bonsoir";
+
+/* ---------- navigation ---------- */
+const ICONS = {
+  home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  news: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/>',
+  agenda: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  move: '<path d="M5 17h14l-1.5-6.5A2 2 0 0 0 15.6 9H8.4a2 2 0 0 0-1.9 1.5z"/><circle cx="8" cy="17" r="2"/><circle cx="16" cy="17" r="2"/>',
+  admin: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
+  home2: '<path d="M4 7h2l2.2 9.2a1 1 0 0 0 1 .8h7.6a1 1 0 0 0 1-.8L19.5 10H7"/><circle cx="10" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/>',
+};
+const VIEWS = [["home", "Aujourd'hui"], ["news", "Infos"], ["agenda", "Agenda"], ["home2", "Maison"], ["move", "Trajets"], ["admin", "Démarches"]];
+const VIEW_SEC = { home: "wx", news: "news", agenda: "agenda", home2: "house", move: "car", admin: "admin" };
+const svg = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+for (const [id, label] of VIEWS) {
+  const b = el("button", { type: "button", "data-view": id, "data-sec": VIEW_SEC[id] });
+  b.innerHTML = svg(ICONS[id]) + `<span>${label}</span>`;
+  b.addEventListener("click", () => show(id));
+  $("#tabbar").append(b);
+}
+function show(id) {
+  for (const [v] of VIEWS) $("#view-" + v).hidden = v !== id;
+  for (const b of $("#tabbar").children) b.setAttribute("aria-current", b.dataset.view === id ? "page" : "false");
+  store.set("view", id);
+  if (id === "news" && !newsLoaded) loadNews(currentFeed);
+  window.scrollTo(0, 0);
+}
+document.addEventListener("click", e => {
+  const g = e.target.closest("[data-goto]");
+  if (!g) return;
+  if (g.dataset.feed) currentFeed = g.dataset.feed, newsLoaded = false;
+  show(g.dataset.goto);
+});
+
+/* ---------- pictos et couleurs ---------- */
+const SEC_ICON = {
+  wx: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  news: ICONS.news, agenda: ICONS.agenda, admin: ICONS.admin, shop: ICONS.home2, car: ICONS.move,
+  house: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  good: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
+  habits: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
+  energy: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+  chores: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>',
+  transit: '<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M9 21l-2-4M15 21l2-4"/><circle cx="9" cy="14" r=".8"/><circle cx="15" cy="14" r=".8"/>',
+  trip: '<path d="M2 16l20-6-2-3-7 2-5-5-2 1 3 5-5 2-2-2-1 1z"/>',
+  links: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  papers: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+};
+for (const card of document.querySelectorAll(".card[data-sec]")) {
+  const h = card.querySelector("h2"); if (!h) continue;
+  const b = el("span", { class: "badge" }); b.innerHTML = svg(SEC_ICON[card.dataset.sec] || ICONS.home);
+  h.prepend(b);
+}
+const EMOJI = [
+  [/brioche|pain|baguette|croissant/, "🥐"], [/nutella|chocolat/, "🍫"], [/café|cafetière/, "☕"], [/salade|légume|carotte|tomate|courgette/, "🥬"],
+  [/fromage|comté|camembert|raclette/, "🧀"], [/lait|yaourt|crème|beurre/, "🥛"], [/oeuf|œuf/, "🥚"], [/pomme|banane|fruit|poire|orange|raisin|citron/, "🍎"],
+  [/poulet|viande|steak|jambon|saucisse|lardon/, "🍗"], [/poisson|saumon|thon/, "🐟"], [/pâtes|riz/, "🍝"], [/pizza/, "🍕"], [/(^|\s)eau($|\s)|jus|soda|sirop/, "🥤"],
+  [/vin|bière/, "🍷"], [/lessive|savon|shampo|gel douche|dentifrice|éponge/, "🧴"], [/papier|mouchoir|essuie/, "🧻"], [/glace|surgel|congélateur/, "🧊"],
+  [/poubelle/, "🗑️"], [/draps|lit\b/, "🛏️"], [/salle de bain|ménage|nettoy/, "🧽"], [/plante|arros/, "🪴"], [/voiture|contrôle technique/, "🚗"],
+  [/taxe foncière/, "🏠"], [/impôt|revenus/, "💶"], [/\bcaf\b/, "👨‍👩‍👧"], [/tarare|espace famille|cantine|école/, "🏫"], [/passeport/, "🛂"], [/identité/, "🪪"],
+  [/permis/, "🚘"], [/carte grise/, "📄"], [/assurance/, "🛡️"], [/vitale|médecin|docteur|ameli/, "🩺"], [/dentiste/, "🦷"], [/livret/, "📕"],
+  [/coiffeur/, "💇"], [/anniv/, "🎂"], [/marché|courses/, "🛒"], [/travail|réunion/, "💼"], [/sport|piscine|gym/, "🏃"],
+];
+const emo = (text, fallback) => { const t = (text || "").toLowerCase(); return (EMOJI.find(([re]) => re.test(t)) || [, fallback])[1]; };
+const emoSpan = (text, fb) => el("i", { class: "emo", "aria-hidden": "true", text: emo(text, fb) });
+const lb = (href, e, title) => el("a", { class: "linkbox", href, target: "_blank", rel: "noopener" }, el("i", { class: "emo", text: e }), el("strong", { text: title }));
+
+/* ---------- météo (Open-Meteo, gratuit, sans clé) ---------- */
+const PLACES = {
+  tarare: { name: "Tarare", lat: 45.8961, lon: 4.4331 },
+  lyon: { name: "Lyon", lat: 45.7640, lon: 4.8357 },
+  paris: { name: "Paris", lat: 48.8566, lon: 2.3522 },
+};
+const WMO = c =>
+  c === 0 ? ["Ciel dégagé", "sun"] : c <= 2 ? ["Éclaircies", "partly"] : c === 3 ? ["Couvert", "cloud"] :
+  c <= 48 ? ["Brouillard", "fog"] : c <= 57 ? ["Bruine", "rain"] : c <= 67 ? ["Pluie", "rain"] :
+  c <= 77 ? ["Neige", "snow"] : c <= 82 ? ["Averses", "rain"] : c <= 86 ? ["Averses de neige", "snow"] : ["Orage", "storm"];
+const WX_ICON = {
+  sun: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  partly: '<circle cx="8.5" cy="8.5" r="3.5"/><path d="M8.5 2.5v1M2.5 8.5h1M4.3 4.3l.7.7M12.7 4.3l-.7.7"/><path d="M8 20h9a4 4 0 0 0 0-8 5 5 0 0 0-9.6 1.6A3.2 3.2 0 0 0 8 20z"/>',
+  cloud: '<path d="M7 19h10a4.5 4.5 0 0 0 .4-9A6 6 0 0 0 6 11.5 3.8 3.8 0 0 0 7 19z"/>',
+  fog: '<path d="M4 10h16M3 14h18M5 18h14"/>',
+  rain: '<path d="M7 15h10a4 4 0 0 0 .4-8A5.5 5.5 0 0 0 6.5 8.5 3.3 3.3 0 0 0 7 15z"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/>',
+  snow: '<path d="M7 14h10a4 4 0 0 0 .4-8A5.5 5.5 0 0 0 6.5 7.5 3.3 3.3 0 0 0 7 14z"/><path d="M8 18h.01M12 20h.01M16 18h.01M10 22h.01M14 22h.01"/>',
+  storm: '<path d="M7 14h10a4 4 0 0 0 .4-8A5.5 5.5 0 0 0 6.5 7.5 3.3 3.3 0 0 0 7 14z"/><path d="M12 14l-2 4h3l-2 4"/>',
+};
+const wxSvg = (k, cls = "") => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${WX_ICON[k]}</svg>`;
+let wxPlace = store.get("wxPlace", "tarare");
+for (const [k, p] of Object.entries(PLACES)) {
+  $("#wx-places").append(el("button", { class: "btn", type: "button", "data-place": k, "aria-pressed": String(k === wxPlace), text: p.name, onclick: () => { wxPlace = k; store.set("wxPlace", k); loadWeather(); } }));
+}
+async function loadWeather() {
+  for (const b of $("#wx-places").children) b.setAttribute("aria-pressed", String(b.dataset.place === wxPlace));
+  const p = PLACES[wxPlace];
+  const body = $("#wx-body");
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation&hourly=temperature_2m,weather_code,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FParis&forecast_days=5`;
+  try {
+    const d = await getJSON(url);
+    store.set("wx:" + wxPlace, d);
+    renderWeather(d, p, false);
+  } catch {
+    const cached = store.get("wx:" + wxPlace);
+    if (cached) renderWeather(cached, p, true);
+    else body.innerHTML = `<p class="muted">Météo indisponible pour l'instant (pas de connexion). <a href="https://meteofrance.com/" target="_blank" rel="noopener">Ouvrir Météo-France</a></p>`;
+  }
+  loadAir(p);
+}
+function renderWeather(d, p, stale) {
+  const c = d.current, [label, ic] = WMO(c.weather_code);
+  $(".card[data-sec=wx]").dataset.sky = ic;
+  const hourIdx = d.hourly.time.findIndex(t => new Date(t) >= new Date(Date.now() - 3600000));
+  const hours = d.hourly.time.slice(hourIdx, hourIdx + 12).map((t, i) => {
+    const j = hourIdx + i;
+    return `<div><span class="muted">${new Date(t).getHours()}h</span>${wxSvg(WMO(d.hourly.weather_code[j])[1])}<strong>${Math.round(d.hourly.temperature_2m[j])}°</strong><span class="muted">${d.hourly.precipitation_probability[j] ?? 0}%</span></div>`;
+  }).join("");
+  const days = d.daily.time.slice(0, 5).map((t, i) => `<div><span class="small">${i === 0 ? "Auj." : new Date(t).toLocaleDateString("fr-FR", { weekday: "short" })}</span>${wxSvg(WMO(d.daily.weather_code[i])[1])}<span><strong>${Math.round(d.daily.temperature_2m_max[i])}°</strong> <span class="muted">${Math.round(d.daily.temperature_2m_min[i])}°</span></span><span class="small muted">${d.daily.precipitation_probability_max[i] ?? 0}%</span></div>`).join("");
+  $("#wx-body").innerHTML = `
+    <div class="wx-now">${wxSvg(ic, "wx-icon")}<div class="wx-temp">${Math.round(c.temperature_2m)}°</div>
+      <div><strong>${label}</strong> à ${p.name}<br><span class="muted small">Ressenti ${Math.round(c.apparent_temperature)}° · Vent ${Math.round(c.wind_speed_10m)} km/h</span>
+      ${stale ? '<br><span class="pill warn">Hors ligne, dernières données</span>' : ""}</div></div>
+    <div class="wx-hours" aria-label="Heure par heure">${hours}</div>
+    <div class="wx-days" aria-label="Prévisions sur 5 jours">${days}</div>`;
+}
+async function loadAir(p) {
+  const box = $("#air-body"); box.innerHTML = "";
+  try {
+    const a = await getJSON(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.lat}&longitude=${p.lon}&current=european_aqi,grass_pollen,birch_pollen,ragweed_pollen&timezone=Europe%2FParis`);
+    const q = a.current.european_aqi;
+    const lvl = q == null ? ["inconnue", ""] : q <= 40 ? ["bonne", "ok"] : q <= 60 ? ["moyenne", "mid"] : ["dégradée", "bad"];
+    box.append(el("span", { class: "chip" }, el("span", { class: "dot " + lvl[1] }), `Qualité de l'air ${lvl[0]}`));
+    const pol = Math.max(a.current.grass_pollen || 0, a.current.birch_pollen || 0, a.current.ragweed_pollen || 0);
+    const pl = pol < 10 ? ["faibles", "ok"] : pol < 50 ? ["modérés", "mid"] : ["élevés", "bad"];
+    box.append(el("span", { class: "chip" }, el("span", { class: "dot " + pl[1] }), `Pollens ${pl[0]}`));
+  } catch { /* facultatif */ }
+}
+
+/* ---------- actus (flux RSS) ---------- */
+const gnews = q => `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=fr&gl=FR&ceid=FR:fr`;
+const FEEDS = {
+  monde: { label: "🌍 Monde", urls: ["https://www.france24.com/fr/rss"] },
+  france: { label: "🇫🇷 France", urls: ["https://www.francetvinfo.fr/titres.rss"] },
+  lyon: { label: "🦁 Lyon", urls: ["https://www.lyoncapitale.fr/feed/", gnews("Lyon when:2d")] },
+  tarare: { label: "🏡 Tarare", urls: [gnews("Tarare OR \"Ouest rhodanien\" OR Amplepuis OR Beaujolais when:7d")] },
+  bonnes: { label: "🌈 Bonnes nouvelles", urls: ["https://positivr.fr/feed/", gnews("\"bonne nouvelle\" OR solidarité OR initiative when:3d")] },
+};
+let currentFeed = "monde", newsLoaded = false;
+for (const [k, f] of Object.entries(FEEDS)) {
+  $("#news-tabs").append(el("button", { class: "btn", type: "button", "data-feed-tab": k, text: f.label, onclick: () => loadNews(k) }));
+}
+async function fetchFeed(url) {
+  try {
+    const j = await getJSON("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(url));
+    if (j.status === "ok") return j.items.map(i => ({ title: i.title, link: i.link, date: i.pubDate, src: j.feed?.title }));
+  } catch {}
+  const r = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(url));
+  const xml = new DOMParser().parseFromString(await r.text(), "text/xml");
+  const src = xml.querySelector("channel > title")?.textContent;
+  return [...xml.querySelectorAll("item")].map(i => ({
+    title: i.querySelector("title")?.textContent, link: i.querySelector("link")?.textContent,
+    date: i.querySelector("pubDate")?.textContent, src,
+  }));
+}
+async function getFeed(key) {
+  const results = await Promise.allSettled(FEEDS[key].urls.map(fetchFeed));
+  let items = results.flatMap(r => r.status === "fulfilled" ? r.value : []);
+  if (!items.length) { const c = store.get("feed:" + key); if (c) return { items: c.items, stale: true, at: c.at }; throw new Error("vide"); }
+  const seen = new Set();
+  items = items.filter(i => i.title && !seen.has(i.title) && seen.add(i.title))
+    .sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 25);
+  store.set("feed:" + key, { items, at: Date.now() });
+  return { items, stale: false, at: Date.now() };
+}
+const splitSource = i => {
+  const m = /^(.*) - ([^-]{2,40})$/.exec(i.title || "");
+  return m ? { title: m[1], src: m[2] } : { title: i.title, src: i.src };
+};
+const newsLi = i => {
+  const { title, src } = splitSource(i);
+  const d = i.date ? new Date(i.date.replace(" ", "T")) : null;
+  const when = d && !isNaN(d) ? d.toLocaleString("fr-FR", { weekday: "short", hour: "2-digit", minute: "2-digit" }) : "";
+  return el("li", {}, el("a", { href: i.link, target: "_blank", rel: "noopener", text: title }), el("div", { class: "meta", text: [src, when].filter(Boolean).join(" · ") }));
+};
+async function loadNews(key) {
+  currentFeed = key; newsLoaded = true;
+  for (const b of $("#news-tabs").children) b.setAttribute("aria-pressed", String(b.dataset.feedTab === key));
+  const list = $("#news-list");
+  list.replaceChildren(el("li", { class: "muted", text: "Chargement…" }));
+  $("#news-src").textContent = "";
+  try {
+    const { items, stale, at } = await getFeed(key);
+    list.replaceChildren(...items.map(newsLi));
+    $("#news-updated").textContent = (stale ? "Hors ligne, mis à jour " : "Mis à jour ") + new Date(at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    list.replaceChildren(el("li", { class: "muted", text: "Les infos ne sont pas joignables pour l'instant. Réessaie dans un moment." }));
+  }
+}
+async function loadGoodNews() {
+  const ul = $("#home-good");
+  try {
+    const { items } = await getFeed("bonnes");
+    ul.replaceChildren(...items.slice(0, 3).map(newsLi));
+  } catch { ul.replaceChildren(el("li", { class: "muted", text: "Pas de connexion pour l'instant." })); }
+}
+
+/* ---------- agenda local + rappels ---------- */
+let events = store.get("events", null);
+if (!events) {
+  const t = d => new Date(Date.now() + d * DAY).toISOString().slice(0, 10);
+  events = [
+    { id: uid(), title: "Exemple : rendez-vous médecin", date: t(2), time: "09:30", place: "Tarare", remind: 1440, sample: true },
+    { id: uid(), title: "Exemple : courses au marché", date: t(5), time: "10:00", place: "Place de la Madeleine", remind: 0, sample: true },
+  ];
+}
+const saveEvents = () => { store.set("events", events); renderAgenda(); scheduleReminders(); };
+const evDate = e => new Date(`${e.date}T${e.time || "09:00"}`);
+function evItem(e, withDelete) {
+  const d = new Date(e.date + "T12:00");
+  const dd = daysUntil(e.date);
+  const it = el("div", { class: "item" + (dd <= 1 ? " soon" : "") },
+    el("div", { class: "when" }, d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }), el("br"), el("span", { class: "muted small", text: e.time || "" })),
+    el("div", { class: "what" }, el("div", {}, emoSpan(e.title, "📅"), e.title), el("div", { class: "small muted", text: [e.place, e.remind ? "rappel " + ({ 60: "1 h avant", 1440: "la veille", 2880: "2 jours avant" }[e.remind] || "") : ""].filter(Boolean).join(" · ") })),
+    withDelete ? el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer " + e.title, text: "✕", onclick: () => { events = events.filter(x => x.id !== e.id); saveEvents(); } }) : el("span", { class: "pill", text: dd === 0 ? "aujourd'hui" : dd === 1 ? "demain" : `J-${dd}` }));
+  return it;
+}
+function renderAgenda() {
+  const upcoming = events.filter(e => evDate(e) >= startOfDay(new Date())).sort((a, b) => evDate(a) - evDate(b));
+  $("#agenda-list").replaceChildren(...(upcoming.length ? upcoming.map(e => evItem(e, true)) : [el("p", { class: "muted", text: "Aucun rendez-vous à venir." })]));
+  $("#home-agenda").replaceChildren(...(upcoming.length ? upcoming.slice(0, 3).map(e => evItem(e, false)) : [el("p", { class: "muted", text: "Rien de prévu. Ajoute un rendez-vous dans l'agenda." })]));
+}
+$("#ev-form").addEventListener("submit", e => {
+  e.preventDefault();
+  events = events.filter(x => !x.sample);
+  events.push({ id: uid(), title: $("#ev-title").value.trim(), date: $("#ev-date").value, time: $("#ev-time").value, place: $("#ev-place").value.trim(), remind: +$("#ev-remind").value });
+  e.target.reset(); $("#ev-remind").value = "1440";
+  saveEvents();
+});
+// Import .ics (export de Google Agenda)
+$("#ics-file").addEventListener("change", async ev => {
+  const f = ev.target.files[0]; if (!f) return;
+  const txt = (await f.text()).replace(/\r?\n[ \t]/g, "");
+  const out = [];
+  for (const block of txt.split("BEGIN:VEVENT").slice(1)) {
+    const get = k => (new RegExp("^" + k + "[^:\\n]*:(.*)$", "m").exec(block) || [])[1]?.trim();
+    const ds = get("DTSTART"); if (!ds) continue;
+    const m = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2}))?(Z?)/.exec(ds); if (!m) continue;
+    let d = m[4] ? new Date(Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5])) : new Date(+m[1], m[2] - 1, +m[3]);
+    if (m[4] && !m[6]) d = new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5]);
+    if (d < startOfDay(new Date())) continue;
+    const pad = n => String(n).padStart(2, "0");
+    out.push({ id: uid(), title: (get("SUMMARY") || "Rendez-vous").replace(/\\,/g, ","), date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, time: m[4] ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : "", place: (get("LOCATION") || "").replace(/\\,/g, ","), remind: 1440, imported: true });
+  }
+  events = events.filter(x => !x.sample && !x.imported).concat(out);
+  saveEvents();
+  ev.target.value = "";
+});
+// Notifications (fonctionnent quand l'appli est ouverte ou installée ; les vraies notifications push viendront avec un petit serveur)
+let timers = [];
+function notifState() {
+  const ok = "Notification" in window && Notification.permission === "granted";
+  $("#notif-state").textContent = ok ? "Rappels activés" : "Rappels désactivés";
+  $("#notif-state").className = "pill" + (ok ? "" : " soon");
+  return ok;
+}
+$("#notif-btn").addEventListener("click", async () => {
+  if (!("Notification" in window)) { $("#notif-state").textContent = "Rappels non pris en charge ici"; return; }
+  try { await Notification.requestPermission(); } catch {}
+  notifState(); scheduleReminders();
+});
+function notify(title, body) {
+  try {
+    if (navigator.serviceWorker?.controller) navigator.serviceWorker.ready.then(r => r.showNotification(title, { body, icon: "icon.svg" }));
+    else new Notification(title, { body });
+  } catch {}
+}
+function scheduleReminders() {
+  timers.forEach(clearTimeout); timers = [];
+  if (!notifState()) return;
+  const fired = store.get("fired", {});
+  for (const e of events) {
+    if (!e.remind || e.sample) continue;
+    const at = evDate(e) - e.remind * 60000, delta = at - Date.now();
+    const key = e.id + at;
+    if (fired[key] || evDate(e) < Date.now()) continue;
+    const go = () => { notify("Rappel : " + e.title, `${fmtDay(evDate(e))} ${e.time || ""} ${e.place ? "· " + e.place : ""}`); fired[key] = 1; store.set("fired", fired); };
+    if (delta <= 0) go(); else if (delta < 2 ** 31 - 1) timers.push(setTimeout(go, delta));
+  }
+}
+
+/* ---------- démarches ---------- */
+const Y = now.getFullYear();
+const nextDate = (m, d) => { const x = new Date(Y, m - 1, d); return (x < startOfDay(now) ? new Date(Y + 1, m - 1, d) : x).toISOString().slice(0, 10); };
+let admin = store.get("admin", null) || [
+  { id: uid(), title: "Ouverture de la déclaration de revenus (impots.gouv.fr)", date: nextDate(4, 10), note: "Vers mi-avril" },
+  { id: uid(), title: "Date limite déclaration en ligne, Rhône (zone 3)", date: nextDate(6, 5), note: "Début juin pour les départements 55 à 976" },
+  { id: uid(), title: "Taxe foncière : date limite de paiement", date: nextDate(10, 15), note: "Mi-octobre, +5 jours en ligne" },
+  { id: uid(), title: "CAF : déclaration trimestrielle de ressources", date: nextDate(now.getMonth() + 2 > 12 ? 1 : now.getMonth() + 2, 1), note: "Si tu touches la prime d'activité ou le RSA" },
+  { id: uid(), title: "Tarare, espace famille : inscriptions cantine et périscolaire", date: nextDate(6, 15), note: "Avant la rentrée, à vérifier en mairie" },
+  { id: uid(), title: "Contrôle technique de la voiture", date: "", note: "Ajoute la date de ton prochain contrôle" },
+];
+const saveAdmin = () => { store.set("admin", admin); renderAdmin(); };
+function dueItem(x, list, save, kind) {
+  const dd = x.date ? daysUntil(x.date) : null;
+  const state = x.done ? "done" : dd == null ? "" : dd < 0 ? "late" : dd <= 30 ? "soon" : "";
+  const pill = x.done ? "fait" : dd == null ? "date ?" : kind === "paper" ? (dd < 0 ? "expiré" : dd <= 90 ? `expire dans ${dd} j` : "valide") : dd < 0 ? "dépassé" : dd === 0 ? "aujourd'hui" : `J-${dd}`;
+  const date = el("input", { type: "date", value: x.date || "", "aria-label": "Date pour " + x.title, onchange: e => { x.date = e.target.value; save(); } });
+  return el("div", { class: "item " + state },
+    el("input", { type: "checkbox", checked: !!x.done, "aria-label": "Marquer comme fait : " + x.title, onchange: e => { x.done = e.target.checked; save(); } }),
+    el("div", { class: "what" }, el("div", {}, emoSpan(x.title, kind === "paper" ? "📁" : "📌"), x.title), x.note ? el("div", { class: "small muted", text: x.note }) : null, el("div", { class: "row small" }, date, el("span", { class: "pill " + (state === "late" ? "warn" : state === "soon" ? "soon" : ""), text: pill }))),
+    el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer " + x.title, text: "✕", onclick: () => { list.splice(list.indexOf(x), 1); save(); } }));
+}
+const byDate = (a, b) => (a.done - b.done) || ((a.date || "9999") < (b.date || "9999") ? -1 : 1);
+function renderAdmin() {
+  admin.sort(byDate);
+  $("#admin-list").replaceChildren(...admin.map(x => dueItem(x, admin, saveAdmin, "admin")));
+  const soon = [...admin.filter(x => !x.done && x.date && daysUntil(x.date) <= 45), ...papers.filter(x => x.date && daysUntil(x.date) <= 90)].sort(byDate).slice(0, 4);
+  $("#home-reminders").replaceChildren(...(soon.length ? soon.map(x => {
+    const dd = daysUntil(x.date);
+    return el("div", { class: "item " + (dd < 0 ? "late" : "soon") }, el("div", { class: "when", text: fmtDay(x.date + "T12:00") }), el("div", { class: "what" }, emoSpan(x.title, "📌"), x.title), el("span", { class: "pill " + (dd < 0 ? "warn" : "soon"), text: dd < 0 ? "dépassé" : `J-${dd}` }));
+  }) : [el("p", { class: "muted", text: "Rien d'urgent dans les 45 prochains jours." })]));
+}
+$("#adm-form").addEventListener("submit", e => { e.preventDefault(); admin.push({ id: uid(), title: $("#adm-title").value.trim(), date: $("#adm-date").value }); e.target.reset(); saveAdmin(); });
+
+let papers = store.get("papers", null) || ["Carte d'identité", "Passeport", "Permis de conduire", "Carte grise", "Attestation d'assurance auto", "Carte Vitale", "Livret de famille"].map(t => ({ id: uid(), title: t, date: "" }));
+const savePapers = () => { store.set("papers", papers); renderPapers(); renderAdmin(); };
+function renderPapers() { papers.sort(byDate); $("#papers-list").replaceChildren(...papers.map(x => dueItem(x, papers, savePapers, "paper"))); }
+$("#pap-form").addEventListener("submit", e => { e.preventDefault(); papers.push({ id: uid(), title: $("#pap-title").value.trim(), date: $("#pap-date").value }); e.target.reset(); savePapers(); });
+
+/* ---------- voiture / GPS ---------- */
+$("#gps-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const q = encodeURIComponent($("#gps-dest").value.trim());
+  $("#gps-links").replaceChildren(
+    ext(`https://waze.com/ul?q=${q}&navigate=yes`, "Ouvrir dans Waze", "btn primary"),
+    ext(`https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=driving`, "Google Maps"),
+    ext(`https://maps.apple.com/?daddr=${q}`, "Plans (iPhone)"));
+});
+async function loadFuel() {
+  const box = $("#fuel-body");
+  try {
+    const j = await getJSON(`https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records?where=ville%3D%22Tarare%22&limit=10`);
+    const rows = (j.results || []).filter(r => r.gazole_prix || r.e10_prix || r.sp95_prix);
+    if (!rows.length) return;
+    const fmt = v => v ? Number(v).toFixed(3).replace(".", ",") + " €" : "–";
+    box.replaceChildren(el("div", { class: "label", text: "Prix à Tarare aujourd'hui" }),
+      ...rows.slice(0, 4).map(r => el("div", { class: "row", style: "justify-content:space-between;border-top:1px solid var(--line);padding:6px 0" },
+        el("span", { text: r.adresse || "Station" }), el("span", { style: "font-variant-numeric:tabular-nums", text: `Gazole ${fmt(r.gazole_prix)} · E10 ${fmt(r.e10_prix)}` }))));
+  } catch { /* lien prix-carburants suffit */ }
+}
+
+/* ---------- transports en commun ---------- */
+const NETS = {
+  lyon: { name: "Lyon (TCL)", center: [45.764, 4.8357], radius: 20, links: [
+    ["https://www.tcl.fr/perturbations-et-travaux", "Perturbations TCL", "Métro, tram, bus en direct"],
+    ["https://www.tcl.fr/itineraires", "Itinéraire TCL", "Calculer un trajet"],
+    ["https://www.tcl.fr/titres-et-tarifs", "Tickets et tarifs", "Ticket, Pass, appli TCL"],
+    ["https://www.ter.sncf.com/auvergne-rhone-alpes/se-deplacer/info-trafic", "TER Auvergne-Rhône-Alpes", "Ligne Tarare–Lyon, info trafic"],
+  ] },
+  paris: { name: "Paris (RATP)", center: [48.8566, 2.3522], radius: 25, links: [
+    ["https://www.ratp.fr/infos-trafic", "Info trafic RATP", "Métro, RER, bus en direct"],
+    ["https://www.iledefrance-mobilites.fr/", "Île-de-France Mobilités", "Itinéraires, tous réseaux"],
+    ["https://www.iledefrance-mobilites.fr/titres-et-tarifs", "Tickets et tarifs", "Navigo, tickets"],
+    ["https://www.transilien.com/", "Transilien", "Trains de banlieue"],
+  ] },
+};
+let net = "lyon";
+for (const [k, n] of Object.entries(NETS)) $("#net-tabs").append(el("button", { class: "btn", type: "button", "data-net": k, text: n.name, onclick: () => showNet(k) }));
+function showNet(k) {
+  net = k;
+  for (const b of $("#net-tabs").children) b.setAttribute("aria-pressed", String(b.dataset.net === k));
+  $("#net-body").replaceChildren(...NETS[k].links.map(([href, t, s], i) => lb(href, ["⚠️", "🧭", "🎟️", "🚆"][i], t)));
+}
+const distKm = (a, b) => {
+  const R = 6371, r = x => x * Math.PI / 180, dLat = r(b[0] - a[0]), dLon = r(b[1] - a[1]);
+  return 2 * R * Math.asin(Math.sqrt(Math.sin(dLat / 2) ** 2 + Math.cos(r(a[0])) * Math.cos(r(b[0])) * Math.sin(dLon / 2) ** 2));
+};
+function locate(silent) {
+  if (!navigator.geolocation) { if (!silent) $("#locate-msg").textContent = "La localisation n'est pas disponible ici. Choisis le réseau à la main."; return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    const me = [pos.coords.latitude, pos.coords.longitude];
+    const near = Object.entries(NETS).map(([k, n]) => [k, distKm(me, n.center)]).sort((a, b) => a[1] - b[1])[0];
+    if (near[1] <= NETS[near[0]].radius) {
+      showNet(near[0]);
+      $("#locate-msg").textContent = `Tu es à ${Math.round(near[1])} km du centre de ${near[0] === "lyon" ? "Lyon" : "Paris"} : voici le réseau local.`;
+      const n = NETS[near[0]];
+      const b = $("#near-banner");
+      b.replaceChildren(el("div", { class: "banner" }, el("strong", { text: `Tu es près de ${near[0] === "lyon" ? "Lyon" : "Paris"}` }),
+        el("span", {}, "Pense à vérifier le trafic : ", el("a", { href: n.links[0][0], target: "_blank", rel: "noopener", text: n.links[0][1] }))));
+      b.hidden = false;
+    } else if (!silent) $("#locate-msg").textContent = "Tu n'es ni à Lyon ni à Paris. Choisis un réseau ci-dessous.";
+  }, () => { if (!silent) $("#locate-msg").textContent = "Localisation refusée ou indisponible. Choisis le réseau à la main."; }, { maximumAge: 600000, timeout: 10000 });
+}
+$("#locate-btn").addEventListener("click", () => locate(false));
+
+/* ---------- voyage ---------- */
+$("#trip-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const from = $("#trip-from").value.trim() || "Lyon", to = $("#trip-to").value.trim(), date = $("#trip-date").value;
+  const F = encodeURIComponent(from), T = encodeURIComponent(to);
+  const L = [
+    [`https://www.sncf-connect.com/`, "SNCF Connect", "Trains, TGV, TER"],
+    [`https://www.thetrainline.com/fr`, "Trainline", "Comparer les trains"],
+    [`https://www.google.com/travel/flights?q=${encodeURIComponent(`Vols de ${from} à ${to}${date ? " le " + date : ""}`)}`, "Google Vols", "Prix des billets d'avion"],
+    [`https://www.lyonaeroports.com/`, "Aéroport Lyon-Saint Exupéry", "Départs, parkings"],
+    [`https://www.blablacar.fr/search?fn=${F}&tn=${T}${date ? "&db=" + date : ""}`, "BlaBlaCar", "Covoiturage et bus"],
+    [`https://www.google.com/maps/dir/?api=1&origin=${F}&destination=${T}&travelmode=driving`, "En voiture", "Itinéraire et péages"],
+    [`https://www.booking.com/searchresults.fr.html?ss=${T}${date ? "&checkin=" + date : ""}`, "Hébergement", "Hôtels à " + to],
+    [`https://www.diplomatie.gouv.fr/fr/conseils-aux-voyageurs/`, "Conseils aux voyageurs", "Si tu pars à l'étranger"],
+  ];
+  $("#trip-links").replaceChildren(...L.map(([href, t, s], i) => lb(href, ["🚄", "🚆", "✈️", "🛫", "🚙", "🚗", "🏨", "🌍"][i], t)));
+  const box = $("#trip-wx"); box.textContent = "";
+  try {
+    const g = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${T}&count=1&language=fr`);
+    const p = g.results?.[0]; if (!p) return;
+    const d = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7`);
+    box.replaceChildren(el("div", { class: "label", text: `Météo à ${p.name}${p.country ? " (" + p.country + ")" : ""}` }));
+    const row = el("div", { class: "wx-days", style: "grid-template-columns:repeat(7,minmax(0,1fr))" });
+    row.innerHTML = d.daily.time.map((t, i) => `<div><span class="small">${new Date(t).toLocaleDateString("fr-FR", { weekday: "short" })}</span>${wxSvg(WMO(d.daily.weather_code[i])[1])}<strong class="small">${Math.round(d.daily.temperature_2m_max[i])}°</strong></div>`).join("");
+    box.append(row);
+  } catch {}
+});
+let pack = store.get("pack", null) || ["Carte d'identité ou passeport", "Billets et réservations", "Chargeur de téléphone", "Médicaments", "Carte Vitale", "Trousse de toilette", "Vêtements pour la météo prévue"].map(t => ({ t, ok: false }));
+function renderPack() {
+  $("#pack-list").replaceChildren(...pack.map(p => el("label", { class: "item" + (p.ok ? " done" : "") },
+    el("input", { type: "checkbox", checked: p.ok, onchange: e => { p.ok = e.target.checked; store.set("pack", pack); renderPack(); } }), el("span", { class: "what", text: p.t }), el("span"))),
+    el("button", { class: "btn", type: "button", text: "Tout décocher", onclick: () => { pack.forEach(p => p.ok = false); store.set("pack", pack); renderPack(); } }));
+}
+
+
+/* ---------- maison : courses ---------- */
+const RAYONS = [
+  ["Boulangerie", /pain|brioche|baguette|croissant|viennoiserie|biscotte/],
+  ["Fruits et légumes", /salade|tomate|pomme|banane|carotte|oignon|courgette|poire|orange|citron|légume|fruit|avocat|patate|pomme de terre|ail|concombre|raisin/],
+  ["Crémerie", /fromage|lait|yaourt|beurre|crème|oeuf|œuf|comté|emmental|chèvre|camembert|raclette|mozzarella/],
+  ["Viande et poisson", /viande|poulet|jambon|steak|poisson|saumon|thon|saucisse|lardon|dinde|boeuf|bœuf|porc/],
+  ["Épicerie", /nutella|café|thé|pâtes|riz|sucre|farine|huile|chocolat|confiture|céréale|sel|poivre|conserve|sauce|biscuit|miel/],
+  ["Boissons", /eau|jus|vin|bière|soda|sirop/],
+  ["Surgelés", /surgel|glace|pizza/],
+  ["Maison et hygiène", /papier|lessive|savon|shampo|éponge|dentifrice|liquide|sac|essuie|mouchoir|gel douche|déodorant/],
+];
+const rayonOf = n => (RAYONS.find(([, re]) => re.test(n.toLowerCase())) || ["Autre"])[0];
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const euro = v => v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+const parseNum = v => { const n = parseFloat(String(v).replace(",", ".").replace(/[^\d.]/g, "")); return isNaN(n) ? null : n; };
+
+let shop = store.get("shop", []);
+let habits = store.get("habits", null) || [["Brioche", 7, 2.5], ["Nutella", 7, 4.2], ["Café viennois", 7, 3.5], ["Salade", 7, 1.3], ["Fromages", 7, 4]].map(([name, every, price]) => ({ id: uid(), name, every, price }));
+let purchases = store.get("purchases", []);
+const saveShop = () => { store.set("shop", shop); store.set("habits", habits); store.set("purchases", purchases); renderShop(); renderHabits(); renderHouseHome(); };
+const lastBought = name => purchases.filter(p => p.name.toLowerCase() === name.toLowerCase()).map(p => p.date).sort().pop();
+const habitDue = h => { const l = lastBought(h.name); return !l || -daysUntil(l) >= h.every - 1; };
+const onList = name => shop.some(i => i.name.toLowerCase() === name.toLowerCase());
+
+function renderShop() {
+  const left = shop.filter(i => !i.done).length;
+  $("#shop-count").textContent = shop.length ? `${left} à prendre` : "vide";
+  const groups = {};
+  for (const i of shop) (groups[i.cat] ||= []).push(i);
+  const order = [...RAYONS.map(r => r[0]), "Autre"];
+  const kids = order.filter(c => groups[c]).map(c => el("div", { class: "shop-group" }, el("div", { class: "label", text: ({"Boulangerie": "🥖", "Fruits et légumes": "🥕", "Crémerie": "🧀", "Viande et poisson": "🥩", "Épicerie": "🥫", "Boissons": "🥤", "Surgelés": "🧊", "Maison et hygiène": "🧴", "Autre": "📦"})[c] + " " + c }),
+    ...groups[c].sort((a, b) => a.done - b.done).map(i => el("label", { class: "shop-item" + (i.done ? " done" : "") },
+      el("input", { type: "checkbox", checked: !!i.done, onchange: e => { i.done = e.target.checked; saveShop(); } }),
+      el("span", { class: "what" }, emoSpan(i.name, "🛒"), i.name, i.qty ? el("span", { class: "muted", text: " × " + i.qty }) : null),
+      el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + i.name, text: "✕", onclick: e => { e.preventDefault(); shop = shop.filter(x => x !== i); saveShop(); } })))));
+  $("#shop-list").replaceChildren(...(kids.length ? kids : [el("p", { class: "muted", text: "Ta liste est vide. Ajoute un article ou tes habituels." })]));
+  $("#shop-suggest").replaceChildren(...[...new Set([...habits.map(h => h.name), ...purchases.map(p => p.name)])].map(n => el("option", { value: n })));
+}
+function addToList(name, qty = "") {
+  name = name.trim(); if (!name) return;
+  const ex = shop.find(i => i.name.toLowerCase() === name.toLowerCase());
+  if (ex) { ex.done = false; if (qty) ex.qty = qty; } else shop.push({ id: uid(), name, qty, cat: rayonOf(name), done: false });
+}
+$("#shop-form").addEventListener("submit", e => { e.preventDefault(); addToList($("#shop-name").value, $("#shop-qty").value.trim()); e.target.reset(); saveShop(); $("#shop-name").focus(); });
+$("#shop-done").addEventListener("click", () => {
+  const bought = shop.filter(i => i.done);
+  if (!bought.length) { $("#shop-msg").textContent = "Coche d'abord les articles que tu as pris."; return; }
+  const d = todayISO();
+  for (const i of bought) { const h = habits.find(h => h.name.toLowerCase() === i.name.toLowerCase()); purchases.push({ name: i.name, date: d, price: h?.price ?? null }); }
+  purchases = purchases.filter(p => daysUntil(p.date) > -400);
+  shop = shop.filter(i => !i.done);
+  $("#shop-msg").textContent = `${bought.length} article${bought.length > 1 ? "s" : ""} enregistré${bought.length > 1 ? "s" : ""} dans ton historique.`;
+  saveShop();
+});
+$("#shop-habits-add").addEventListener("click", () => {
+  const due = habits.filter(h => habitDue(h) && !onList(h.name));
+  due.forEach(h => addToList(h.name));
+  $("#shop-msg").textContent = due.length ? `Ajouté : ${due.map(h => h.name).join(", ")}.` : "Rien à racheter pour l'instant.";
+  saveShop();
+});
+function renderHabits() {
+  const month = todayISO().slice(0, 7);
+  const spend = purchases.filter(p => p.date.startsWith(month) && p.price).reduce((s, p) => s + p.price, 0);
+  $("#habit-spend").textContent = spend ? `Habituels ce mois : ${euro(spend)}` : "";
+  $("#habit-list").replaceChildren(...habits.map(h => {
+    const l = lastBought(h.name), n4 = purchases.filter(p => p.name.toLowerCase() === h.name.toLowerCase() && daysUntil(p.date) >= -28).length;
+    const due = habitDue(h), ago = l ? -daysUntil(l) : null;
+    const sub = [l ? (ago === 0 ? "aujourd'hui" : `il y a ${ago} j`) : null, n4 ? `${n4}× en 4 sem.` : null, h.price ? euro(h.price) : null].filter(Boolean).join(" · ");
+    return el("div", { class: "item" + (due ? " soon" : "") },
+      el("button", { class: "btn" + (onList(h.name) ? "" : " primary"), type: "button", "aria-label": "Ajouter " + h.name + " à la liste", text: onList(h.name) ? "✓" : "+ 🛒", disabled: onList(h.name), onclick: () => { addToList(h.name); saveShop(); } }),
+      el("div", { class: "what" }, el("div", {}, emoSpan(h.name, "⭐"), h.name, " ", el("span", { class: "pill" + (due ? " soon" : ""), text: due ? "à racheter" : ({ 3: "tous les 3 j", 7: "chaque semaine", 14: "toutes les 2 sem.", 30: "chaque mois" }[h.every] || `tous les ${h.every} j`) })), el("div", { class: "small muted", text: sub })),
+      el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer " + h.name, text: "✕", onclick: () => { habits = habits.filter(x => x !== h); saveShop(); } }));
+  }));
+}
+$("#habit-form").addEventListener("submit", e => { e.preventDefault(); habits.push({ id: uid(), name: $("#habit-name").value.trim(), every: +$("#habit-every").value, price: parseNum($("#habit-price").value) }); e.target.reset(); saveShop(); });
+
+/* ---------- maison : compteurs ---------- */
+const METERS = {
+  elec: { label: "Électricité", unit: "kWh", price: 0.20, priceUnit: "€/kWh", hint: "Prix indicatif, regarde ta facture",
+    links: [["https://mon-compte-particulier.enedis.fr/", "Enedis", "Ta conso jour par jour avec Linky"], ["https://www.economie.gouv.fr/particuliers/faire-des-economies-energie", "Économies d'énergie", "Conseils et aides"]] },
+  eau: { label: "Eau", unit: "m³", price: 4.30, priceUnit: "€/m³", hint: "Prix moyen en France, regarde ta facture",
+    links: [["https://www.services.eaufrance.fr/", "Services eaufrance", "Prix et qualité de l'eau à Tarare"], ["https://www.jeconomiseleau.org/", "Économiser l'eau", "Gestes simples"]] },
+};
+let meter = "elec";
+let readings = store.get("readings", null);
+if (!readings) {
+  const d = n => new Date(Date.now() - n * DAY).toISOString().slice(0, 10);
+  readings = { elec: [[d(150), 41250], [d(120), 41520], [d(90), 41760], [d(60), 42080], [d(30), 42460], [d(1), 42830]].map(([date, index]) => ({ date, index, sample: true })),
+               eau: [[d(150), 812], [d(90), 830], [d(30), 849]].map(([date, index]) => ({ date, index, sample: true })) };
+}
+let prices = store.get("prices", { elec: METERS.elec.price, eau: METERS.eau.price });
+const saveMeters = () => { store.set("readings", readings); store.set("prices", prices); renderMeter(); renderHouseHome(); };
+for (const [k, m] of Object.entries(METERS)) $("#meter-tabs").append(el("button", { class: "btn", type: "button", "data-meter": k, text: (k === "elec" ? "⚡ " : "💧 ") + m.label, onclick: () => { meter = k; renderMeter(); } }));
+function renderMeter() {
+  const M = METERS[meter], R = [...readings[meter]].sort((a, b) => a.date < b.date ? -1 : 1), price = prices[meter];
+  for (const b of $("#meter-tabs").children) b.setAttribute("aria-pressed", String(b.dataset.meter === meter));
+  const periods = R.slice(1).map((r, i) => { const days = Math.max(1, (new Date(r.date) - new Date(R[i].date)) / DAY); const used = r.index - R[i].index; return { end: r.date, days, used, perDay: used / days }; });
+  const last = periods.at(-1), stats = [];
+  if (last) {
+    const month = last.perDay * 30.4;
+    stats.push(["Par jour", `${last.perDay.toFixed(meter === "eau" ? 2 : 1).replace(".", ",")} ${M.unit}`]);
+    stats.push(["Par mois (estimé)", `${Math.round(month * (meter === "eau" ? 10 : 1)) / (meter === "eau" ? 10 : 1)} ${M.unit}`.replace(".", ",")]);
+    stats.push(["Coût par mois", euro(month * price)]);
+    if (periods.length > 1) { const prev = periods.at(-2).perDay, ch = Math.round((last.perDay / prev - 1) * 100); stats.push(["Par rapport à avant", `${ch > 0 ? "+" : ""}${ch} %`]); }
+  }
+  $("#meter-stats").replaceChildren(...(stats.length ? stats.map(([l, v]) => el("div", { class: "stat" }, el("span", { class: "label", text: l }), el("strong", { text: v }))) : [el("p", { class: "muted", text: "📝 Note 2 relevés pour voir ta conso" })]));
+  const show = periods.slice(-6), max = Math.max(...show.map(p => p.perDay), 0.0001);
+  const chart = el("div", { class: "bars", role: "img", "aria-label": `Consommation moyenne par jour, ${show.length} dernières périodes` });
+  show.forEach((p, i) => chart.append(el("div", {}, el("span", { text: p.perDay.toFixed(meter === "eau" ? 2 : 1).replace(".", ",") }), el("div", { class: "bar" + (i === show.length - 1 ? " last" : ""), style: `height:${Math.max(2, p.perDay / max * 80)}px` }), el("span", { text: new Date(p.end).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) }))));
+  $("#meter-chart").replaceChildren(...(show.length ? [el("div", { class: "label", text: `Moyenne par jour (${M.unit}), relevé par relevé` }), chart] : []));
+  $("#meter-price-label").textContent = `Prix (${M.priceUnit})`;
+  $("#meter-price").value = String(price).replace(".", ",");
+  $("#meter-price-hint").textContent = M.hint;
+  $("#meter-index").placeholder = `Index du compteur (${M.unit})`;
+  if (!$("#meter-date").value) $("#meter-date").value = todayISO();
+  const anySample = R.some(r => r.sample);
+  $("#meter-list").replaceChildren(
+    ...(anySample ? [el("div", { class: "notice", text: "👀 Relevés d'exemple : ils partent dès ton premier relevé." })] : []),
+    ...R.slice(-4).reverse().map(r => el("div", { class: "item" }, el("div", { class: "when", text: new Date(r.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) }), el("div", { class: "what", text: `${r.index.toLocaleString("fr-FR")} ${M.unit}` }),
+      el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer ce relevé", text: "✕", onclick: () => { readings[meter] = readings[meter].filter(x => x !== r); saveMeters(); } }))));
+  $("#meter-links").replaceChildren(...M.links.map(([href, t], i) => lb(href, meter === "elec" ? ["⚡", "💡"][i] : ["💧", "🚿"][i], t)));
+}
+$("#meter-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const v = parseNum($("#meter-index").value); if (v == null) return;
+  readings[meter] = readings[meter].filter(r => !r.sample && r.date !== $("#meter-date").value);
+  readings[meter].push({ date: $("#meter-date").value, index: v });
+  $("#meter-index").value = ""; saveMeters();
+});
+$("#meter-price").addEventListener("change", e => { const v = parseNum(e.target.value); if (v != null) { prices[meter] = v; saveMeters(); } });
+
+/* ---------- maison : tâches ---------- */
+let chores = store.get("chores", null) || [["Sortir les poubelles", 7], ["Changer les draps", 14], ["Ménage salle de bain", 7], ["Arroser les plantes", 4], ["Détartrer la cafetière", 30], ["Dégivrer le congélateur", 180]].map(([name, every]) => ({ id: uid(), name, every, last: "" }));
+const saveChores = () => { store.set("chores", chores); renderChores(); renderHouseHome(); };
+const choreLeft = c => c.last ? c.every + daysUntil(c.last) : 0;
+function renderChores() {
+  chores.sort((a, b) => choreLeft(a) - choreLeft(b));
+  $("#chore-list").replaceChildren(...chores.map(c => {
+    const left = choreLeft(c);
+    return el("div", { class: "item" + (left < 0 ? " late" : left === 0 ? " soon" : "") },
+      el("button", { class: "btn", type: "button", text: "✓", "aria-label": "Marquer fait : " + c.name, onclick: () => { c.last = todayISO(); saveChores(); } }),
+      el("div", { class: "what" }, el("div", {}, emoSpan(c.name, "✨"), c.name), el("div", { class: "small muted", text: (c.last ? `fait le ${new Date(c.last).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} · ` : "") + ({ 1: "chaque jour", 7: "chaque semaine", 14: "toutes les 2 semaines", 30: "chaque mois", 90: "tous les 3 mois", 365: "chaque année" }[c.every] || `tous les ${c.every} jours`) })),
+      el("span", { class: "pill" + (left < 0 ? " warn" : left === 0 ? " soon" : ""), text: !c.last ? "à faire" : left < 0 ? `retard ${-left} j` : left === 0 ? "aujourd'hui" : `dans ${left} j` }));
+  }));
+}
+$("#chore-form").addEventListener("submit", e => { e.preventDefault(); chores.push({ id: uid(), name: $("#chore-name").value.trim(), every: +$("#chore-every").value, last: "" }); e.target.reset(); saveChores(); });
+
+const TILES = [
+  ["news", "news", "Infos", null], ["agenda", "agenda", "Agenda", () => events.filter(e => !e.sample && daysUntil(e.date) >= 0 && daysUntil(e.date) <= 7).length],
+  ["home2", "shop", "Courses", () => shop.filter(i => !i.done).length], ["move", "car", "Trajets", null],
+  ["admin", "admin", "Démarches", () => admin.filter(x => !x.done && x.date && daysUntil(x.date) <= 30).length], ["news:bonnes", "good", "Bonheur", null],
+];
+function renderTiles() {
+  $("#tiles").replaceChildren(...TILES.map(([go, sec, label, count]) => {
+    const n = count ? count() : 0;
+    const [view, feed] = go.split(":");
+    const t = el("button", { class: "tile", type: "button", "data-sec": sec, "data-goto": view, "data-feed": feed || false });
+    t.innerHTML = svg(SEC_ICON[sec]) + `<span>${label}</span>` + (n ? `<span class="count">${n}</span>` : "");
+    return t;
+  }));
+}
+function renderHouseHome() {
+  renderTiles();
+  const rows = [];
+  const left = shop.filter(i => !i.done).length, due = habits.filter(h => habitDue(h) && !onList(h.name));
+  rows.push(el("div", { class: "item" }, el("div", { class: "when emo", text: "🛒" }), el("div", { class: "what" }, el("div", { text: left ? `${left} article${left > 1 ? "s" : ""} à acheter` : "Liste vide" }), due.length ? el("div", { class: "small muted", text: due.map(h => emo(h.name, "⭐") + " " + h.name).join("  ") }) : null), el("span")));
+  for (const c of chores.filter(c => c.last && choreLeft(c) <= 0).slice(0, 3)) rows.push(el("div", { class: "item soon" }, el("div", { class: "when emo", text: emo(c.name, "✨") }), el("div", { class: "what", text: c.name }), el("span", { class: "pill soon", text: choreLeft(c) < 0 ? "en retard" : "aujourd'hui" })));
+  const lastElec = [...readings.elec].filter(r => !r.sample).map(r => r.date).sort().pop();
+  if (!lastElec || daysUntil(lastElec) < -30) rows.push(el("div", { class: "item" }, el("div", { class: "when emo", text: "⚡💧" }), el("div", { class: "what", text: "Relève tes compteurs" }), el("span")));
+  $("#home-house").replaceChildren(...rows);
+}
+
+/* ---------- démarrage ---------- */
+renderAgenda(); renderPapers(); renderAdmin(); renderPack(); showNet("lyon");
+renderShop(); renderHabits(); renderMeter(); renderChores(); renderHouseHome();
+show(store.get("view", "home"));
+loadWeather(); loadGoodNews(); loadFuel(); scheduleReminders();
+try { if (navigator.permissions) navigator.permissions.query({ name: "geolocation" }).then(s => { if (s.state === "granted") locate(true); }).catch(() => {}); } catch {}
+try { if ("serviceWorker" in navigator && location.protocol === "https:" && document.querySelector('link[rel="manifest"]')) navigator.serviceWorker.register("sw.js").catch(() => {}); } catch {}
+})();
+</script>
