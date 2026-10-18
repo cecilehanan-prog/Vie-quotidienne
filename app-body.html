@@ -62,6 +62,10 @@ h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; mar
 #wx-body { display: grid; gap: 12px; }
 .card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 12px 8px; }
+.app { display: flex; flex-direction: column; align-items: center; gap: 5px; text-decoration: none; color: inherit; min-width: 0; }
+.app i { width: 56px; height: 56px; border-radius: 15px; display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: .95rem; box-shadow: 0 2px 6px rgba(0,0,0,.18); }
+.app span { font-size: .72rem; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 
 .btn { border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 7px 14px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-size: .93rem; color: var(--fg); }
@@ -387,6 +391,19 @@ details summary { cursor: pointer; font-weight: 700; }
         <summary>🧳 Ma valise</summary>
         <div class="list" id="pack-list" style="margin-top:10px"></div>
       </details>
+    </article>
+    <article class="card" data-sec="trip">
+      <h2>📱 Mes applis</h2>
+      <div class="apps" id="my-apps"></div>
+    </article>
+    <article class="card" data-sec="transit">
+      <h2>📍 Autour de moi</h2>
+      <button class="btn primary" type="button" id="around-btn">📍 Me localiser</button>
+      <p class="small muted" id="around-msg"></p>
+      <div class="label">🔎 Trouver</div>
+      <div class="grid2" id="around-find"></div>
+      <div class="label">🚦 En direct</div>
+      <div class="grid2" id="around-live"></div>
     </article>
   </section>
 
@@ -872,6 +889,50 @@ function locate(silent) {
 }
 $("#locate-btn").addEventListener("click", () => locate(false));
 
+
+/* ---------- mes applis + autour de moi ---------- */
+const APPS = [
+  ["https://www.booking.com/", "Booking", "B.", "#003580", "#fff"],
+  ["https://www.google.com/maps", "Maps", "📍", "#fff", "#000"],
+  ["https://waze.com/ul", "Waze", "🚙", "#33ccff", "#000"],
+  ["https://www.sncf-connect.com/", "SNCF", "🚄", "#0c131f", "#9ee6ff"],
+  ["https://www.ouigo.com/", "OUIGO", "ouigo", "#e5007d", "#fff"],
+  ["https://www.thetrainline.com/fr", "Trainline", "train", "#00a88f", "#fff"],
+  ["https://www.tcl.fr/", "TCL", "TCL", "#000", "#fff"],
+  ["https://transitapp.com/", "Transit", "🚌", "#30b566", "#fff"],
+  ["https://www.oura.com/", "Oùra", "oùra", "#f2f2fb", "#3a3aa8"],
+  ["https://www.easyjet.com/fr", "easyJet", "✈️", "#ff6600", "#fff"],
+  ["https://www.lpa.fr/", "LPA", "P", "#111", "#ffe600"],
+  ["https://lambus.com/", "Lambus", "🗺️", "#7bd389", "#000"],
+  ["https://www.deepl.com/translator", "DeepL", "🌐", "#0f2b46", "#fff"],
+  ["https://www.flightradar24.com/", "Avions", "🛩️", "#1b1f2a", "#ffcc00"],
+];
+$("#my-apps").replaceChildren(...APPS.map(([href, t, ic, bg, fg]) =>
+  el("a", { class: "app", href, target: "_blank", rel: "noopener" }, el("i", { text: ic, style: `background:${bg};color:${fg}` }), el("span", { text: t }))));
+const FIND = [["💊", "Pharmacie", "pharmacie"], ["🛒", "Supermarché", "supermarché"], ["🍽️", "Restaurant", "restaurant"], ["🥖", "Boulangerie", "boulangerie"],
+  ["⛽", "Essence", "station essence"], ["🏧", "Distributeur", "distributeur de billets"], ["🅿️", "Parking", "parking"], ["🏥", "Urgences", "urgences hôpital"]];
+function renderAround(me) {
+  const at = me ? `/@${me[0].toFixed(5)},${me[1].toFixed(5)},15z` : "";
+  $("#around-find").replaceChildren(...FIND.map(([e, t, q]) =>
+    lb(`https://www.google.com/maps/search/${encodeURIComponent(me ? q : q + " près de moi")}${at}`, e, t)));
+  const ll = me ? `${me[0].toFixed(4)},${me[1].toFixed(4)}` : "45.896,4.433";
+  $("#around-live").replaceChildren(
+    lb(`https://www.google.com/maps/@${ll},13z/data=!5m1!1e1`, "🚗", "Trafic routier"),
+    lb(`https://www.waze.com/fr/live-map/`, "🚙", "Waze en direct"),
+    lb(`https://transitapp.com/`, "🚌", "Bus et métro"),
+    lb(`https://www.sncf.com/fr/itineraire-reservation/informations-trafic`, "🚆", "Trains"),
+    lb(`https://www.flightradar24.com/${ll}/9`, "✈️", "Avions au-dessus"),
+    lb(`https://www.3237.fr/`, "💊", "Pharmacie de garde"));
+}
+renderAround(null);
+$("#around-btn").addEventListener("click", () => {
+  if (!navigator.geolocation) { $("#around-msg").textContent = "Localisation indisponible."; return; }
+  $("#around-msg").textContent = "⏳ Je te cherche…";
+  navigator.geolocation.getCurrentPosition(pos => {
+    renderAround([pos.coords.latitude, pos.coords.longitude]);
+    $("#around-msg").textContent = "✅ C'est bon, les boutons montrent ce qui est près de toi.";
+  }, () => { $("#around-msg").textContent = "Localisation refusée. Les boutons cherchent quand même « près de moi »."; }, { maximumAge: 300000, timeout: 10000 });
+});
 /* ---------- voyage ---------- */
 $("#trip-form").addEventListener("submit", async e => {
   e.preventDefault();
