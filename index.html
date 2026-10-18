@@ -642,13 +642,14 @@ async function loadAir(p) {
 /* ---------- actus (flux RSS) ---------- */
 const gnews = q => `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=fr&gl=FR&ceid=FR:fr`;
 const FEEDS = {
-  monde: { label: "🌍 Monde", urls: ["https://www.france24.com/fr/rss"] },
   france: { label: "🇫🇷 France", urls: ["https://www.francetvinfo.fr/titres.rss"] },
   lyon: { label: "🦁 Lyon", urls: ["https://www.lyoncapitale.fr/feed/", gnews("Lyon when:2d")] },
+  courrier: { label: "📰 Courrier", urls: ["https://www.courrierinternational.com/feed/all/rss.xml", gnews("site:courrierinternational.com when:3d")] },
+  bonnes: { label: "🌈 Positif", urls: ["https://positivr.fr/feed/", gnews("\"bonne nouvelle\" OR solidarité OR initiative when:3d")] },
+  monde: { label: "🌍 Monde", urls: ["https://www.france24.com/fr/rss"] },
   tarare: { label: "🏡 Tarare", urls: [gnews("Tarare OR \"Ouest rhodanien\" OR Amplepuis OR Beaujolais when:7d")] },
-  bonnes: { label: "🌈 Bonnes nouvelles", urls: ["https://positivr.fr/feed/", gnews("\"bonne nouvelle\" OR solidarité OR initiative when:3d")] },
 };
-let currentFeed = "monde", newsLoaded = false;
+let currentFeed = "france", newsLoaded = false;
 for (const [k, f] of Object.entries(FEEDS)) {
   $("#news-tabs").append(el("button", { class: "btn", type: "button", "data-feed-tab": k, text: f.label, onclick: () => loadNews(k) }));
 }
