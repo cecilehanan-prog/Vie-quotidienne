@@ -69,6 +69,31 @@ h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; mar
 #wx-body { display: grid; gap: 12px; }
 .card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+#trip-quick .btn { white-space: nowrap; flex: none; }
+.go-btn { width: 100%; justify-content: center; font-size: 1.05rem; padding: 12px; margin-top: 6px; }
+.route { border-radius: 16px; padding: 12px 14px; margin-top: 10px; background: var(--surface); border: 2px solid color-mix(in srgb, var(--mc, var(--sec)) 35%, transparent); display: grid; gap: 8px; }
+.route.best { border-color: var(--mc, var(--sec)); box-shadow: 0 2px 10px color-mix(in srgb, var(--mc, var(--sec)) 25%, transparent); }
+.route .top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.route .hours { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; }
+.route .dur { font-weight: 600; color: var(--muted); }
+.route .star { margin-left: auto; background: #ffc23d; color: #3a2a00; border-radius: 999px; padding: 2px 10px; font-size: .78rem; font-weight: 700; }
+.legs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .85rem; }
+.leg { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); font-weight: 600; }
+.warn { background: #ffe1e1; color: #8a1010; border-radius: 10px; padding: 8px 10px; font-size: .85rem; }
+.route .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.alerts { display: grid; gap: 8px; }
+.alert { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: start; padding: 10px 12px; border-radius: 12px; background: #e3f7e8; color: #0e4d22; }
+.alert.off { background: var(--surface-2); color: var(--muted); }
+.alert.bad { background: #ffe8d6; color: #7a3300; }
+.alert i { font-style: normal; font-size: 1.4rem; grid-row: span 2; }
+.alert a { color: inherit; font-size: .85rem; display: block; }
+.go-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+.go-row input { flex: 1; min-width: 0; font-size: 1.05rem; padding: 10px 12px; }
+.go-ic { font-size: 1.1rem; width: 1.4rem; text-align: center; }
+.modes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 14px 0 6px; }
+.mode { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 2px; border-radius: 16px; border: 2px solid color-mix(in srgb, var(--mc) 40%, transparent); background: color-mix(in srgb, var(--mc) 14%, var(--surface)); color: var(--fg); cursor: pointer; font: inherit; font-size: .78rem; font-weight: 600; }
+.mode i { font-style: normal; font-size: 1.9rem; line-height: 1; }
+.mode[aria-pressed=true] { background: var(--mc); color: #fff; border-color: var(--mc); }
 .apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 12px 8px; }
 .app { display: flex; flex-direction: column; align-items: center; gap: 5px; text-decoration: none; color: inherit; min-width: 0; }
 .app i { width: 56px; height: 56px; border-radius: 15px; display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: .95rem; box-shadow: 0 2px 6px rgba(0,0,0,.18); }
@@ -224,6 +249,11 @@ details summary { cursor: pointer; font-weight: 700; }
   <section class="view" id="view-home">
     <div id="near-banner" hidden></div>
     <div class="tiles" id="tiles"></div>
+
+    <article class="card" data-sec="car">
+      <div class="card-head"><h2>🚦 Info trafic</h2><button class="btn" data-goto="trip">Un trajet ?</button></div>
+      <div class="alerts" id="home-alerts"></div>
+    </article>
 
     <article class="card" data-sec="wx" aria-labelledby="wx-title">
       <div class="card-head">
@@ -385,23 +415,37 @@ details summary { cursor: pointer; font-weight: 700; }
   <!-- ===== VOYAGE ===== -->
   <section class="view" id="view-trip" hidden>
     <article class="card" data-sec="trip">
-      <h2>Voyage</h2>
-      <form class="inline" id="trip-form">
-        <input type="text" id="trip-from" value="Lyon" aria-label="Départ">
-        <input type="text" id="trip-to" placeholder="Destination" required aria-label="Destination">
-        <input type="date" id="trip-date" aria-label="Date de départ">
-        <button class="btn primary" type="submit">Chercher</button>
-      </form>
+      <h2>✈️ Où vas-tu ?</h2>
+      <div class="go-row"><span class="go-ic">🟢</span><input type="text" id="trip-from" value="Tarare" aria-label="Départ"><button class="btn" type="button" id="trip-here" title="Ma position">📍</button></div>
+      <div class="go-row"><span class="go-ic">🔴</span><input type="text" id="trip-to" placeholder="Destination (ville ou adresse)" aria-label="Destination"></div>
+      <div class="tabs" id="trip-quick"></div>
+      <div class="go-row">
+        <div class="seg" role="group" id="trip-when"><button class="btn" type="button" data-arr="0" aria-pressed="true">Partir à</button><button class="btn" type="button" data-arr="1" aria-pressed="false">Arriver à</button></div>
+        <input type="time" id="trip-time" aria-label="Heure">
+      </div>
+      <div class="go-row"><span class="go-ic">📅</span><input type="date" id="trip-date" aria-label="Jour"></div>
+      <button class="btn primary go-btn" type="button" id="trip-go">🔎 Trouver le meilleur trajet</button>
+      <p class="small muted" id="trip-msg"></p>
+      <div id="trip-res"></div>
       <div id="trip-wx"></div>
-      <div class="grid2" id="trip-links"></div>
+      <details>
+        <summary>✈️ Avion · 🏨 Hôtel</summary>
+        <div class="grid2" id="trip-links" style="margin-top:10px"></div>
+      </details>
       <details>
         <summary>🧳 Ma valise</summary>
         <div class="list" id="pack-list" style="margin-top:10px"></div>
       </details>
     </article>
+    <article class="card" data-sec="car">
+      <h2>🚦 Info trafic</h2>
+      <div class="alerts" id="trip-alerts"></div>
+    </article>
     <article class="card" data-sec="trip">
-      <h2>📱 Mes applis</h2>
-      <div class="apps" id="my-apps"></div>
+      <details>
+        <summary>📱 Toutes mes applis</summary>
+        <div class="apps" id="my-apps" style="margin-top:12px"></div>
+      </details>
     </article>
     <article class="card" data-sec="transit">
       <h2>📍 Autour de moi</h2>
@@ -942,32 +986,141 @@ $("#around-btn").addEventListener("click", () => {
   }, () => { $("#around-msg").textContent = "Localisation refusée. Les boutons cherchent quand même « près de moi »."; }, { maximumAge: 300000, timeout: 10000 });
 });
 /* ---------- voyage ---------- */
-$("#trip-form").addEventListener("submit", async e => {
-  e.preventDefault();
-  const from = $("#trip-from").value.trim() || "Lyon", to = $("#trip-to").value.trim(), date = $("#trip-date").value;
-  const F = encodeURIComponent(from), T = encodeURIComponent(to);
-  const L = [
-    [`https://www.sncf-connect.com/`, "SNCF Connect", "Trains, TGV, TER"],
-    [`https://www.thetrainline.com/fr`, "Trainline", "Comparer les trains"],
-    [`https://www.google.com/travel/flights?q=${encodeURIComponent(`Vols de ${from} à ${to}${date ? " le " + date : ""}`)}`, "Google Vols", "Prix des billets d'avion"],
-    [`https://www.lyonaeroports.com/`, "Aéroport Lyon-Saint Exupéry", "Départs, parkings"],
-    [`https://www.blablacar.fr/search?fn=${F}&tn=${T}${date ? "&db=" + date : ""}`, "BlaBlaCar", "Covoiturage et bus"],
-    [`https://www.google.com/maps/dir/?api=1&origin=${F}&destination=${T}&travelmode=driving`, "En voiture", "Itinéraire et péages"],
-    [`https://www.booking.com/searchresults.fr.html?ss=${T}${date ? "&checkin=" + date : ""}`, "Hébergement", "Hôtels à " + to],
-    [`https://www.diplomatie.gouv.fr/fr/conseils-aux-voyageurs/`, "Conseils aux voyageurs", "Si tu pars à l'étranger"],
-  ];
-  $("#trip-links").replaceChildren(...L.map(([href, t, s], i) => lb(href, ["🚄", "🚆", "✈️", "🛫", "🚙", "🚗", "🏨", "🌍"][i], t)));
+/* ----- trajet calculé par l'appli ----- */
+const QUICK = ["Lyon Part-Dieu", "Lyon Perrache", "Tarare", "Roanne", "Villefranche-sur-Saône", "Paris"];
+$("#trip-quick").replaceChildren(...QUICK.map(c => el("button", { class: "btn", type: "button", text: c, onclick: () => { $("#trip-to").value = c; findTrip(); } })));
+let tripHere = null, arriveBy = false;
+const pad = n => String(n).padStart(2, "0");
+const hm = d => `${pad(d.getHours())}h${pad(d.getMinutes())}`;
+(() => { const d = new Date(Date.now() + 10 * 60000); $("#trip-time").value = `${pad(d.getHours())}:${pad(d.getMinutes())}`; $("#trip-date").value = d.toISOString().slice(0, 10); })();
+for (const b of $("#trip-when").children) b.addEventListener("click", () => { arriveBy = b.dataset.arr === "1"; for (const x of $("#trip-when").children) x.setAttribute("aria-pressed", String(x === b)); });
+$("#trip-here").addEventListener("click", () => {
+  if (!navigator.geolocation) return;
+  $("#trip-from").value = "⏳…";
+  navigator.geolocation.getCurrentPosition(p => { tripHere = [p.coords.latitude, p.coords.longitude]; $("#trip-from").value = "📍 Ma position"; },
+    () => { tripHere = null; $("#trip-from").value = "Tarare"; }, { maximumAge: 300000, timeout: 10000 });
+});
+$("#trip-from").addEventListener("input", () => { tripHere = null; });
+$("#trip-to").addEventListener("keydown", e => { if (e.key === "Enter") findTrip(); });
+$("#trip-go").addEventListener("click", findTrip);
+async function geocode(q) {
+  try {
+    const j = await getJSON(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1&lang=fr&lat=45.9&lon=4.43`);
+    const f = j.features?.[0]; if (f) return { pos: [f.geometry.coordinates[1], f.geometry.coordinates[0]], name: f.properties.name || q };
+  } catch {}
+  const g = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=fr`);
+  const p = g.results?.[0]; if (!p) throw new Error("introuvable");
+  return { pos: [p.latitude, p.longitude], name: p.name };
+}
+const LEG_EMO = m => /WALK/.test(m) ? "🚶" : /BUS|COACH/.test(m) ? "🚌" : /TRAM/.test(m) ? "🚊" : /SUBWAY|METRO/.test(m) ? "🚇" : /AIR/.test(m) ? "✈️" : /HIGHSPEED|LONG/.test(m) ? "🚄" : /RAIL|TRAIN/.test(m) ? "🚆" : /BIKE/.test(m) ? "🚲" : /CAR/.test(m) ? "🚗" : "➡️";
+const fmtDur = s => { const m = Math.round(s / 60); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${pad(m % 60)}`; };
+function routeCard({ emo, title, start, end, dur, legs = [], warns = [], acts = [], best, color }) {
+  return el("div", { class: "route" + (best ? " best" : ""), style: `--mc:${color}` },
+    el("div", { class: "top" }, el("span", { class: "hours", text: `${emo} ${hm(start)} → ${hm(end)}` }), el("span", { class: "dur", text: fmtDur(dur) }), best ? el("span", { class: "star", text: "⭐ Le mieux" }) : el("span")),
+    title ? el("div", { class: "small", text: title }) : el("span"),
+    legs.length ? el("div", { class: "legs" }, ...legs) : el("span"),
+    ...warns.map(w => el("div", { class: "warn", text: "⚠️ " + w })),
+    acts.length ? el("div", { class: "acts" }, ...acts.map(([href, t]) => el("a", { class: "btn", href, target: "_blank", rel: "noopener", text: t }))) : el("span"));
+}
+async function findTrip() {
+  const to = $("#trip-to").value.trim(), res = $("#trip-res"), msg = $("#trip-msg");
+  if (!to) { msg.textContent = "👆 Écris ta destination"; $("#trip-to").focus(); return; }
+  const fromTxt = $("#trip-from").value.trim();
+  const when = new Date(`${$("#trip-date").value || new Date().toISOString().slice(0, 10)}T${$("#trip-time").value || "12:00"}`);
+  msg.textContent = "⏳ Je cherche le meilleur trajet…"; res.replaceChildren();
+  let A, B;
+  try {
+    A = tripHere ? { pos: tripHere, name: "ta position" } : await geocode(fromTxt || "Tarare");
+    B = await geocode(to);
+  } catch { msg.textContent = "😕 Je ne trouve pas cette adresse. Essaie avec le nom de la ville."; return; }
+  const ll = p => `${p[0].toFixed(5)},${p[1].toFixed(5)}`;
+  const gmT = `https://www.google.com/maps/dir/?api=1&origin=${ll(A.pos)}&destination=${ll(B.pos)}&travelmode=transit`;
+  const cards = [];
+  const [car, pt] = await Promise.allSettled([
+    getJSON(`https://router.project-osrm.org/route/v1/driving/${A.pos[1]},${A.pos[0]};${B.pos[1]},${B.pos[0]}?overview=false`, 12000),
+    getJSON(`https://api.transitous.org/api/v1/plan?fromPlace=${ll(A.pos)}&toPlace=${ll(B.pos)}&time=${when.toISOString()}&arriveBy=${arriveBy}`, 15000),
+  ]);
+  if (car.status === "fulfilled" && car.value.routes?.[0]) {
+    const dur = car.value.routes[0].duration * 1.1, km = Math.round(car.value.routes[0].distance / 1000);
+    const start = arriveBy ? new Date(when - dur * 1000) : when, end = arriveBy ? when : new Date(+when + dur * 1000);
+    cards.push({ emo: "🚗", title: `En voiture · ${km} km · sans compter les bouchons`, start, end, dur, color: "#f26b1d",
+      acts: [[`https://waze.com/ul?ll=${ll(B.pos)}&navigate=yes`, "🚙 Waze"], [`https://www.google.com/maps/dir/?api=1&origin=${ll(A.pos)}&destination=${ll(B.pos)}&travelmode=driving`, "🗺️ Maps"]] });
+  }
+  if (pt.status === "fulfilled") {
+    const its = (pt.value.itineraries || []).filter(it => it.legs?.some(l => l.mode !== "WALK"));
+    its.slice(0, 4).forEach(it => {
+      const legs = it.legs.filter(l => l.mode !== "WALK" || l.duration > 300).map(l =>
+        el("span", { class: "leg" }, LEG_EMO(l.mode) + " " + (l.mode === "WALK" ? Math.round(l.duration / 60) + " min" : (l.routeShortName || l.agencyName || "") + (l.from?.departure || l.startTime ? " " + hm(new Date(l.startTime)) : ""))));
+      const warns = [];
+      it.legs.forEach(l => {
+        if (l.cancelled) warns.push(`${l.routeShortName || "Un trajet"} est supprimé`);
+        (l.alerts || []).slice(0, 2).forEach(a => warns.push(a.headerText || a.descriptionText || "Perturbation sur la ligne"));
+      });
+      const first = it.legs.find(l => l.mode !== "WALK");
+      cards.push({ emo: LEG_EMO(first?.mode || "BUS"), title: `${it.transfers ? it.transfers + " correspondance" + (it.transfers > 1 ? "s" : "") : "Direct"}${first?.from?.name ? " · départ " + first.from.name : ""}`,
+        start: new Date(it.startTime), end: new Date(it.endTime), dur: it.duration, legs, warns: [...new Set(warns)], color: "#0e7fc0",
+        acts: [[/RAIL|TRAIN/.test(it.legs.map(l => l.mode).join()) ? "https://www.sncf-connect.com/" : gmT, "🎟️ Billet"], [gmT, "🗺️ Détails"]] });
+    });
+  }
+  if (!cards.length) {
+    msg.textContent = "😕 Le calcul ne répond pas pour l'instant. Voici les applis qui le font :";
+    res.replaceChildren(el("div", { class: "grid2" }, lb(`https://waze.com/ul?ll=${ll(B.pos)}&navigate=yes`, "🚙", "Waze"), lb(gmT, "🚌", "Bus et train"), lb("https://www.sncf-connect.com/", "🚄", "SNCF Connect")));
+    return;
+  }
+  const score = c => arriveBy ? -c.start : +c.end;
+  const ok = cards.filter(c => !c.warns?.length);
+  const best = (ok.length ? ok : cards).reduce((a, b) => score(b) < score(a) ? b : a);
+  best.best = true;
+  msg.textContent = `${A.name} → ${B.name}`;
+  res.replaceChildren(...[best, ...cards.filter(c => c !== best)].map(routeCard));
+  tripWeather(to);
+}
+function tripExtraLinks() {
+  const to = $("#trip-to").value.trim() || "Lyon", T = encodeURIComponent(to), date = $("#trip-date").value;
+  $("#trip-links").replaceChildren(
+    lb(`https://www.google.com/travel/flights?q=${encodeURIComponent(`Vols de Lyon à ${to}${date ? " le " + date : ""}`)}`, "✈️", "Vols"),
+    lb("https://www.easyjet.com/fr", "🟧", "easyJet"),
+    lb(`https://www.booking.com/searchresults.fr.html?ss=${T}${date ? "&checkin=" + date : ""}`, "🛏️", "Booking"),
+    lb(`https://www.google.com/maps/search/${encodeURIComponent("hôtel " + to)}`, "🗺️", "Hôtels sur la carte"));
+}
+tripExtraLinks(); $("#trip-to").addEventListener("change", tripExtraLinks);
+let wxFor = "";
+async function tripWeather(to) {
+  if (wxFor === to) return; wxFor = to;
   const box = $("#trip-wx"); box.textContent = "";
   try {
-    const g = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${T}&count=1&language=fr`);
+    const g = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(to.replace(/ (Part-Dieu|Perrache)$/, ""))}&count=1&language=fr`);
     const p = g.results?.[0]; if (!p) return;
     const d = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7`);
-    box.replaceChildren(el("div", { class: "label", text: `Météo à ${p.name}${p.country ? " (" + p.country + ")" : ""}` }));
+    box.replaceChildren(el("div", { class: "label", text: `Météo à ${p.name}` }));
     const row = el("div", { class: "wx-days", style: "grid-template-columns:repeat(7,minmax(0,1fr))" });
     row.innerHTML = d.daily.time.map((t, i) => `<div><span class="small">${new Date(t).toLocaleDateString("fr-FR", { weekday: "short" })}</span>${wxSvg(WMO(d.daily.weather_code[i])[1])}<strong class="small">${Math.round(d.daily.temperature_2m_max[i])}°</strong></div>`).join("");
     box.append(row);
-  } catch {}
-});
+  } catch { wxFor = ""; }
+}
+/* ----- info trafic : grèves, lignes coupées, routes ----- */
+const ALERTS = [
+  ["🚆", "Trains et TER", gnews('(grève OR perturbation OR "trafic interrompu" OR suspendu OR supprimés) (SNCF OR TER) (Lyon OR "Auvergne-Rhône-Alpes" OR Roanne OR Tarare) when:1d')],
+  ["🚇", "Bus et métro TCL", gnews('TCL (grève OR perturbation OR interrompu OR "mouvement social" OR suspendu) when:1d')],
+  ["🚌", "Cars de la région", gnews('(cars OR autocar OR "lignes de car") (grève OR perturbation OR suspendu) (Rhône OR Tarare OR "Ouest rhodanien") when:2d')],
+  ["🚗", "Routes", gnews('(A89 OR A6 OR A7 OR N7 OR "périphérique" OR Fourvière) (accident OR bouchon OR fermée OR fermeture OR coupée) Lyon when:1d')],
+];
+let alertCache = null;
+async function loadAlerts() {
+  if (!alertCache) alertCache = Promise.all(ALERTS.map(async ([e, t, url]) => {
+    try {
+      const items = (await fetchFeed(url)).filter(i => i.title && Date.now() - new Date(i.date) < 36 * 3600e3).slice(0, 2);
+      return { e, t, items, ok: true };
+    } catch { return { e, t, items: [], ok: false }; }
+  }));
+  const rows = await alertCache;
+  const render = () => rows.map(r => el("div", { class: "alert" + (!r.ok ? " off" : r.items.length ? " bad" : "") }, el("i", { text: r.e }),
+    el("strong", { text: `${r.t} : ${!r.ok ? "pas de connexion" : r.items.length ? "⚠️ attention" : "✅ rien de signalé"}` }),
+    el("div", {}, ...r.items.map(i => el("a", { href: i.link, target: "_blank", rel: "noopener", text: splitSource(i).title })))));
+  $("#home-alerts").replaceChildren(...render());
+  $("#trip-alerts").replaceChildren(...render(), el("p", { class: "small muted", text: "D'après les infos des dernières 24 h." }));
+}
+loadAlerts();
 let pack = store.get("pack", null) || ["Carte d'identité ou passeport", "Billets et réservations", "Chargeur de téléphone", "Médicaments", "Carte Vitale", "Trousse de toilette", "Vêtements pour la météo prévue"].map(t => ({ t, ok: false }));
 function renderPack() {
   $("#pack-list").replaceChildren(...pack.map(p => el("label", { class: "item" + (p.ok ? " done" : "") },
