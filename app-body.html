@@ -80,6 +80,17 @@ h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; mar
 .alert.bad { background: #ffe8d6; color: #7a3300; }
 .alert i { font-style: normal; font-size: 1.4rem; grid-row: span 2; }
 .alert a { color: inherit; font-size: .85rem; display: block; }
+.meals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 8px 0; }
+.meal { position: relative; border: 2px solid color-mix(in srgb, var(--sec) 30%, transparent); background: var(--surface); border-radius: 18px; padding: 12px 4px 10px; display: grid; justify-items: center; gap: 4px; cursor: pointer; font: inherit; color: var(--fg); text-align: center; }
+.meal i { font-style: normal; font-size: 2.2rem; line-height: 1; }
+.meal b { font-size: .8rem; line-height: 1.15; }
+.meal small { font-size: .7rem; color: var(--muted); }
+.meal[aria-pressed=true] { background: var(--sec); color: var(--on-sec); border-color: var(--sec); }
+.meal[aria-pressed=true] small { color: inherit; }
+.meal[aria-pressed=true]::after { content: "✓"; position: absolute; top: 4px; right: 8px; font-weight: 800; }
+.recipe { background: var(--surface); border-radius: 14px; padding: 10px 12px; margin-top: 8px; }
+.recipe ol { margin: 6px 0 0; padding-left: 20px; font-size: .9rem; }
+.leg.link { text-decoration: none; color: inherit; }
 .go-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
 .go-row input { flex: 1; min-width: 0; font-size: 1.05rem; padding: 10px 12px; }
 .go-ic { font-size: 1.1rem; width: 1.4rem; text-align: center; }
@@ -166,7 +177,7 @@ input.num { width: 7.5em; flex: 0 1 auto !important; }
 /* Couleurs par rubrique */
 [data-sec] { --sec: var(--accent); }
 [data-sec=wx] { --sec: var(--c-wx); } [data-sec=news] { --sec: var(--c-news); } [data-sec=good] { --sec: var(--c-good); }
-[data-sec=agenda] { --sec: var(--c-agenda); } [data-sec=house], [data-sec=shop], [data-sec=habits] { --sec: var(--c-house); }
+[data-sec=agenda] { --sec: var(--c-agenda); } [data-sec=meals] { --sec: #e8590c; } [data-sec=house], [data-sec=shop], [data-sec=habits] { --sec: var(--c-house); }
 [data-sec=energy] { --sec: var(--c-energy); } [data-sec=chores] { --sec: var(--c-chores); } [data-sec=car] { --sec: var(--c-car); }
 [data-sec=transit] { --sec: var(--c-transit); } [data-sec=trip] { --sec: var(--c-trip); } [data-sec=admin], [data-sec=links] { --sec: var(--c-admin); }
 [data-sec=papers] { --sec: var(--c-papers); } [data-sec=keep] { --sec: #7a4fd0; }
@@ -318,6 +329,14 @@ details summary { cursor: pointer; font-weight: 700; }
 
   <!-- ===== MAISON ===== -->
   <section class="view" id="view-home2" hidden>
+    <article class="card" data-sec="meals">
+      <div class="card-head"><h2>🍽️ Idées repas végé</h2><button class="btn" type="button" id="meal-shuffle">🔀 Autres</button></div>
+      <div class="go-row"><span>👥</span><button class="btn" type="button" id="meal-minus">−</button><strong id="meal-people">4</strong><button class="btn" type="button" id="meal-plus">+</button><span class="small muted">personnes</span></div>
+      <div class="meals" id="meal-grid"></div>
+      <button class="btn primary go-btn" type="button" id="meal-add">🛒 Mettre les ingrédients dans ma liste</button>
+      <p class="small muted" id="meal-msg"></p>
+      <div id="meal-chosen"></div>
+    </article>
     <article class="card" data-sec="shop">
       <div class="card-head"><h2>Liste de courses</h2><span class="pill" id="shop-count"></span></div>
       <form class="inline" id="shop-form">
@@ -331,6 +350,15 @@ details summary { cursor: pointer; font-weight: 700; }
         <button class="btn primary" type="button" id="shop-done">✅ Courses finies</button>
         <button class="btn" type="button" id="shop-habits-add">⭐ + Mes habituels</button>
       </div>
+      <details id="shop-online">
+        <summary>🛍️ Commander en ligne</summary>
+        <div class="row" style="margin:10px 0">
+          <a class="btn primary" href="https://www.leclercdrive.fr/" target="_blank" rel="noopener">🔵 Mon Leclerc Drive</a>
+          <a class="btn" href="https://www.lidl.fr/c/nos-offres/s10008012" target="_blank" rel="noopener">🟡 Promos Lidl</a>
+        </div>
+        <p class="small muted">Touche un article pour le trouver chez Leclerc 👇</p>
+        <div class="legs" id="shop-leclerc"></div>
+      </details>
       <details>
         <summary>📋 Coller une liste</summary>
         <textarea id="shop-paste" rows="5" placeholder="Colle ta liste ici, un article par ligne" style="width:100%;margin-top:8px"></textarea>
@@ -1127,6 +1155,61 @@ function renderPack() {
 }
 
 
+/* ---------- idées repas végé (façon Jow) ---------- */
+// [emoji, nom, minutes, ingrédients pour 4 : [nom, quantité, unité], étapes]
+const RECIPES = [
+  ["🍝", "Pâtes à la tomate et mozzarella", 20, [["Pâtes", 400, "g"], ["Tomates cerises", 300, "g"], ["Mozzarella", 2, ""], ["Basilic", 1, "bouquet"], ["Ail", 1, "gousse"]], ["Cuire les pâtes.", "Faire revenir l'ail et les tomates coupées 5 min.", "Mélanger avec les pâtes, la mozzarella en dés et le basilic."]],
+  ["🍛", "Curry de pois chiches", 25, [["Pois chiches", 2, "boîtes"], ["Lait de coco", 1, "brique"], ["Épinards", 200, "g"], ["Oignon", 1, ""], ["Riz", 300, "g"], ["Curry en poudre", 1, "pot"]], ["Cuire le riz.", "Faire revenir l'oignon avec 2 c. à s. de curry.", "Ajouter pois chiches, lait de coco et épinards, laisser mijoter 10 min."]],
+  ["🥘", "Chili sin carne", 35, [["Haricots rouges", 2, "boîtes"], ["Maïs", 1, "boîte"], ["Tomates concassées", 1, "boîte"], ["Poivron", 2, ""], ["Oignon", 1, ""], ["Riz", 300, "g"]], ["Faire revenir oignon et poivrons.", "Ajouter tomates, haricots et maïs, épicer, mijoter 20 min.", "Servir avec le riz."]],
+  ["🍳", "Omelette pommes de terre et oignons", 25, [["Œufs", 8, ""], ["Pommes de terre", 600, "g"], ["Oignon", 1, ""], ["Salade", 1, ""]], ["Cuire les pommes de terre en dés à la poêle avec l'oignon.", "Verser les œufs battus, cuire doucement.", "Servir avec la salade."]],
+  ["🥗", "Salade lentilles, feta et carottes", 15, [["Lentilles cuites", 2, "boîtes"], ["Feta", 200, "g"], ["Carottes", 3, ""], ["Persil", 1, "bouquet"], ["Salade", 1, ""]], ["Râper les carottes.", "Mélanger lentilles, carottes, feta émiettée et persil.", "Assaisonner avec une vinaigrette."]],
+  ["🍕", "Pizza aux légumes", 30, [["Pâte à pizza", 2, ""], ["Sauce tomate", 1, "pot"], ["Courgette", 1, ""], ["Champignons", 250, "g"], ["Mozzarella", 2, ""]], ["Étaler la pâte, mettre la sauce.", "Ajouter légumes en fines tranches et mozzarella.", "Cuire 15 min à 220 °C."]],
+  ["🥞", "Crêpes champignons et fromage", 30, [["Farine", 250, "g"], ["Œufs", 4, ""], ["Lait", 0.5, "L"], ["Champignons", 400, "g"], ["Emmental râpé", 200, "g"], ["Crème fraîche", 20, "cl"]], ["Faire la pâte : farine, œufs, lait, repos 10 min.", "Poêler les champignons, ajouter la crème.", "Garnir les crêpes avec champignons et fromage."]],
+  ["🍲", "Soupe de légumes et croûtons", 35, [["Poireaux", 2, ""], ["Pommes de terre", 400, "g"], ["Carottes", 3, ""], ["Pain", 1, "baguette"], ["Fromage râpé", 100, "g"]], ["Couper les légumes, couvrir d'eau, cuire 25 min.", "Mixer.", "Servir avec croûtons et fromage."]],
+  ["🌮", "Tacos haricots et avocat", 20, [["Tortillas", 8, ""], ["Haricots rouges", 1, "boîte"], ["Avocat", 2, ""], ["Tomates", 2, ""], ["Cheddar râpé", 150, "g"], ["Citron vert", 1, ""]], ["Écraser l'avocat avec le citron.", "Chauffer les haricots épicés.", "Garnir les tortillas : haricots, tomates, avocat, cheddar."]],
+  ["🍆", "Gratin d'aubergines (parmigiana)", 50, [["Aubergines", 3, ""], ["Tomates concassées", 1, "boîte"], ["Mozzarella", 2, ""], ["Parmesan", 80, "g"]], ["Couper et griller les aubergines.", "Alterner aubergines, tomate, mozzarella dans un plat.", "Parmesan dessus, 30 min à 200 °C."]],
+  ["🍚", "Riz sauté aux légumes et œuf", 20, [["Riz", 300, "g"], ["Œufs", 4, ""], ["Petits pois surgelés", 300, "g"], ["Carottes", 2, ""], ["Sauce soja", 1, "bouteille"]], ["Cuire le riz (ou prendre un reste).", "Sauter carottes et petits pois, ajouter le riz.", "Pousser sur le côté, brouiller les œufs, mélanger avec la sauce soja."]],
+  ["🧀", "Quiche poireaux et chèvre", 45, [["Pâte brisée", 1, ""], ["Poireaux", 3, ""], ["Chèvre", 1, "bûche"], ["Œufs", 3, ""], ["Crème fraîche", 20, "cl"]], ["Faire fondre les poireaux émincés.", "Battre œufs et crème, ajouter poireaux et chèvre.", "Verser sur la pâte, 35 min à 190 °C."]],
+  ["🥔", "Raclette végé", 20, [["Pommes de terre", 1.2, "kg"], ["Fromage à raclette", 800, "g"], ["Cornichons", 1, "bocal"], ["Salade", 1, ""], ["Champignons", 250, "g"]], ["Cuire les pommes de terre à l'eau.", "Faire fondre le fromage dans l'appareil.", "Servir avec champignons poêlés, cornichons et salade."]],
+  ["🍝", "Lasagnes épinards ricotta", 55, [["Feuilles de lasagne", 1, "paquet"], ["Épinards", 500, "g"], ["Ricotta", 250, "g"], ["Sauce tomate", 1, "pot"], ["Mozzarella", 2, ""]], ["Mélanger épinards cuits et ricotta.", "Alterner pâtes, sauce, épinards-ricotta.", "Mozzarella dessus, 35 min à 190 °C."]],
+  ["🥙", "Galettes de falafels et houmous", 25, [["Falafels", 2, "paquets"], ["Pains pita", 4, ""], ["Houmous", 1, "pot"], ["Concombre", 1, ""], ["Tomates", 2, ""], ["Salade", 1, ""]], ["Chauffer les falafels au four.", "Ouvrir les pitas, tartiner de houmous.", "Garnir de falafels, concombre, tomates et salade."]],
+  ["🎃", "Velouté de potimarron", 35, [["Potimarron", 1, ""], ["Oignon", 1, ""], ["Crème fraîche", 20, "cl"], ["Pain", 1, "baguette"]], ["Couper le potimarron (pas besoin d'éplucher).", "Cuire 25 min avec l'oignon dans l'eau.", "Mixer avec la crème."]],
+  ["🥦", "Gratin de pâtes brocoli-fromage", 35, [["Pâtes", 400, "g"], ["Brocoli", 1, ""], ["Crème fraîche", 20, "cl"], ["Emmental râpé", 200, "g"]], ["Cuire pâtes et brocoli ensemble.", "Mélanger avec crème et la moitié du fromage.", "Fromage dessus, 15 min de four à 200 °C."]],
+  ["🍔", "Burger végé", 25, [["Steaks végétaux", 4, ""], ["Pains burger", 4, ""], ["Cheddar", 4, "tranches"], ["Tomates", 2, ""], ["Salade", 1, ""], ["Pommes de terre", 800, "g"]], ["Faire des frites au four.", "Cuire les steaks, fromage dessus.", "Monter les burgers avec tomate et salade."]],
+];
+let mealPeople = store.get("mealPeople", 4), mealPick = store.get("mealPick", []), mealShown = store.get("mealShown", null);
+const pickSix = () => [...RECIPES.keys()].sort(() => Math.random() - .5).slice(0, 6);
+if (!mealShown) mealShown = pickSix();
+function renderMeals() {
+  $("#meal-people").textContent = mealPeople;
+  const show = [...new Set([...mealPick, ...mealShown])].slice(0, 9);
+  $("#meal-grid").replaceChildren(...show.map(i => { const [e, n, m] = RECIPES[i];
+    return el("button", { class: "meal", type: "button", "aria-pressed": String(mealPick.includes(i)), onclick: () => { mealPick = mealPick.includes(i) ? mealPick.filter(x => x !== i) : [...mealPick, i]; store.set("mealPick", mealPick); renderMeals(); } },
+      el("i", { text: e }), el("b", { text: n }), el("small", { text: `⏱️ ${m} min` })); }));
+  $("#meal-add").textContent = mealPick.length ? `🛒 Ajouter les ingrédients (${mealPick.length} repas)` : "👆 Choisis tes repas";
+  const k = mealPeople / 4;
+  $("#meal-chosen").replaceChildren(...mealPick.map(i => { const [e, n, m, ing, steps] = RECIPES[i];
+    return el("details", { class: "recipe" }, el("summary", { text: `${e} ${n}` }),
+      el("p", { class: "small", text: ing.map(([a, q, u]) => `${a} ${fmtQty(q * k, u)}`).join(" · ") }),
+      el("ol", {}, ...steps.map(t => el("li", { text: t })))); }));
+}
+const fmtQty = (q, u) => { const r = q >= 10 ? Math.round(q / 10) * 10 : Math.round(q * 2) / 2 || 0.5; return `${String(r).replace(".", ",")}${u ? " " + u : ""}`; };
+$("#meal-shuffle").addEventListener("click", () => { mealShown = pickSix(); store.set("mealShown", mealShown); renderMeals(); });
+$("#meal-minus").addEventListener("click", () => { mealPeople = Math.max(1, mealPeople - 1); store.set("mealPeople", mealPeople); renderMeals(); });
+$("#meal-plus").addEventListener("click", () => { mealPeople = Math.min(10, mealPeople + 1); store.set("mealPeople", mealPeople); renderMeals(); });
+$("#meal-add").addEventListener("click", () => {
+  if (!mealPick.length) { $("#meal-msg").textContent = "👆 Touche d'abord les repas qui te font envie."; return; }
+  const tot = {}, k = mealPeople / 4;
+  mealPick.forEach(i => RECIPES[i][3].forEach(([a, q, u]) => { const key = a + "|" + u; tot[key] = (tot[key] || 0) + q * k; }));
+  for (const [key, q] of Object.entries(tot)) { const [a, u] = key.split("|"); addToList(a, fmtQty(q, u)); }
+  saveShop();
+  $("#meal-msg").textContent = `✅ ${Object.keys(tot).length} ingrédients ajoutés à ta liste 👇`;
+});
+function renderLeclerc() {
+  const items = shop.filter(i => !i.done);
+  $("#shop-leclerc").replaceChildren(...(items.length ? items.map(i => el("a", { class: "leg link", href: `https://www.e.leclerc/recherche?q=${encodeURIComponent(i.name)}`, target: "_blank", rel: "noopener", text: "🔎 " + i.name }))
+    : [el("span", { class: "small muted", text: "Ta liste est vide." })]));
+}
 /* ---------- maison : courses ---------- */
 const RAYONS = [
   ["Boulangerie", /pain|brioche|baguette|croissant|viennoiserie|biscotte/],
@@ -1146,7 +1229,7 @@ const parseNum = v => { const n = parseFloat(String(v).replace(",", ".").replace
 let shop = store.get("shop", []);
 let habits = store.get("habits", null) || [["Brioche", 7, 2.5], ["Nutella", 7, 4.2], ["Café viennois", 7, 3.5], ["Salade", 7, 1.3], ["Fromages", 7, 4]].map(([name, every, price]) => ({ id: uid(), name, every, price }));
 let purchases = store.get("purchases", []);
-const saveShop = () => { store.set("shop", shop); store.set("habits", habits); store.set("purchases", purchases); renderShop(); renderHabits(); renderHouseHome(); };
+const saveShop = () => { store.set("shop", shop); try { renderLeclerc(); } catch {} store.set("habits", habits); store.set("purchases", purchases); renderShop(); renderHabits(); renderHouseHome(); };
 const lastBought = name => purchases.filter(p => p.name.toLowerCase() === name.toLowerCase()).map(p => p.date).sort().pop();
 const habitDue = h => { const l = lastBought(h.name); return !l || -daysUntil(l) >= h.every - 1; };
 const onList = name => shop.some(i => i.name.toLowerCase() === name.toLowerCase());
@@ -1331,7 +1414,7 @@ $("#keep-q").addEventListener("input", renderKeep);
 
 /* ---------- démarrage ---------- */
 renderAgenda(); renderPapers(); renderAdmin(); renderPack(); showNet("lyon");
-renderKeep(); renderShop(); renderHabits(); renderMeter(); renderChores(); renderHouseHome();
+renderKeep(); renderMeals(); renderShop(); renderLeclerc(); renderHabits(); renderMeter(); renderChores(); renderHouseHome();
 show(store.get("view", "home"));
 loadWeather(); loadGoodNews(); loadFuel(); scheduleReminders();
 try { if (navigator.permissions) navigator.permissions.query({ name: "geolocation" }).then(s => { if (s.state === "granted") locate(true); }).catch(() => {}); } catch {}
