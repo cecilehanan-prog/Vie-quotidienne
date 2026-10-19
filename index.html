@@ -338,6 +338,11 @@ details summary { cursor: pointer; font-weight: 700; }
         <button class="btn primary" type="button" id="shop-done">✅ Courses finies</button>
         <button class="btn" type="button" id="shop-habits-add">⭐ + Mes habituels</button>
       </div>
+      <details>
+        <summary>📋 Coller une liste</summary>
+        <textarea id="shop-paste" rows="5" placeholder="Colle ta liste ici, un article par ligne" style="width:100%;margin-top:8px"></textarea>
+        <button class="btn primary" type="button" id="shop-paste-go">➕ Tout ajouter</button>
+      </details>
       <p class="small muted" id="shop-msg"></p>
     </article>
 
@@ -1173,6 +1178,12 @@ function addToList(name, qty = "") {
   if (ex) { ex.done = false; if (qty) ex.qty = qty; } else shop.push({ id: uid(), name, qty, cat: rayonOf(name), done: false });
 }
 $("#shop-form").addEventListener("submit", e => { e.preventDefault(); addToList($("#shop-name").value, $("#shop-qty").value.trim()); e.target.reset(); saveShop(); $("#shop-name").focus(); });
+function addMany(lines) {
+  const names = lines.map(l => l.replace(/^[\s\-•*◦○●☐✓✔\[\]x]+/i, "").trim()).filter(l => l && l.length < 60);
+  names.forEach(n => addToList(n)); saveShop();
+  $("#shop-msg").textContent = `✅ ${names.length} article${names.length > 1 ? "s" : ""} ajouté${names.length > 1 ? "s" : ""}`;
+}
+$("#shop-paste-go").addEventListener("click", () => { addMany($("#shop-paste").value.split(/\n|;/)); $("#shop-paste").value = ""; });
 $("#shop-done").addEventListener("click", () => {
   const bought = shop.filter(i => i.done);
   if (!bought.length) { $("#shop-msg").textContent = "Coche d'abord les articles que tu as pris."; return; }
@@ -1332,6 +1343,10 @@ show(store.get("view", "home"));
 loadWeather(); loadGoodNews(); loadFuel(); scheduleReminders();
 try { if (navigator.permissions) navigator.permissions.query({ name: "geolocation" }).then(s => { if (s.state === "granted") locate(true); }).catch(() => {}); } catch {}
 try { if ("serviceWorker" in navigator && location.protocol === "https:" && document.querySelector('link[rel="manifest"]')) navigator.serviceWorker.register("sw.js").catch(() => {}); } catch {}
+try {
+  const m = /[#&]courses=([^&]*)/.exec(location.hash);
+  if (m) { addMany(decodeURIComponent(m[1]).split("|")); history.replaceState(null, "", location.pathname); show("home2"); }
+} catch {}
 })();
 </script>
 
