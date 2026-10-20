@@ -348,14 +348,6 @@ details summary { cursor: pointer; font-weight: 700; }
 
   <!-- ===== MAISON ===== -->
   <section class="view" id="view-home2" hidden>
-    <article class="card" data-sec="meals">
-      <div class="card-head"><h2>🍽️ Idées repas végé</h2><button class="btn" type="button" id="meal-shuffle">🔀 Autres</button></div>
-      <div class="go-row"><span>👥</span><button class="btn" type="button" id="meal-minus">−</button><strong id="meal-people">4</strong><button class="btn" type="button" id="meal-plus">+</button><span class="small muted">personnes</span></div>
-      <div class="meals" id="meal-grid"></div>
-      <button class="btn primary go-btn" type="button" id="meal-add">🛒 Mettre les ingrédients dans ma liste</button>
-      <p class="small muted" id="meal-msg"></p>
-      <div id="meal-chosen"></div>
-    </article>
     <article class="card" data-sec="shop">
       <div class="card-head"><h2>Liste de courses</h2><span class="pill" id="shop-count"></span></div>
       <form class="inline" id="shop-form">
@@ -384,6 +376,14 @@ details summary { cursor: pointer; font-weight: 700; }
         <button class="btn primary" type="button" id="shop-paste-go">➕ Tout ajouter</button>
       </details>
       <p class="small muted" id="shop-msg"></p>
+    </article>
+    <article class="card" data-sec="meals">
+      <div class="card-head"><h2>🍽️ Idées repas végé</h2><button class="btn" type="button" id="meal-shuffle">🔀 Autres</button></div>
+      <div class="go-row"><span>👥</span><button class="btn" type="button" id="meal-minus">−</button><strong id="meal-people">4</strong><button class="btn" type="button" id="meal-plus">+</button><span class="small muted">personnes</span></div>
+      <div class="meals" id="meal-grid"></div>
+      <button class="btn primary go-btn" type="button" id="meal-add">🛒 Mettre les ingrédients dans ma liste</button>
+      <p class="small muted" id="meal-msg"></p>
+      <div id="meal-chosen"></div>
     </article>
 
     <article class="card" data-sec="habits">
