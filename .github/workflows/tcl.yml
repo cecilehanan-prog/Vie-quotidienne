@@ -55,6 +55,13 @@ jobs:
           json.dump(out, open("out/tcl.json", "w"), ensure_ascii=False)
           print(out["status"], len(out["values"]), "alertes")
           PY
+      - name: Essai tcl.fr (sans compte)
+        continue-on-error: true
+        run: |
+          code=$(curl -sS -L -m 40 -A "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)" -o tclfr.html -w '%{http_code}' "https://www.tcl.fr/perturbations-et-travaux" || true)
+          echo "tcl.fr : $code, $(wc -c < tclfr.html) octets"
+          grep -o -E '(https?:)?//[^"'"'"' ]*(api|json|perturb)[^"'"'"' ]*' tclfr.html | sort -u | head -30 || true
+          grep -o -E '"[a-zA-Z_]*(titre|title|ligne|line)[a-zA-Z_]*"' tclfr.html | sort | uniq -c | sort -rn | head -15 || true
       - name: Publier dans la branche data
         run: |
           cd out
