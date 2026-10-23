@@ -784,14 +784,14 @@ async function loadAir(p) {
 /* ---------- actus (flux RSS) ---------- */
 const gnews = q => `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=fr&gl=FR&ceid=FR:fr`;
 const FEEDS = {
-  france: { label: "🇫🇷 France", urls: ["https://www.francetvinfo.fr/titres.rss"] },
-  lyon: { label: "🦁 Lyon", urls: ["https://www.lyoncapitale.fr/feed/", gnews("Lyon when:2d")] },
-  courrier: { label: "📰 Courrier", urls: ["https://www.courrierinternational.com/feed/all/rss.xml", gnews("site:courrierinternational.com when:3d")] },
-  bonnes: { label: "🌈 Positif", urls: ["https://positivr.fr/feed/", gnews("\"bonne nouvelle\" OR solidarité OR initiative when:3d")] },
-  monde: { label: "🌍 Monde", urls: ["https://www.france24.com/fr/rss"] },
   tarare: { label: "🏡 Tarare", urls: [gnews("Tarare OR \"Ouest rhodanien\" OR Amplepuis OR Beaujolais when:7d")] },
+  lyon: { label: "🦁 Lyon", urls: ["https://www.lyoncapitale.fr/feed/", gnews("Lyon when:2d")] },
+  courrier: { label: "🌍 La France vue du monde", urls: ["https://www.courrierinternational.com/feed/all/rss.xml", gnews("site:courrierinternational.com when:3d")] },
+  bonnes: { label: "🌈 Infos positives", urls: ["https://positivr.fr/feed/", gnews("\"Éclat positif\" OR \"bonne nouvelle\" OR \"initiative solidaire\" France when:3d"), gnews("\"bonne nouvelle\" OR solidarité OR initiative when:3d")] },
+  france: { label: "🇫🇷 France", urls: ["https://www.francetvinfo.fr/titres.rss"] },
+  monde: { label: "🗺️ Monde", urls: ["https://www.france24.com/fr/rss"] },
 };
-let currentFeed = "france", newsLoaded = false;
+let currentFeed = "tarare", newsLoaded = false;
 for (const [k, f] of Object.entries(FEEDS)) {
   $("#news-tabs").append(el("button", { class: "btn", type: "button", "data-feed-tab": k, text: f.label, onclick: () => loadNews(k) }));
 }
