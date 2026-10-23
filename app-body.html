@@ -2062,8 +2062,8 @@ const TILES = [
   ["recettes", "meals", "Recettes", () => mealPick.length],
   ["trip", "trip", "Voyage", null],
   ["auto", "auto", "Auto · Moto", () => autoDue().length],
-  ["serenite", "pray", "Sérénité", null],
   ["admin", "admin", "Papiers", () => admin.filter(x => !x.done && x.date && daysUntil(x.date) <= 30).length],
+  ["serenite", "pray", "Sérénité", null],
 ];
 /* ----- Culture : idées de sorties + films coup de cœur ----- */
 /* Billets (photo ou PDF) rangés sur le téléphone, dans IndexedDB : rien n'est envoyé ailleurs */
