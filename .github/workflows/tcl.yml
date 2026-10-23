@@ -20,18 +20,18 @@ jobs:
         run: |
           mkdir out
           URL="https://download.data.grandlyon.com/ws/rdata/tcl_sytral.tclalertetrafic_2/all.json?maxfeatures=300&start=1"
-          code=$(curl -sS -m 60 -o raw.json -w '%{http_code}' "$URL" || echo 000)
+          code=$(curl -sS -m 60 -o raw.json -w '%{http_code}' --connect-timeout 20 "$URL")
           echo "Sans compte : $code"
           if [ "$code" != 200 ] && [ -n "$TCL_USER" ]; then
             U=$(printf '%s' "$TCL_USER" | tr -d '[:space:]'); P=$(printf '%s' "$TCL_PASS" | tr -d '\r\n')
             for u in "$URL" "https://data.grandlyon.com/fr/datapusher/ws/rdata/tcl_sytral.tclalertetrafic_2/all.json?maxfeatures=300&start=1"; do
-              code=$(curl -sS -m 60 -u "$U:$P" -o raw.json -w '%{http_code}' "$u" || echo 000)
+              code=$(curl -sS -m 60 -u "$U:$P" -o raw.json -w '%{http_code}' --connect-timeout 20 "$u")
               echo "Avec compte : $code"
               [ "$code" = 200 ] && break
             done
             if [ "$code" != 200 ]; then
               # Test du compte sur un jeu de données ouvert à tout compte : dit si l'identifiant marche.
-              t=$(curl -sS -m 60 -u "$U:$P" -o /dev/null -w '%{http_code}' "https://download.data.grandlyon.com/ws/rdata/demo.demovelov/all.json?maxfeatures=1" || echo 000)
+              t=$(curl -sS -m 60 -u "$U:$P" -o /dev/null -w '%{http_code}' --connect-timeout 20 "https://download.data.grandlyon.com/ws/rdata/demo.demovelov/all.json?maxfeatures=1")
               echo "Test du compte : $t"
               [ "$t" = 200 ] && [ "$code" = 401 ] && code=403
             fi
