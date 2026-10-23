@@ -193,7 +193,11 @@ input.num { width: 7.5em; flex: 0 1 auto !important; }
 [data-sec=agenda] { --sec: var(--c-agenda); } [data-sec=meals] { --sec: #e8590c; } [data-sec=house], [data-sec=shop], [data-sec=habits] { --sec: var(--c-house); }
 [data-sec=energy] { --sec: var(--c-energy); } [data-sec=chores] { --sec: var(--c-chores); } [data-sec=car] { --sec: var(--c-car); }
 [data-sec=transit] { --sec: var(--c-transit); } [data-sec=trip] { --sec: var(--c-trip); } [data-sec=admin], [data-sec=links] { --sec: var(--c-admin); }
-[data-sec=papers] { --sec: var(--c-papers); } [data-sec=todo] { --sec: #7a4fd0; } [data-sec=wish] { --sec: #c2185b; } [data-sec=pharma] { --sec: #0f9d8a; } [data-sec=auto] { --sec: #e8590c; }
+[data-sec=papers] { --sec: var(--c-papers); } [data-sec=todo] { --sec: #7a4fd0; } [data-sec=wish] { --sec: #c2185b; } [data-sec=pharma] { --sec: #0f9d8a; }
+.quote { margin: 14px 0; padding: 16px 18px; border-radius: 20px; background: linear-gradient(140deg, color-mix(in srgb, #8e44ad 14%, var(--surface)), color-mix(in srgb, #f5b400 12%, var(--surface))); border: 2px solid color-mix(in srgb, #8e44ad 22%, transparent); }
+.quote blockquote { margin: 0; font-size: 1.12rem; line-height: 1.5; font-style: italic; color: var(--fg); }
+.quote blockquote::before { content: "✨ "; font-style: normal; }
+.quote figcaption { margin-top: 8px; font-size: .85rem; color: var(--muted); text-align: right; } [data-sec=auto] { --sec: #e8590c; }
 .maint { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 8px 0; }
 .maint > div { border-radius: 12px; padding: 8px 10px; background: var(--al-ok-bg); color: var(--al-ok-fg); border-left: 5px solid #2fa35a; font-size: .9rem; }
 .maint > div.soon { background: var(--al-bad-bg); color: var(--al-bad-fg); border-left-color: #f0701e; }
@@ -280,6 +284,7 @@ details summary { cursor: pointer; font-weight: 700; }
     <div id="near-banner" hidden></div>
     <div id="store-banner-home" hidden></div>
     <div class="tiles" id="tiles"></div>
+    <figure class="quote" id="daily-quote"></figure>
 
     <article class="card" data-sec="wx" aria-labelledby="wx-title">
       <div class="card-head">
@@ -1996,6 +2001,63 @@ $("#film-form").addEventListener("submit", e => {
   store.set("films", films); e.target.reset(); filmStars = 5; renderStars(); renderFilms();
 });
 renderOutings(); renderStars(); renderFilms(); renderVtix(); renderLoyal(); renderAuto();
+/* Pensée du jour : change chaque jour, la même toute la journée */
+const QUOTES = [
+  ["Certes, avec la difficulté vient la facilité. Oui, avec la difficulté vient la facilité.", "Coran, sourate 94, versets 5-6"],
+  ["C'est par l'évocation de Dieu que les cœurs s'apaisent.", "Coran, sourate 13, verset 28"],
+  ["Dieu n'impose à aucune âme une charge au-delà de ses capacités.", "Coran, sourate 2, verset 286"],
+  ["Nous sommes plus près de lui que sa veine jugulaire.", "Coran, sourate 50, verset 16"],
+  ["Ne désespérez pas de la miséricorde de Dieu.", "Coran, sourate 39, verset 53"],
+  ["Souvenez-vous de Moi, Je Me souviendrai de vous.", "Coran, sourate 2, verset 152"],
+  ["Quand Mes serviteurs t'interrogent sur Moi, Je suis tout proche.", "Coran, sourate 2, verset 186"],
+  ["Ma miséricorde embrasse toute chose.", "Coran, sourate 7, verset 156"],
+  ["Repousse le mal par ce qui est meilleur : ton ennemi deviendra comme un ami chaleureux.", "Coran, sourate 41, verset 34"],
+  ["Il se peut que vous détestiez une chose alors qu'elle est un bien pour vous.", "Coran, sourate 2, verset 216"],
+  ["Où que vous vous tourniez, là est la Face de Dieu.", "Coran, sourate 2, verset 115"],
+  ["Il est avec vous où que vous soyez.", "Coran, sourate 57, verset 4"],
+  ["Cherchez secours dans la patience et la prière.", "Coran, sourate 2, verset 153"],
+  ["Les actions ne valent que par les intentions.", "Hadith, rapporté par al-Bukhârî et Muslim"],
+  ["Aucun de vous ne croit vraiment tant qu'il n'aime pas pour son frère ce qu'il aime pour lui-même.", "Hadith, rapporté par al-Bukhârî et Muslim"],
+  ["Ton sourire adressé à ton frère est une aumône.", "Hadith, rapporté par at-Tirmidhî"],
+  ["Dieu est beau et Il aime la beauté.", "Hadith, rapporté par Muslim"],
+  ["Le fort n'est pas celui qui terrasse les autres, mais celui qui se maîtrise dans la colère.", "Hadith, rapporté par al-Bukhârî et Muslim"],
+  ["Facilitez, ne compliquez pas. Annoncez la bonne nouvelle, ne faites pas fuir.", "Hadith, rapporté par al-Bukhârî"],
+  ["Dieu ne regarde ni vos corps ni vos apparences, mais Il regarde vos cœurs.", "Hadith, rapporté par Muslim"],
+  ["Sois en ce monde comme un étranger ou un voyageur de passage.", "Hadith, rapporté par al-Bukhârî"],
+  ["Les actions les plus aimées de Dieu sont les plus constantes, même si elles sont modestes.", "Hadith, rapporté par al-Bukhârî et Muslim"],
+  ["Si Mon serviteur s'approche de Moi d'un empan, Je M'approche de lui d'une coudée ; s'il vient à Moi en marchant, Je viens à lui en courant.", "Hadith qudsî, rapporté par al-Bukhârî et Muslim"],
+  ["Ma miséricorde l'emporte sur Ma colère.", "Hadith qudsî, rapporté par al-Bukhârî et Muslim"],
+  ["La douceur n'est jamais dans une chose sans l'embellir.", "Hadith, rapporté par Muslim"],
+  ["Écoute la flûte de roseau, comme elle raconte, comme elle se plaint des séparations.", "Rûmî, Masnavî"],
+  ["Viens, viens, qui que tu sois, viens. Notre caravane n'est pas celle du désespoir.", "attribué à Rûmî"],
+  ["Ta tâche n'est pas de chercher l'amour, mais de trouver en toi les obstacles que tu as dressés contre lui.", "attribué à Rûmî"],
+  ["La blessure est l'endroit par où la lumière entre en toi.", "attribué à Rûmî"],
+  ["Au-delà des idées de bien et de mal, il existe un champ. Je t'y retrouverai.", "attribué à Rûmî"],
+  ["Sois comme le soleil pour la bonté, et comme la nuit pour couvrir les fautes des autres.", "attribué à Rûmî"],
+  ["Ce que tu cherches te cherche aussi.", "attribué à Rûmî"],
+  ["Mon cœur est devenu capable d'accueillir toute forme. Je suis la religion de l'Amour, où que se dirigent ses montures.", "Ibn Arabî, L'Interprète des désirs"],
+  ["Ô Dieu, si je T'adore par crainte de l'enfer, brûle-moi en enfer ; si je T'adore par amour pour Toi, ne me cache pas Ta beauté.", "Rabi'a al-Adawiyya"],
+  ["Je voudrais éteindre l'enfer et brûler le paradis, pour qu'on aime Dieu pour Lui seul.", "d'après Rabi'a al-Adawiyya"],
+  ["Le cœur est comme un miroir : le souvenir de Dieu le polit, et il reflète alors la lumière.", "d'après al-Ghazâlî"],
+  ["Les oiseaux cherchaient leur roi, le Sîmorgh ; au bout du voyage, ils découvrirent qu'ils étaient eux-mêmes le Sîmorgh.", "d'après Attâr, La Conférence des oiseaux"],
+  ["Parfois Il te donne et te prive ; parfois Il te prive et te donne.", "Ibn Atâ' Allâh, Hikam"],
+  ["Enfouis ton être dans la terre de l'humilité : ce qui pousse sans avoir été enfoui ne donne pas de fruit parfait.", "Ibn Atâ' Allâh, Hikam"],
+  ["Quand Il t'ouvre une porte vers Lui, ne t'inquiète pas du peu de tes œuvres.", "d'après Ibn Atâ' Allâh, Hikam"],
+  ["Le soufisme, c'est que Dieu te fasse mourir à toi-même et vivre en Lui.", "Junayd de Bagdad"],
+  ["Même après tout ce temps, le soleil ne dit jamais à la terre : « Tu me dois. » Vois ce que fait un tel amour : il illumine tout le ciel.", "d'après Hâfez"],
+  ["Celui qui se connaît lui-même connaît son Seigneur.", "Tradition soufie"],
+  ["Plonge dans ton cœur : c'est là que se trouve le trésor.", "Sagesse soufie"],
+  ["L'arbre chargé des fruits les plus doux est celui qui s'incline le plus.", "Sagesse soufie"],
+  ["Le cœur qui aime ne vieillit jamais.", "Sagesse soufie"],
+  ["Allume ta lampe intérieure, et tu ne marcheras plus dans le noir.", "Sagesse soufie"],
+  ["Va doucement : le chemin est long, et la lumière t'attend.", "Sagesse soufie"],
+];
+function renderQuote() {
+  const d = new Date(), day = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / DAY) + d.getFullYear() * 7;
+  const [q, a] = QUOTES[day % QUOTES.length];
+  $("#daily-quote").replaceChildren(el("blockquote", { text: q }), el("figcaption", { text: "— " + a }));
+}
+renderQuote(); setInterval(renderQuote, 30 * 60000);
 function renderTiles() {
   $("#tiles").replaceChildren(...TILES.map(([go, sec, label, count]) => {
     const n = count ? count() : 0;
