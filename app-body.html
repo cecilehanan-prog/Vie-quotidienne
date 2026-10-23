@@ -2046,9 +2046,9 @@ $("#chore-form").addEventListener("submit", e => { e.preventDefault(); chores.pu
 
 const TILES = [
   ["news", "news", "Infos", null], ["agenda", "agenda", "Agenda", () => events.filter(e => !e.sample && daysUntil(e.date) >= 0 && daysUntil(e.date) <= 7).length],
+  ["culture", "culture", "Culture", () => outings.filter(o => !o.done).length],
   ["home2", "shop", "Shopping", () => shop.filter(i => !i.done).length],
   ["recettes", "meals", "Recettes", () => mealPick.length],
-  ["culture", "culture", "Culture", () => outings.filter(o => !o.done).length],
   ["move", "car", "Trajets", null],
   ["trip", "trip", "Voyage", null],
   ["auto", "auto", "Auto · Moto", () => autoDue().length],
