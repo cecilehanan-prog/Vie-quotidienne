@@ -63,6 +63,10 @@ h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; mar
 .card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 #trip-quick .btn { white-space: nowrap; flex: none; }
+.aisle { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items: center; padding: 6px 10px; border-radius: 10px; background: var(--surface); }
+.aisle .icon-btn:disabled { opacity: .25; }
+.store-banner { display: grid; gap: 8px; padding: 14px 16px; border-radius: 16px; background: linear-gradient(135deg, #ff6f3c, #e8476a); color: #fff; margin: 8px 0; }
+.store-banner .btn { justify-self: start; background: #fff !important; color: #c2185b !important; border: 0; font-weight: 700; }
 .toast { position: fixed; left: 16px; right: 16px; top: 16px; z-index: 50; background: #1f9d55; color: #fff; font-weight: 700; padding: 14px 16px; border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,.25); text-align: center; }
 .go-btn { width: 100%; justify-content: center; font-size: 1.05rem; padding: 12px; margin-top: 6px; }
 .route { border-radius: 16px; padding: 12px 14px; margin-top: 10px; background: var(--surface); border: 2px solid color-mix(in srgb, var(--mc, var(--sec)) 35%, transparent); display: grid; gap: 8px; }
@@ -255,6 +259,7 @@ details summary { cursor: pointer; font-weight: 700; }
   <!-- ===== AUJOURD'HUI ===== -->
   <section class="view" id="view-home">
     <div id="near-banner" hidden></div>
+    <div id="store-banner-home" hidden></div>
     <div class="tiles" id="tiles"></div>
 
     <article class="card" data-sec="car">
@@ -344,6 +349,10 @@ details summary { cursor: pointer; font-weight: 700; }
   <section class="view" id="view-home2" hidden>
     <article class="card" data-sec="shop">
       <div class="card-head"><h2>Liste de courses</h2><span class="pill" id="shop-count"></span></div>
+      <div id="store-banner" hidden></div>
+      <div class="tabs" id="store-tabs"></div>
+      <button class="btn" type="button" id="store-detect" style="margin:6px 0">📍 Je suis dans un magasin</button>
+      <p class="small muted" id="store-msg"></p>
       <form class="inline" id="shop-form">
         <input type="text" id="shop-name" placeholder="Ajouter un article (ex. lait)" required aria-label="Article" list="shop-suggest" autocomplete="off">
         <input type="text" id="shop-qty" placeholder="Qté" aria-label="Quantité" class="num">
@@ -355,6 +364,11 @@ details summary { cursor: pointer; font-weight: 700; }
         <button class="btn primary" type="button" id="shop-done">✅ Courses finies</button>
         <button class="btn" type="button" id="shop-habits-add">⭐ + Mes habituels</button>
       </div>
+      <details>
+        <summary id="aisle-title">🗺️ Ordre des rayons</summary>
+        <p class="small muted">Range les rayons dans l'ordre où tu passes avec ⬆️ ⬇️</p>
+        <div class="list" id="aisle-list"></div>
+      </details>
       <details id="shop-online">
         <summary>🛍️ Commander en ligne</summary>
         <div class="row" style="margin:10px 0">
@@ -1252,17 +1266,85 @@ function renderLeclerc() {
     : [el("span", { class: "small muted", text: "Ta liste est vide." })]));
 }
 /* ---------- maison : courses ---------- */
+// Rayons dans l'ordre de passage (Auchan Tarare, à ajuster dans « Ordre de mon magasin »)
+const AISLES = [
+  ["Fruits et légumes", "🥕"], ["Boulangerie", "🥖"], ["Boucherie et poisson", "🥩"], ["Fromages et crèmerie", "🧀"],
+  ["Épicerie salée", "🥫"], ["Épicerie sucrée", "🍫"], ["Produits du monde", "🌍"], ["Boissons", "🥤"],
+  ["Hygiène et santé", "🧴"], ["Entretien et maison", "🧽"], ["Animaux", "🐱"], ["Bricolage et jardin", "🔧"],
+  ["Surgelés", "🧊"], ["Autre", "📦"],
+];
+const AISLE_EMO = Object.fromEntries(AISLES);
+// Ordre de reconnaissance : du plus précis au plus général
 const RAYONS = [
-  ["Boulangerie", /pain|brioche|baguette|croissant|viennoiserie|biscotte/],
-  ["Fruits et légumes", /salade|tomate|pomme|banane|carotte|oignon|courgette|poire|orange|citron|légume|fruit|avocat|patate|pomme de terre|ail|concombre|raisin/],
-  ["Crémerie", /fromage|lait|yaourt|beurre|crème|oeuf|œuf|comté|emmental|chèvre|camembert|raclette|mozzarella/],
-  ["Viande et poisson", /viande|poulet|jambon|steak|poisson|saumon|thon|saucisse|lardon|dinde|boeuf|bœuf|porc/],
-  ["Épicerie", /nutella|café|thé|pâtes|riz|sucre|farine|huile|chocolat|confiture|céréale|sel|poivre|conserve|sauce|biscuit|miel/],
-  ["Boissons", /eau|jus|vin|bière|soda|sirop/],
-  ["Surgelés", /surgel|glace|pizza/],
-  ["Maison et hygiène", /papier|lessive|savon|shampo|éponge|dentifrice|liquide|sac|essuie|mouchoir|gel douche|douche|déodorant|pince|encens|phéromone|croquette|peinture|barillet|imigrane/],
+  ["Surgelés", /surgel|glace|petits pois surgel/],
+  ["Animaux", /croquette|litière|pour chat|pour chien|graines de poulet|phéromone/],
+  ["Bricolage et jardin", /peinture|barillet|serrure|ampoule|brique|œil de sécurité|oeil de sécurité|enceinte|casto|bignone|jasmin|terreau|plante|déménagement/],
+  ["Hygiène et santé", /shampo|savon|dentifrice|gel douche|fleur de douche|déodorant|pince cheveux|coton|imigrane|doliprane|pansement|brosse à dents/],
+  ["Entretien et maison", /lessive|éponge|papier toilette|essuie|sac poubelle|liquide vaisselle|encens|bougie|javel|mouchoir/],
+  ["Produits du monde", /tamarin|chutney|msemmen|datte|barazek|harissa|couscous|lait de coco|tortilla|falafel|houmous|pita|sauce soja/],
+  ["Boissons", /\beau\b|jus|vin\b|bière|soda|sirop|cranberry/],
+  ["Épicerie salée", /pâtes|riz|sauce|coulis|pesto|soupe|conserve|ratatouille|haricot|lentille|pois chiche|maïs|huile|sel\b|poivre|gnocchi|ravioles|cornichon|artichaut|olive|épice|curry|lasagne|pâte à pizza|pâte brisée|tomates concassées|patates rissolées/],
+  ["Épicerie sucrée", /nutella|confiture|céréale|biscuit|gâteau|chocolat|smarties|compote|miel|sucre|farine|café|thé\b|thé |dessert|noix|cuillère/],
+  ["Boulangerie", /pain|brioche|baguette|croissant|viennoiserie|biscotte|radegonde/],
+  ["Fromages et crèmerie", /fromage|lait|yaourt|beurre|crème|oeuf|œuf|comté|emmental|chèvre|camembert|raclette|mozzarella|feta|ricotta|parmesan|moret|cheddar/],
+  ["Boucherie et poisson", /viande|poulet|jambon|steak|poisson|saumon|thon|saucisse|lardon|dinde|boeuf|bœuf|porc/],
+  ["Fruits et légumes", /salade|mâche|tomate|pomme|banane|carotte|oignon|courgette|poire|orange|citron|légume|fruit|avocat|patate|ail\b|concombre|raisin|menthe|persil|basilic|épinard|poireau|poivron|aubergine|brocoli|potimarron|champignon|abricot|myrtille|fraise|pêche/],
 ];
 const rayonOf = n => (RAYONS.find(([, re]) => re.test(n.toLowerCase())) || ["Autre"])[0];
+const STORES = {
+  auchan: { name: "Auchan Tarare", emo: "🔴", re: /auchan/i, promo: "https://www.auchan.fr/",
+    order: ["Fruits et légumes", "Boulangerie", "Boucherie et poisson", "Fromages et crèmerie", "Épicerie salée", "Épicerie sucrée", "Produits du monde", "Boissons", "Hygiène et santé", "Entretien et maison", "Animaux", "Bricolage et jardin", "Surgelés", "Autre"] },
+  lidl: { name: "Lidl Tarare", emo: "🟡", re: /lidl/i, promo: "https://www.lidl.fr/",
+    order: ["Fruits et légumes", "Boulangerie", "Fromages et crèmerie", "Boucherie et poisson", "Épicerie salée", "Épicerie sucrée", "Produits du monde", "Boissons", "Surgelés", "Hygiène et santé", "Entretien et maison", "Animaux", "Bricolage et jardin", "Autre"] },
+};
+// Promos des enseignes reconnues autour de toi (site officiel de l'enseigne)
+const BRANDS = [
+  [/auchan/i, "https://www.auchan.fr/"], [/lidl/i, "https://www.lidl.fr/"], [/carrefour/i, "https://www.carrefour.fr/promotions"],
+  [/leclerc/i, "https://www.e.leclerc/"], [/intermarch/i, "https://www.intermarche.com/"], [/aldi/i, "https://www.aldi.fr/"],
+  [/sephora/i, "https://www.sephora.fr/"], [/action/i, "https://www.action.com/fr-fr/"], [/decathlon/i, "https://www.decathlon.fr/"],
+  [/super ?u|hyper ?u|magasins u/i, "https://www.coursesu.com/"], [/casino/i, "https://www.casino.fr/"], [/nocib/i, "https://www.nocibe.fr/"],
+];
+let curStore = store.get("curStore", "auchan"), aisleOrders = store.get("aisleOrders", {});
+const getAisleOrder = () => { const names = AISLES.map(a => a[0]); const o = (aisleOrders[curStore] || STORES[curStore].order).filter(n => names.includes(n)); return [...o, ...names.filter(n => !o.includes(n))]; };
+function pickStore(k) { curStore = k; store.set("curStore", k); renderStores(); renderAisles(); renderShop(); }
+function renderStores() {
+  $("#store-tabs").replaceChildren(...Object.entries(STORES).map(([k, st]) => el("button", { class: "btn", type: "button", "aria-pressed": String(k === curStore), text: `${st.emo} ${st.name}`, onclick: () => pickStore(k) })));
+  $("#aisle-title").textContent = `🗺️ Ordre des rayons chez ${STORES[curStore].name}`;
+}
+function storeBanner(name, promo, known) {
+  const html = el("div", { class: "store-banner" }, el("strong", { text: `📍 Tu es chez ${name}` }),
+    known ? el("span", { text: "🛒 Ta liste est rangée dans l'ordre de ce magasin" }) : el("span"),
+    el("a", { class: "btn primary", href: promo, target: "_blank", rel: "noopener", text: "🏷️ Voir les promos du moment" }));
+  for (const id of ["#store-banner", "#store-banner-home"]) { const b = $(id); b.replaceChildren(html.cloneNode(true)); b.hidden = false; }
+}
+async function detectStore(manual) {
+  if (!navigator.geolocation) return;
+  if (manual) $("#store-msg").textContent = "⏳ Je regarde où tu es…";
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const { latitude: la, longitude: lo } = pos.coords;
+    try {
+      const q = `[out:json][timeout:10];nwr(around:150,${la},${lo})[shop];out center 15;`;
+      const j = await getJSON("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(q), 12000);
+      const shops = (j.elements || []).map(e => ({ name: e.tags.name || e.tags.brand || "", brand: e.tags.brand || e.tags.name || "", d: distKm([la, lo], [e.lat ?? e.center.lat, e.lon ?? e.center.lon]) }))
+        .filter(x => x.name).sort((a, b) => a.d - b.d);
+      for (const sh of shops) {
+        const key = Object.keys(STORES).find(k => STORES[k].re.test(sh.brand + " " + sh.name));
+        if (key) { pickStore(key); storeBanner(sh.name, STORES[key].promo, true); $("#store-msg").textContent = ""; return; }
+        const br = BRANDS.find(([re]) => re.test(sh.brand + " " + sh.name));
+        if (br) { storeBanner(sh.name, br[1], false); $("#store-msg").textContent = ""; return; }
+      }
+      if (shops[0]) { storeBanner(shops[0].name, `https://www.google.com/search?q=${encodeURIComponent("promo " + shops[0].name)}`, false); $("#store-msg").textContent = ""; return; }
+      if (manual) $("#store-msg").textContent = "Je ne vois pas de magasin juste à côté de toi. Choisis-le ci-dessus 👆";
+    } catch { if (manual) $("#store-msg").textContent = "Pas de connexion pour trouver le magasin. Choisis-le ci-dessus 👆"; }
+  }, () => { if (manual) $("#store-msg").textContent = "Localisation refusée. Choisis le magasin ci-dessus 👆"; }, { maximumAge: 120000, timeout: 10000, enableHighAccuracy: true });
+}
+function renderAisles() {
+  const o = getAisleOrder();
+  $("#aisle-list").replaceChildren(...o.map((n, i) => el("div", { class: "aisle" }, el("span", { text: `${i + 1}. ${AISLE_EMO[n]} ${n}` }),
+    el("button", { class: "icon-btn", type: "button", "aria-label": "Monter " + n, text: "⬆️", disabled: i === 0, onclick: () => moveAisle(i, -1) }),
+    el("button", { class: "icon-btn", type: "button", "aria-label": "Descendre " + n, text: "⬇️", disabled: i === o.length - 1, onclick: () => moveAisle(i, 1) }))));
+}
+function moveAisle(i, d) { const o = getAisleOrder(); [o[i], o[i + d]] = [o[i + d], o[i]]; aisleOrders[curStore] = o; store.set("aisleOrders", aisleOrders); renderAisles(); renderShop(); }
 const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const euro = v => v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const parseNum = v => { const n = parseFloat(String(v).replace(",", ".").replace(/[^\d.]/g, "")); return isNaN(n) ? null : n; };
@@ -1279,9 +1361,9 @@ function renderShop() {
   const left = shop.filter(i => !i.done).length;
   $("#shop-count").textContent = shop.length ? `${left} à prendre` : "vide";
   const groups = {};
-  for (const i of shop) (groups[i.cat] ||= []).push(i);
-  const order = [...RAYONS.map(r => r[0]), "Autre"];
-  const kids = order.filter(c => groups[c]).map(c => el("div", { class: "shop-group" }, el("div", { class: "label", text: ({"Boulangerie": "🥖", "Fruits et légumes": "🥕", "Crémerie": "🧀", "Viande et poisson": "🥩", "Épicerie": "🥫", "Boissons": "🥤", "Surgelés": "🧊", "Maison et hygiène": "🧴", "Autre": "📦"})[c] + " " + c }),
+  for (const i of shop) (groups[i.aisle || rayonOf(i.name)] ||= []).push(i);
+  const order = getAisleOrder();
+  const kids = order.filter(c => groups[c]).map((c, n) => el("div", { class: "shop-group" }, el("div", { class: "label", text: `${n + 1}. ${AISLE_EMO[c]} ${c}` }),
     ...groups[c].sort((a, b) => a.done - b.done).map(i => el("label", { class: "shop-item" + (i.done ? " done" : "") },
       el("input", { type: "checkbox", checked: !!i.done, onchange: e => { i.done = e.target.checked; saveShop(); } }),
       el("span", { class: "what" }, emoSpan(i.name, "🛒"), i.name, i.qty ? el("span", { class: "muted", text: " × " + i.qty }) : null),
@@ -1484,10 +1566,11 @@ $("#keep-q").addEventListener("input", renderKeep);
 
 /* ---------- démarrage ---------- */
 renderAgenda(); renderPapers(); renderAdmin(); renderTodos(); renderPack(); showNet("lyon");
-renderKeep(); renderMeals(); renderShop(); renderLeclerc(); renderHabits(); renderMeter(); renderChores(); renderHouseHome();
+renderKeep(); renderMeals(); renderStores(); renderAisles(); renderShop(); renderLeclerc(); renderHabits(); renderMeter(); renderChores(); renderHouseHome();
 show(store.get("view", "home"));
 loadWeather(); loadGoodNews(); loadFuel(); scheduleReminders();
-try { if (navigator.permissions) navigator.permissions.query({ name: "geolocation" }).then(s => { if (s.state === "granted") locate(true); }).catch(() => {}); } catch {}
+try { if (navigator.permissions) navigator.permissions.query({ name: "geolocation" }).then(s => { if (s.state === "granted") { locate(true); detectStore(false); } }).catch(() => {}); } catch {}
+$("#store-detect").addEventListener("click", () => detectStore(true));
 try { if ("serviceWorker" in navigator && location.protocol === "https:" && document.querySelector('link[rel="manifest"]')) navigator.serviceWorker.register("sw.js").catch(() => {}); } catch {}
 try {
   const m = /[#&]courses=([^&]*)/.exec(location.hash);
