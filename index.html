@@ -283,7 +283,7 @@ details summary { cursor: pointer; font-weight: 700; }
     </article>
 
     <article class="card" data-sec="agenda">
-      <div class="card-head"><h2>Rendez-vous</h2><button class="btn" data-goto="agenda">Voir tout</button></div>
+      <div class="card-head"><h2>Rendez-vous du jour</h2><button class="btn" data-goto="agenda">Voir tout</button></div>
       <div class="list" id="home-agenda"></div>
     </article>
 
@@ -855,7 +855,8 @@ function evItem(e, withDelete) {
 function renderAgenda() {
   const upcoming = events.filter(e => evDate(e) >= startOfDay(new Date())).sort((a, b) => evDate(a) - evDate(b));
   $("#agenda-list").replaceChildren(...(upcoming.length ? upcoming.map(e => evItem(e, true)) : [el("p", { class: "muted", text: "Aucun rendez-vous à venir." })]));
-  $("#home-agenda").replaceChildren(...(upcoming.length ? upcoming.slice(0, 3).map(e => evItem(e, false)) : [el("p", { class: "muted", text: "Rien de prévu. Ajoute un rendez-vous dans l'agenda." })]));
+  const today = startOfDay(new Date()).getTime(), todays = upcoming.filter(e => startOfDay(evDate(e)).getTime() === today);
+  $("#home-agenda").replaceChildren(...(todays.length ? todays.map(e => evItem(e, false)) : [el("p", { class: "muted", text: "🌿 Rien de prévu aujourd'hui." })]));
 }
 $("#ev-form").addEventListener("submit", e => {
   e.preventDefault();
@@ -1630,6 +1631,7 @@ function renderKeep() {
 $("#keep-q").addEventListener("input", renderKeep);
 
 /* ---------- démarrage ---------- */
+setInterval(renderAgenda, 30 * 60000);
 renderAgenda(); renderPapers(); renderAdmin(); renderTodos(); renderPack(); showNet("lyon");
 renderKeep(); renderMeals(); renderStores(); renderAisles(); renderShop(); renderLeclerc(); renderHabits(); renderMeter(); renderChores(); renderHouseHome();
 show(store.get("view", "home"));
