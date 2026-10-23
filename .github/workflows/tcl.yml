@@ -33,6 +33,11 @@ jobs:
               # Test du compte sur un jeu de données ouvert à tout compte : dit si l'identifiant marche.
               t=$(curl -sS -m 60 -u "$U:$P" -o /dev/null -w '%{http_code}' --connect-timeout 20 "https://download.data.grandlyon.com/ws/rdata/demo.demovelov/all.json?maxfeatures=1" || true)
               echo "Test du compte : $t"
+              d=$(curl -sS -m 30 -u demo:demo4dev -o /dev/null -w '%{http_code}' --connect-timeout 20 "https://download.data.grandlyon.com/ws/rdata/demo.demovelov/all.json?maxfeatures=1" || true)
+              echo "Test compte démo public : $d"
+              curl -sS -m 30 -D - -o body.txt -u "$U:$P" --connect-timeout 20 "$URL" | grep -i -E '^(HTTP|www-authenticate|location)' || true
+              head -c 300 body.txt; echo
+              echo "Identifiant : ${#U} caractères, contient @ : $(case "$U" in *@*) echo oui;; *) echo non;; esac)"
               [ "$t" = 200 ] && [ "$code" = 401 ] && code=403
             fi
           fi
