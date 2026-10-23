@@ -1,0 +1,51 @@
+# Relais TCL : récupère les alertes trafic TCL (data.grandlyon.com) toutes les 10 minutes
+# et les dépose dans la branche "data" (tcl.json), que l'appli peut lire sans blocage.
+name: Relais TCL
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: tcl
+jobs:
+  tcl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Récupérer les alertes
+        env:
+          TCL_USER: ${{ secrets.TCL_USER }}
+          TCL_PASS: ${{ secrets.TCL_PASS }}
+        run: |
+          mkdir out
+          URL="https://download.data.grandlyon.com/ws/rdata/tcl_sytral.tclalertetrafic_2/all.json?maxfeatures=300&start=1"
+          code=$(curl -sS -m 60 -o raw.json -w '%{http_code}' "$URL" || echo 000)
+          echo "Sans compte : $code"
+          if [ "$code" != 200 ] && [ -n "$TCL_USER" ]; then
+            code=$(curl -sS -m 60 -u "$TCL_USER:$TCL_PASS" -o raw.json -w '%{http_code}' "$URL" || echo 000)
+            echo "Avec compte : $code"
+          fi
+          python3 - "$code" <<'PY'
+          import json, sys, datetime
+          code = sys.argv[1]
+          out = {"updated": datetime.datetime.now(datetime.timezone.utc).isoformat(), "status": code, "values": []}
+          if code == "200":
+              try:
+                  vals = json.load(open("raw.json")).get("values", [])
+                  keep = ("type", "cause", "debut", "fin", "mode", "ligne_com", "ligne_cli", "titre", "message")
+                  out["values"] = [{k: v.get(k) for k in keep if v.get(k) is not None} for v in vals]
+              except Exception:
+                  out["status"] = "json"
+          json.dump(out, open("out/tcl.json", "w"), ensure_ascii=False)
+          print(out["status"], len(out["values"]), "alertes")
+          PY
+      - name: Publier dans la branche data
+        run: |
+          cd out
+          git init -q -b data
+          git config user.name "Relais TCL"
+          git config user.email "actions@users.noreply.github.com"
+          git add tcl.json
+          git commit -qm "Alertes TCL"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data
