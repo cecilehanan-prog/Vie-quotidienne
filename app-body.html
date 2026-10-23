@@ -208,6 +208,7 @@ input.num { width: 7.5em; flex: 0 1 auto !important; }
 .card[data-sec] .btn { border-color: color-mix(in srgb, var(--sec) 35%, transparent); background: color-mix(in srgb, var(--sec) 12%, var(--surface)); }
 .card[data-sec] .item, .card[data-sec] .shop-item, .card[data-sec] .stat { background: var(--surface); }
 .card[data-sec] .label { color: color-mix(in srgb, var(--sec) 75%, var(--fg)); }
+#trip-res > .label { margin: 14px 0 4px; font-size: .85rem; }
 .card[data-sec] .bars .bar { background: color-mix(in srgb, var(--sec) 55%, var(--surface)); }
 .card[data-sec] .bars .bar.last { background: var(--sec); }
 .card[data-sec] input[type=checkbox] { accent-color: var(--sec); }
@@ -508,6 +509,9 @@ details summary { cursor: pointer; font-weight: 700; }
   <section class="view" id="view-trip" hidden>
     <article class="card" data-sec="trip">
       <h2>✈️ Où vas-tu ?</h2>
+      <div class="label">1️⃣ Je réserve où dormir</div>
+      <div class="grid2" id="trip-stay" style="margin:6px 0 12px"></div>
+      <div class="label">2️⃣ Je choisis comment y aller</div>
       <div class="go-row"><span class="go-ic">🟢</span><input type="text" id="trip-from" value="Tarare" aria-label="Départ"><button class="btn" type="button" id="trip-here" title="Ma position">📍</button></div>
       <div class="go-row"><span class="go-ic">🔴</span><input type="text" id="trip-to" placeholder="Destination (ville ou adresse)" aria-label="Destination"></div>
       <div class="tabs" id="trip-quick"></div>
@@ -521,13 +525,19 @@ details summary { cursor: pointer; font-weight: 700; }
       <div id="trip-res"></div>
       <div id="trip-wx"></div>
       <details>
-        <summary>✈️ Avion · 🏨 Hôtel</summary>
-        <div class="grid2" id="trip-links" style="margin-top:10px"></div>
-      </details>
-      <details>
         <summary>🧳 Ma valise</summary>
         <div class="list" id="pack-list" style="margin-top:10px"></div>
       </details>
+    </article>
+    <article class="card" data-sec="trip">
+      <div class="card-head"><h2>🌍 Mes envies de voyage</h2><span class="pill" id="dream-count"></span></div>
+      <p class="small muted">Les lieux où tu veux aller un jour. Touche un lieu pour préparer le voyage.</p>
+      <form class="inline" id="dream-form">
+        <input type="text" id="dream-place" placeholder="Ex. Lisbonne" required aria-label="Lieu" autocomplete="off">
+        <input type="date" id="dream-date" aria-label="Date (facultatif)">
+        <button class="btn primary" type="submit">Ajouter</button>
+      </form>
+      <div class="list" id="dream-list"></div>
     </article>
     <article class="card" data-sec="car">
       <h2>🚦 Info trafic</h2>
@@ -1202,18 +1212,46 @@ async function findTrip() {
   const best = (ok.length ? ok : cards).reduce((a, b) => score(b) < score(a) ? b : a);
   best.best = true;
   msg.textContent = `${A.name} → ${B.name}`;
-  res.replaceChildren(...[best, ...cards.filter(c => c !== best)].map(routeCard));
+  // Ordre fixe : voiture, puis train et transports, puis avion
+  const carC = cards.filter(c => c.emo === "🚗"), ptC = cards.filter(c => c.emo !== "🚗");
+  const D = encodeURIComponent($("#trip-date").value || "");
+  res.replaceChildren(
+    ...(carC.length ? [el("div", { class: "label", text: "🚗 En voiture" }), ...carC.map(routeCard)] : []),
+    el("div", { class: "label", text: "🚆 En train, car ou bus" }),
+    ...(ptC.length ? ptC.map(routeCard) : [el("div", { class: "grid2" }, lb("https://www.sncf-connect.com/", "🚄", "SNCF Connect"), lb(gmT, "🚌", "Bus et train"))]),
+    el("div", { class: "label", text: "✈️ En avion" }),
+    el("div", { class: "grid2" },
+      lb(`https://www.google.com/travel/flights?q=${encodeURIComponent(`Vols de Lyon à ${to}${D ? " le " + decodeURIComponent(D) : ""}`)}`, "✈️", "Trouver un vol"),
+      lb("https://www.easyjet.com/fr", "🟧", "easyJet")));
   tripWeather(to);
 }
-function tripExtraLinks() {
-  const to = $("#trip-to").value.trim() || "Lyon", T = encodeURIComponent(to), date = $("#trip-date").value;
-  $("#trip-links").replaceChildren(
-    lb(`https://www.google.com/travel/flights?q=${encodeURIComponent(`Vols de Lyon à ${to}${date ? " le " + date : ""}`)}`, "✈️", "Vols"),
-    lb("https://www.easyjet.com/fr", "🟧", "easyJet"),
-    lb(`https://www.booking.com/searchresults.fr.html?ss=${T}${date ? "&checkin=" + date : ""}`, "🛏️", "Booking"),
-    lb(`https://www.google.com/maps/search/${encodeURIComponent("hôtel " + to)}`, "🗺️", "Hôtels sur la carte"));
+/* Mes envies de voyage : lieux + date facultative ; un appui prépare la recherche */
+let dreams = store.get("dreams", []);
+function renderDreams() {
+  $("#dream-count").textContent = dreams.length ? `${dreams.length} lieu${dreams.length > 1 ? "x" : ""}` : "vide";
+  const sorted = [...dreams].sort((a, b) => (a.date || "9999") < (b.date || "9999") ? -1 : 1);
+  $("#dream-list").replaceChildren(...(sorted.length ? sorted.map(d => el("div", { class: "shop-item" },
+    el("button", { class: "what", type: "button", style: "border:0;background:none;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:0", onclick: () => {
+      $("#trip-to").value = d.place; if (d.date) $("#trip-date").value = d.date; tripExtraLinks(); $("#trip-to").scrollIntoView({ behavior: "smooth", block: "center" });
+    } }, el("i", { class: "emo", "aria-hidden": "true", text: "📍" }), el("strong", { text: d.place }),
+      el("span", { class: "muted", text: d.date ? " · " + new Date(d.date + "T12:00").toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : " · un jour ✨" })),
+    el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + d.place, text: "✕", onclick: () => { dreams = dreams.filter(x => x !== d); store.set("dreams", dreams); renderDreams(); } })))
+    : [el("p", { class: "muted", text: "Note ici les lieux qui te font rêver 🌴" })]));
 }
-tripExtraLinks(); $("#trip-to").addEventListener("change", tripExtraLinks);
+$("#dream-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const place = $("#dream-place").value.trim(); if (!place) return;
+  dreams.push({ id: uid(), place: place[0].toUpperCase() + place.slice(1), date: $("#dream-date").value });
+  store.set("dreams", dreams); e.target.reset(); renderDreams();
+});
+renderDreams();
+function tripExtraLinks() {
+  const to = $("#trip-to").value.trim(), T = encodeURIComponent(to || "Lyon"), date = $("#trip-date").value;
+  $("#trip-stay").replaceChildren(
+    lb(`https://www.booking.com/searchresults.fr.html?ss=${T}${date ? "&checkin=" + date : ""}`, "🛏️", to ? `Booking à ${to}` : "Booking"),
+    lb(`https://www.google.com/maps/search/${encodeURIComponent("hôtel " + (to || "Lyon"))}`, "🗺️", "Hôtels sur la carte"));
+}
+tripExtraLinks(); $("#trip-to").addEventListener("input", tripExtraLinks); $("#trip-date").addEventListener("change", tripExtraLinks); $("#trip-quick").addEventListener("click", () => setTimeout(tripExtraLinks));
 let wxFor = "";
 async function tripWeather(to) {
   if (wxFor === to) return; wxFor = to;
