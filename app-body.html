@@ -300,11 +300,11 @@ details summary { cursor: pointer; font-weight: 700; }
 .fast.owe { background: color-mix(in srgb, #e9a23b 22%, var(--surface)); border-color: #e9a23b; }
 .fast.today { outline: 3px solid #e9c46a; outline-offset: 1px; }
 /* Tuiles : palette « pierres précieuses », une couleur bien distincte par tuile */
-.tile[data-sec=news] { --sec: #3e63dd; } .tile[data-sec=agenda] { --sec: #d9466f; } .tile[data-sec=shop] { --sec: #2e9b57; }
-.tile[data-sec=meals] { --sec: #e0663a; } .tile[data-sec=culture] { --sec: #8e4ec6; } .tile[data-sec=car] { --sec: #b8780b; }
-.tile[data-sec=trip] { --sec: #0f93a3; } .tile[data-sec=auto] { --sec: #56687a; } .tile[data-sec=pray] { --sec: #23305e; }
-.tile[data-sec=admin] { --sec: #6f7f22; }
-.tile { color: #fff; } .tile[data-sec=pray] svg { color: #f3d98a; }
+:is(.tile, nav.tabbar button)[data-sec=news] { --sec: #3e63dd; } :is(.tile, nav.tabbar button)[data-sec=agenda] { --sec: #d9466f; } :is(.tile, nav.tabbar button)[data-sec=shop] { --sec: #2e9b57; }
+:is(.tile, nav.tabbar button)[data-sec=meals] { --sec: #e0663a; } :is(.tile, nav.tabbar button)[data-sec=culture] { --sec: #8e4ec6; } :is(.tile, nav.tabbar button)[data-sec=car] { --sec: #b8780b; }
+:is(.tile, nav.tabbar button)[data-sec=trip] { --sec: #0f93a3; } :is(.tile, nav.tabbar button)[data-sec=auto] { --sec: #56687a; } :is(.tile, nav.tabbar button)[data-sec=pray] { --sec: #23305e; }
+:is(.tile, nav.tabbar button)[data-sec=admin] { --sec: #6f7f22; }
+.tile { color: #fff; } nav.tabbar button[data-sec=wx] { --sec: #2b8ce6; } nav.tabbar button[aria-current="page"] svg { color: #fff; } .tile[data-sec=pray] svg { color: #f3d98a; }
 
 /* Petite scène au-dessus de la citation, selon le moment de la journée : trait fin doré, mouvement lent */
 .sky-anim { --gold: #b8860b; height: 74px; margin: 6px auto -16px; max-width: 220px; color: var(--gold); }
@@ -833,6 +833,7 @@ $("#greet").textContent = h < 5 ? "Bonne nuit" : h < 12 ? "Bonjour" : h < 18 ? "
 
 /* ---------- navigation ---------- */
 const ICONS = {
+  culture: '<path d="M4 5c3 1.5 13 1.5 16 0v6a8 8 0 0 1-16 0z"/><path d="M9 10h.01M15 10h.01M9 14c1.5 1.5 4.5 1.5 6 0"/>',
   home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   news: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/>',
   agenda: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
@@ -841,8 +842,8 @@ const ICONS = {
   admin: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
   home2: '<path d="M4 7h2l2.2 9.2a1 1 0 0 0 1 .8h7.6a1 1 0 0 0 1-.8L19.5 10H7"/><circle cx="10" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/>',
 };
-const VIEWS = [["home", "Accueil"], ["news", "Infos"], ["agenda", "Agenda"], ["home2", "Shopping"], ["trip", "Voyage"], ["admin", "Papiers"]];
-const VIEW_SEC = { home: "wx", news: "news", agenda: "agenda", home2: "house", move: "car", trip: "trip", admin: "admin" };
+const VIEWS = [["home", "Accueil"], ["news", "Infos"], ["agenda", "Agenda"], ["culture", "Culture"], ["home2", "Shopping"], ["trip", "Voyage"], ["admin", "Papiers"]];
+const VIEW_SEC = { home: "wx", news: "news", agenda: "agenda", culture: "culture", home2: "shop", trip: "trip", admin: "admin" };
 const svg = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
 for (const [id, label] of VIEWS) {
   const b = el("button", { type: "button", "data-view": id, "data-sec": VIEW_SEC[id] });
