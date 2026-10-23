@@ -1966,12 +1966,12 @@ $("#chore-form").addEventListener("submit", e => { e.preventDefault(); chores.pu
 
 const TILES = [
   ["news", "news", "Infos", null], ["agenda", "agenda", "Agenda", () => events.filter(e => !e.sample && daysUntil(e.date) >= 0 && daysUntil(e.date) <= 7).length],
-  ["home2", "shop", "Courses", () => shop.filter(i => !i.done).length],
+  ["home2", "shop", "Shopping", () => shop.filter(i => !i.done).length],
   ["culture", "culture", "Culture", () => outings.filter(o => !o.done).length],
   ["move", "car", "Trajets", null],
   ["trip", "trip", "Voyage", null],
   ["auto", "auto", "Auto · Moto", () => autoDue().length],
-  ["admin", "admin", "Démarches", () => admin.filter(x => !x.done && x.date && daysUntil(x.date) <= 30).length],
+  ["admin", "admin", "Papiers", () => admin.filter(x => !x.done && x.date && daysUntil(x.date) <= 30).length],
 ];
 /* ----- Culture : idées de sorties + films coup de cœur ----- */
 /* Billets (photo ou PDF) rangés sur le téléphone, dans IndexedDB : rien n'est envoyé ailleurs */
@@ -2239,7 +2239,8 @@ function renderTiles() {
     const n = count ? count() : 0;
     const [view, feed] = go.split(":");
     const t = el("button", { class: "tile", type: "button", "data-sec": sec, "data-goto": view, "data-feed": feed || false });
-    t.innerHTML = svg(SEC_ICON[sec]) + `<span>${label}</span>` + (n ? `<span class="count">${n}</span>` : "");
+    // même nom que le raccourci en bas de l'écran
+    t.innerHTML = svg(SEC_ICON[sec]) + `<span>${(VIEWS.find(v => v[0] === view) || [, label])[1]}</span>` + (n ? `<span class="count">${n}</span>` : "");
     return t;
   }));
 }
