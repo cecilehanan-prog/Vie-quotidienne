@@ -1,7 +1,7 @@
 <title>Mon Quotidien</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,600;1,500;1,600&display=swap">
 <style>
 /* Layout : appli mobile, une colonne, barre d'onglets en bas ; cartes posées sur un fond "ciel du matin" */
 :root {
@@ -194,10 +194,17 @@ input.num { width: 7.5em; flex: 0 1 auto !important; }
 [data-sec=energy] { --sec: var(--c-energy); } [data-sec=chores] { --sec: var(--c-chores); } [data-sec=car] { --sec: var(--c-car); }
 [data-sec=transit] { --sec: var(--c-transit); } [data-sec=trip] { --sec: var(--c-trip); } [data-sec=admin], [data-sec=links] { --sec: var(--c-admin); }
 [data-sec=papers] { --sec: var(--c-papers); } [data-sec=todo] { --sec: #7a4fd0; } [data-sec=wish] { --sec: #c2185b; } [data-sec=pharma] { --sec: #0f9d8a; }
-.quote { margin: 14px 0; padding: 16px 18px; border-radius: 20px; background: linear-gradient(140deg, color-mix(in srgb, #8e44ad 14%, var(--surface)), color-mix(in srgb, #f5b400 12%, var(--surface))); border: 2px solid color-mix(in srgb, #8e44ad 22%, transparent); }
-.quote blockquote { margin: 0; font-size: 1.12rem; line-height: 1.5; font-style: italic; color: var(--fg); }
-.quote blockquote::before { content: "✨ "; font-style: normal; }
-.quote figcaption { margin-top: 8px; font-size: .85rem; color: var(--muted); text-align: right; } [data-sec=auto] { --sec: #e8590c; }
+/* Pensée du jour : pas de cadre, écriture dorée, poétique */
+.quote { --g1: #8a5a00; --g2: #b8860b; --g3: #7a4e00; margin: 22px 4px 18px; padding: 18px 10px 14px; text-align: center; position: relative;
+  background: radial-gradient(ellipse at center, color-mix(in srgb, #f5c542 16%, transparent), transparent 70%); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .quote { --g1: #f6dc8c; --g2: #e2b04a; --g3: #fbe7a8; } }
+:root[data-theme="dark"] .quote { --g1: #f6dc8c; --g2: #e2b04a; --g3: #fbe7a8; }
+.quote .orn { display: flex; align-items: center; gap: 10px; color: var(--g2); font-size: .9rem; }
+.quote .orn::before, .quote .orn::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--g2), transparent); }
+.quote blockquote { margin: 12px 6px 6px; font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-weight: 600; font-size: 1.45rem; line-height: 1.4; text-wrap: balance;
+  color: var(--g1); background: linear-gradient(120deg, var(--g1), var(--g2) 45%, var(--g3) 60%, var(--g1)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.quote figcaption { margin: 4px 0 12px; font-size: .92rem; font-weight: 700; letter-spacing: .03em; color: var(--g2); }
+ [data-sec=auto] { --sec: #e8590c; }
 .maint { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 8px 0; }
 .maint > div { border-radius: 12px; padding: 8px 10px; background: var(--al-ok-bg); color: var(--al-ok-fg); border-left: 5px solid #2fa35a; font-size: .9rem; }
 .maint > div.soon { background: var(--al-bad-bg); color: var(--al-bad-fg); border-left-color: #f0701e; }
@@ -2217,7 +2224,7 @@ const QUOTES = [
 function renderQuote() {
   const d = new Date(), day = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / DAY) + d.getFullYear() * 7;
   const [q, a] = QUOTES[day % QUOTES.length];
-  $("#daily-quote").replaceChildren(el("blockquote", { text: q }), el("figcaption", { text: "— " + a }));
+  $("#daily-quote").replaceChildren(el("div", { class: "orn", "aria-hidden": "true", text: "✦ ❁ ✦" }), el("blockquote", { text: "« " + q + " »" }), el("figcaption", { text: "— " + a + " —" }), el("div", { class: "orn", "aria-hidden": "true", text: "✦" }));
 }
 renderQuote(); setInterval(renderQuote, 30 * 60000);
 function renderTiles() {
