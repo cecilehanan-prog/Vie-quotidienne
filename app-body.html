@@ -1433,11 +1433,30 @@ async function loadTclLive() {
 }
 try { localStorage.removeItem("mq:tclAuth"); } catch (e) {}
 loadTclLive(); setInterval(loadTclLive, 10 * 60000);
-let pack = store.get("pack", null) || ["Carte d'identité ou passeport", "Billets et réservations", "Chargeur de téléphone", "Médicaments", "Carte Vitale", "Trousse de toilette", "Vêtements pour la météo prévue"].map(t => ({ t, ok: false }));
+/* Ma valise : listes par catégorie, tenues été / hiver ; coches et ajouts gardés sur le téléphone */
+const PACK = {
+  "📄 Papiers": ["Carte d'identité ou passeport", "Permis de conduire", "Carte Vitale", "Carte bancaire et un peu d'espèces", "Billets et réservations", "Clés de la maison"],
+  "🧴 Trousse de toilette": ["Brosse à dents", "Dentifrice", "Savon ou gel douche", "Shampoing", "Après-shampoing", "Déodorant", "Parfum", "Crème hydratante", "Démaquillant et cotons", "Maquillage", "Pinceaux à maquillage", "Brosse ou peigne", "Élastiques et pinces", "Lisseur ou sèche-cheveux", "Coupe-ongles et pince à épiler", "Rasoir", "Protections hygiéniques", "Lentilles ou lunettes", "Médicaments habituels", "Pansements et Doliprane"],
+  "☀️ Tenues d'été": ["T-shirts et débardeurs", "Shorts", "Robes légères", "Jupes", "Pantalon léger", "Petit gilet pour le soir", "Maillots de bain", "Paréo ou serviette de plage", "Sous-vêtements", "Pyjama léger", "Sandales", "Tongs", "Baskets", "Chapeau ou casquette", "Lunettes de soleil", "Crème solaire", "Après-soleil", "Anti-moustique"],
+  "❄️ Tenues d'hiver": ["Manteau chaud", "Pulls", "T-shirts manches longues", "Sous-vêtements chauds", "Pantalons et jeans", "Robe chaude et collants", "Pyjama chaud", "Chaussettes chaudes", "Bottes ou chaussures fermées", "Chaussons", "Écharpe", "Bonnet", "Gants", "Parapluie", "Baume à lèvres", "Crème pour les mains"],
+  "🔌 Divers": ["Chargeur de téléphone", "Batterie externe", "Écouteurs", "Adaptateur de prise", "Livre ou liseuse", "Gourde", "Snacks pour la route", "Sac pour le linge sale"],
+};
+let packDone = store.get("packDone", {}), packExtra = store.get("packExtra", []), packSeason = store.get("packSeason", [4, 5, 6, 7, 8].includes(new Date().getMonth()) ? "ete" : "hiver");
 function renderPack() {
-  $("#pack-list").replaceChildren(...pack.map(p => el("label", { class: "item" + (p.ok ? " done" : "") },
-    el("input", { type: "checkbox", checked: p.ok, onchange: e => { p.ok = e.target.checked; store.set("pack", pack); renderPack(); } }), el("span", { class: "what", text: p.t }), el("span"))),
-    el("button", { class: "btn", type: "button", text: "Tout décocher", onclick: () => { pack.forEach(p => p.ok = false); store.set("pack", pack); renderPack(); } }));
+  const groups = Object.entries(PACK).filter(([g]) => !(g.includes("été") && packSeason === "hiver") && !(g.includes("hiver") && packSeason === "ete"));
+  if (packExtra.length) groups.push(["⭐ Mes ajouts", packExtra]);
+  const all = groups.flatMap(([, items]) => items), done = all.filter(t => packDone[t]).length;
+  const item = (t, extra) => el("label", { class: "item" + (packDone[t] ? " done" : "") },
+    el("input", { type: "checkbox", checked: !!packDone[t], onchange: e => { if (e.target.checked) packDone[t] = 1; else delete packDone[t]; store.set("packDone", packDone); renderPack(); } }),
+    el("span", { class: "what", text: t }),
+    extra ? el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + t, text: "✕", onclick: e => { e.preventDefault(); packExtra = packExtra.filter(x => x !== t); delete packDone[t]; store.set("packExtra", packExtra); store.set("packDone", packDone); renderPack(); } }) : el("span"));
+  const addIn = el("input", { type: "text", placeholder: "Ajouter un objet", "aria-label": "Objet" });
+  $("#pack-list").replaceChildren(
+    el("div", { class: "seg", role: "group", style: "margin-bottom:6px" }, ...[["ete", "☀️ Été"], ["hiver", "❄️ Hiver"]].map(([k, l]) => el("button", { class: "btn", type: "button", "aria-pressed": String(packSeason === k), text: l, onclick: () => { packSeason = k; store.set("packSeason", k); renderPack(); } }))),
+    el("div", { class: "small", text: `✅ ${done} / ${all.length} dans la valise` }),
+    ...groups.map(([g, items]) => el("details", { open: true }, el("summary", { text: `${g} (${items.filter(t => packDone[t]).length}/${items.length})` }), el("div", { class: "list" }, ...items.map(t => item(t, g === "⭐ Mes ajouts"))))),
+    el("form", { class: "inline", style: "margin-top:8px", onsubmit: e => { e.preventDefault(); const t = addIn.value.trim(); if (t && !packExtra.includes(t)) { packExtra.push(t); store.set("packExtra", packExtra); } renderPack(); } }, addIn, el("button", { class: "btn primary", type: "submit", text: "Ajouter" })),
+    el("button", { class: "btn", type: "button", style: "margin-top:8px", text: "🔄 Tout décocher (nouveau voyage)", onclick: () => { packDone = {}; store.set("packDone", packDone); renderPack(); } }));
 }
 
 
