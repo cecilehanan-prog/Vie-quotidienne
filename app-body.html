@@ -329,11 +329,6 @@ details summary { cursor: pointer; font-weight: 700; }
       <div class="card-head"><h2>À la maison</h2><button class="btn" data-goto="home2">Voir tout</button></div>
       <div class="list" id="home-house"></div>
     </article>
-
-    <article class="card" data-sec="good">
-      <div class="card-head"><h2>Bonnes nouvelles</h2><button class="btn" data-goto="news" data-feed="bonnes">Voir tout</button></div>
-      <ul class="news" id="home-good"><li class="muted">Chargement…</li></ul>
-    </article>
   </section>
 
   <!-- ===== INFOS ===== -->
@@ -951,7 +946,7 @@ async function loadNews(key) {
   }
 }
 async function loadGoodNews() {
-  const ul = $("#home-good");
+  const ul = $("#home-good"); if (!ul) return;
   try {
     const { items } = await getFeed("bonnes");
     ul.replaceChildren(...items.slice(0, 3).map(newsLi));
