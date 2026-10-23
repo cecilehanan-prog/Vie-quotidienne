@@ -289,6 +289,15 @@ details summary { cursor: pointer; font-weight: 700; }
       <div class="card-head"><h2>🚦 Info trafic</h2><button class="btn" type="button" id="alerts-here">📍 Autour de moi</button></div>
       <p class="small muted" id="alerts-where"></p>
       <div class="alerts" id="home-alerts"></div>
+      <div class="alerts" id="tcl-live"></div>
+      <details>
+        <summary>⚙️ TCL en direct</summary>
+        <p class="small muted">Tape ici l'e-mail et le mot de passe de ton compte data.grandlyon.com. Ils restent seulement sur ton téléphone.</p>
+        <input type="email" id="tcl-user" placeholder="E-mail" autocomplete="username" style="width:100%;margin:4px 0">
+        <input type="password" id="tcl-pass" placeholder="Mot de passe" autocomplete="current-password" style="width:100%;margin:4px 0">
+        <button class="btn primary" type="button" id="tcl-save">💾 Enregistrer</button>
+        <p class="small" id="tcl-msg"></p>
+      </details>
     </article>
 
 
@@ -1224,6 +1233,36 @@ function alertsHere(silent) {
 }
 loadAlerts();
 $("#alerts-here").addEventListener("click", () => alertsHere(false));
+/* ----- TCL en direct (compte data.grandlyon.com de l'utilisatrice, gardé sur le téléphone) ----- */
+async function loadTclLive() {
+  const auth = store.get("tclAuth", null), box = $("#tcl-live");
+  if (!auth) { box.replaceChildren(); return; }
+  try {
+    const r = await fetch("https://data.grandlyon.com/fr/datapusher/ws/rdata/tcl_sytral.tclalertetrafic_2/all.json?maxfeatures=200&start=1", { headers: { Authorization: "Basic " + auth } });
+    if (r.status === 401 || r.status === 403) throw new Error("acces");
+    const j = await r.json();
+    const now = Date.now();
+    const seen = new Set();
+    const al = (j.values || []).filter(v => !v.fin || new Date(v.fin.replace(" ", "T")) > now)
+      .map(v => ({ line: v.ligne_com || v.ligne_cli || "", txt: v.titre || v.message || v.type || "" }))
+      .filter(v => v.txt && !seen.has(v.line + v.txt) && seen.add(v.line + v.txt));
+    const shown = al.slice(0, 8);
+    box.replaceChildren(el("div", { class: "alert" + (al.length ? " bad" : "") }, el("i", { text: "🚇" }),
+      el("strong", { text: al.length ? `TCL en direct : ⚠️ ${al.length} alerte${al.length > 1 ? "s" : ""}` : "TCL en direct : ✅ tout roule" }),
+      el("div", { class: "alert-news" }, ...shown.map(v => el("div", { class: "small", text: `• ${v.line ? "Ligne " + v.line + " : " : ""}${v.txt}` })))));
+    $("#tcl-msg").textContent = "✅ Connecté aux TCL";
+  } catch (e) {
+    box.replaceChildren();
+    $("#tcl-msg").textContent = e.message === "acces" ? "❌ Le site refuse : vérifie l'e-mail, le mot de passe et que l'accès aux données TCL est validé." : "❌ Impossible de joindre le site des TCL pour l'instant.";
+  }
+}
+$("#tcl-save").addEventListener("click", () => {
+  const u = $("#tcl-user").value.trim(), pw = $("#tcl-pass").value;
+  if (!u || !pw) { $("#tcl-msg").textContent = "👆 Remplis les deux cases."; return; }
+  store.set("tclAuth", btoa(unescape(encodeURIComponent(u + ":" + pw)))); $("#tcl-pass").value = "";
+  $("#tcl-msg").textContent = "⏳ Je me connecte…"; loadTclLive();
+});
+loadTclLive();
 let pack = store.get("pack", null) || ["Carte d'identité ou passeport", "Billets et réservations", "Chargeur de téléphone", "Médicaments", "Carte Vitale", "Trousse de toilette", "Vêtements pour la météo prévue"].map(t => ({ t, ok: false }));
 function renderPack() {
   $("#pack-list").replaceChildren(...pack.map(p => el("label", { class: "item" + (p.ok ? " done" : "") },
