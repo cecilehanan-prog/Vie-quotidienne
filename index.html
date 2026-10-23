@@ -312,6 +312,27 @@ details summary { cursor: pointer; font-weight: 700; }
 .tile[data-sec=trip] { --sec: #0f93a3; } .tile[data-sec=auto] { --sec: #56687a; } .tile[data-sec=pray] { --sec: #23305e; }
 .tile[data-sec=admin] { --sec: #6f7f22; }
 .tile { color: #fff; } .tile[data-sec=pray] svg { color: #f3d98a; }
+
+/* Petite scène au-dessus de la citation, selon le moment de la journée : trait fin doré, mouvement lent */
+.sky-anim { --gold: #b8860b; height: 74px; margin: 6px auto -16px; max-width: 220px; color: var(--gold); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sky-anim { --gold: #e2b04a; } }
+:root[data-theme="dark"] .sky-anim { --gold: #e2b04a; }
+.sky-anim svg { width: 100%; height: 100%; overflow: visible; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.sky-anim .hz { opacity: .55; }
+.sky-anim .rise { animation: skyRise 12s ease-in-out infinite alternate; }
+.sky-anim .set { animation: skySet 12s ease-in-out infinite alternate; }
+.sky-anim .rays { transform-box: view-box; transform-origin: 110px 40px; animation: skySpin 90s linear infinite; }
+.sky-anim .breathe { transform-box: fill-box; transform-origin: center; animation: skyBreathe 6s ease-in-out infinite alternate; }
+.sky-anim .float { animation: skyFloat 8s ease-in-out infinite alternate; }
+.sky-anim .tw { fill: currentColor; stroke: none; transform-box: fill-box; transform-origin: center; animation: skyTw 4s ease-in-out infinite alternate; }
+.sky-anim .tw2 { animation-delay: 2s; }
+@keyframes skyRise { from { transform: translateY(14px); } to { transform: translateY(0); } }
+@keyframes skySet { from { transform: translateY(0); } to { transform: translateY(14px); } }
+@keyframes skySpin { to { transform: rotate(360deg); } }
+@keyframes skyBreathe { from { opacity: .55; } to { opacity: 1; } }
+@keyframes skyFloat { from { transform: translateY(2px); } to { transform: translateY(-3px); } }
+@keyframes skyTw { from { opacity: .2; transform: scale(.75); } to { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .sky-anim * { animation: none !important; } }
 </style>
 
 <div class="wrap">
@@ -322,6 +343,7 @@ details summary { cursor: pointer; font-weight: 700; }
 
   <!-- ===== AUJOURD'HUI ===== -->
   <section class="view" id="view-home">
+    <div class="sky-anim" id="sky-anim" aria-hidden="true"></div>
     <figure class="quote" id="daily-quote"></figure>
     <div id="near-banner" hidden></div>
     <div id="store-banner-home" hidden></div>
@@ -2452,6 +2474,28 @@ function renderRamadan() {
       made ? el("button", { class: "btn", type: "button", text: `↩️ Annuler (${made} rattrapé${made > 1 ? "s" : ""})`, onclick: () => { store.set("fastMade", made - 1); renderRamadan(); } }) : null) : null);
 }
 $("#ram-start").addEventListener("change", e => { if (e.target.value) { store.set("ramStart", e.target.value); renderRamadan(); } });
+/* Scène du moment : soleil levant, soleil, soleil couchant ou lune et étoile (heures réelles du soleil) */
+function renderSky() {
+  const box = $("#sky-anim"); if (!box) return;
+  const now = new Date(), t = prayerTimes(now, herePos || GML.pos), rise = t[1][3], set = t[4][3] - GML.maghreb * 6e4;
+  const m = (now - rise) / 6e4, e = (now - set) / 6e4;
+  const mode = m >= -45 && m < 120 ? "rise" : e >= -100 && e < 35 ? "set" : now > rise && now < set ? "day" : "night";
+  if (box.dataset.mode === mode) return;
+  box.dataset.mode = mode;
+  const star = (x, y, r, c = "") => `<path class="tw ${c}" d="M${x} ${y - r}Q${x} ${y} ${x + r} ${y}Q${x} ${y} ${x} ${y + r}Q${x} ${y} ${x - r} ${y}Q${x} ${y} ${x} ${y - r}Z"/>`;
+  const rays = (cx, cy, r1, r2, n = 8) => Array.from({ length: n }, (_, i) => { const a = i * 2 * Math.PI / n; return `<line x1="${(cx + Math.cos(a) * r1).toFixed(1)}" y1="${(cy + Math.sin(a) * r1).toFixed(1)}" x2="${(cx + Math.cos(a) * r2).toFixed(1)}" y2="${(cy + Math.sin(a) * r2).toFixed(1)}"/>`; }).join("");
+  // Demi-soleil posé sur l'horizon (y = 58), caché sous la ligne
+  const half = `<defs><clipPath id="skyclip"><rect x="0" y="-40" width="220" height="98"/></clipPath></defs>`;
+  const halfSun = cls => `${half}<g clip-path="url(#skyclip)"><g class="${cls}"><circle cx="110" cy="58" r="16"/><g class="breathe">${rays(110, 58, 22, 30, 12)}</g></g></g><line class="hz" x1="40" y1="58" x2="180" y2="58"/>`;
+  const scenes = {
+    rise: halfSun("rise"),
+    day: `<g class="float"><circle cx="110" cy="40" r="15"/><g class="rays">${rays(110, 40, 21, 28, 12)}</g></g>`,
+    set: `${halfSun("set")}<line class="hz" x1="88" y1="64" x2="132" y2="64"/><line class="hz" x1="100" y1="69" x2="120" y2="69"/>`,
+    night: `<g class="float"><path d="M117 18a20 20 0 1 0 14 34 16 16 0 1 1-14-34z"/></g>${star(146, 22, 6)}${star(82, 30, 3.5, "tw2")}`,
+  };
+  box.innerHTML = `<svg viewBox="0 0 220 74">${scenes[mode]}</svg>`;
+}
+renderSky(); setInterval(renderSky, 60000);
 renderPrayers(); renderRamadan(); setInterval(renderPrayers, 60000);
 renderKeep(); renderMeals(); renderStores(); renderAisles(); renderShop(); renderLeclerc(); renderHabits(); renderMeter(); renderChores(); renderHouseHome();
 show(store.get("view", "home"));
