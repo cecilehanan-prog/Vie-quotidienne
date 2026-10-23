@@ -270,7 +270,7 @@ input.num { width: 7.5em; flex: 0 1 auto !important; }
 
 /* Barre d'onglets */
 nav.tabbar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); display: flex; justify-content: center; padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); z-index: 5; }
-nav.tabbar .inner { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); width: 100%; max-width: 640px; }
+nav.tabbar .inner { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); width: 100%; max-width: 640px; }
 nav.tabbar button { border: 0; background: transparent; padding: 8px 0 10px; display: grid; justify-items: center; gap: 2px; font-size: .66rem; min-width: 0; color: var(--muted); cursor: pointer; }
 nav.tabbar button svg { width: 24px; height: 24px; }
 nav.tabbar button { color: var(--sec); }
@@ -546,23 +546,10 @@ details summary { cursor: pointer; font-weight: 700; }
     </article>
   </section>
 
-  <!-- ===== DÉPLACEMENTS ===== -->
-  <section class="view" id="view-move" hidden>
-    <article class="card" data-sec="car">
-      <h2>En voiture</h2>
-      <form class="inline" id="gps-form">
-        <input type="search" id="gps-dest" placeholder="Où vas-tu ? (adresse, ville)" required aria-label="Destination">
-        <button class="btn primary" type="submit">Itinéraire</button>
-      </form>
-      <div class="row" id="gps-links"></div>
-      <div class="grid2">
-        <a class="linkbox" href="https://www.bison-fute.gouv.fr/" target="_blank" rel="noopener"><i class="emo">🚦</i><strong>Bison Futé</strong><span>Trafic national, prévisions</span></a>
-        <a class="linkbox" href="https://www.onlymoov.com/" target="_blank" rel="noopener"><i class="emo">🗺️</i><strong>Onlymoov</strong><span>Trafic en direct, Lyon</span></a>
-        <a class="linkbox" href="https://www.prix-carburants.gouv.fr/" target="_blank" rel="noopener"><i class="emo">⛽</i><strong>Prix des carburants</strong><span>Stations les moins chères</span></a>
-      </div>
-      <div id="fuel-body" class="small"></div>
-    </article>
 
+  <!-- ===== VOYAGE ===== -->
+  <section class="view" id="view-trip" hidden>
+    <div class="label" style="margin:2px 4px 6px">🚗 Maintenant, autour de moi</div>
     <article class="card" data-sec="trip">
       <h2>🧭 Aller à…</h2>
       <p class="small muted">Bus, train, car, voiture + bus : je combine tout, partout dans le monde 🌍</p>
@@ -576,26 +563,42 @@ details summary { cursor: pointer; font-weight: 700; }
       <div class="label" style="margin-top:12px">🚌 Cars longue distance</div>
       <div class="grid2" id="tr-coach"></div>
     </article>
-
     <article class="card" data-sec="trip">
       <div class="card-head"><h2>🚉 Prochains trains</h2><button class="btn" type="button" id="dep-go">🔄</button></div>
       <p class="small muted" id="dep-msg">📍 Je cherche la gare la plus proche de toi…</p>
       <div id="dep-res"></div>
     </article>
-
+    <article class="card" data-sec="car">
+      <h2>🚦 Info trafic</h2>
+      <div class="alerts" id="trip-alerts"></div>
+    </article>
+    <article class="card" data-sec="car">
+      <h2>⛽ En voiture</h2>
+      <div class="grid2">
+        <a class="linkbox" href="https://www.bison-fute.gouv.fr/" target="_blank" rel="noopener"><i class="emo">🚦</i><strong>Bison Futé</strong><span>Trafic national, prévisions</span></a>
+        <a class="linkbox" href="https://www.onlymoov.com/" target="_blank" rel="noopener"><i class="emo">🗺️</i><strong>Onlymoov</strong><span>Trafic en direct, Lyon</span></a>
+        <a class="linkbox" href="https://www.prix-carburants.gouv.fr/" target="_blank" rel="noopener"><i class="emo">⛽</i><strong>Prix des carburants</strong><span>Stations les moins chères</span></a>
+      </div>
+      <div id="fuel-body" class="small"></div>
+    </article>
     <article class="card" data-sec="transit">
       <div class="card-head"><h2>Bus, tram, métro</h2><button class="btn" id="locate-btn" type="button">📍 Où suis-je ?</button></div>
       <p class="small muted" id="locate-msg">📍 Près de Lyon ou Paris, le bon réseau s'affiche tout seul</p>
       <div class="row" role="group" aria-label="Choisir le réseau" id="net-tabs"></div>
       <div class="grid2" id="net-body"></div>
     </article>
-
-  </section>
-
-  <!-- ===== VOYAGE ===== -->
-  <section class="view" id="view-trip" hidden>
+    <article class="card" data-sec="transit">
+      <h2>📍 Autour de moi</h2>
+      <button class="btn primary" type="button" id="around-btn">📍 Me localiser</button>
+      <p class="small muted" id="around-msg"></p>
+      <div class="label">🔎 Trouver</div>
+      <div class="grid2" id="around-find"></div>
+      <div class="label">🚦 En direct</div>
+      <div class="grid2" id="around-live"></div>
+    </article>
+    <div class="label" style="margin:18px 4px 6px">✈️ Mes voyages</div>
     <article class="card" data-sec="trip">
-      <h2>✈️ Où vas-tu ?</h2>
+      <h2>✈️ Préparer un voyage</h2>
       <div class="label">1️⃣ Je réserve où dormir</div>
       <div class="grid2" id="trip-stay" style="margin:6px 0 12px"></div>
       <div class="label">2️⃣ Je choisis comment y aller</div>
@@ -636,25 +639,14 @@ details summary { cursor: pointer; font-weight: 700; }
       </form>
       <div class="list" id="dream-list"></div>
     </article>
-    <article class="card" data-sec="car">
-      <h2>🚦 Info trafic</h2>
-      <div class="alerts" id="trip-alerts"></div>
-    </article>
+
     <article class="card" data-sec="trip">
       <details>
         <summary>📱 Toutes mes applis</summary>
         <div class="apps" id="my-apps" style="margin-top:12px"></div>
       </details>
     </article>
-    <article class="card" data-sec="transit">
-      <h2>📍 Autour de moi</h2>
-      <button class="btn primary" type="button" id="around-btn">📍 Me localiser</button>
-      <p class="small muted" id="around-msg"></p>
-      <div class="label">🔎 Trouver</div>
-      <div class="grid2" id="around-find"></div>
-      <div class="label">🚦 En direct</div>
-      <div class="grid2" id="around-live"></div>
-    </article>
+
   </section>
 
   <!-- ===== DÉMARCHES ===== -->
@@ -849,7 +841,7 @@ const ICONS = {
   admin: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
   home2: '<path d="M4 7h2l2.2 9.2a1 1 0 0 0 1 .8h7.6a1 1 0 0 0 1-.8L19.5 10H7"/><circle cx="10" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/>',
 };
-const VIEWS = [["home", "Accueil"], ["news", "Infos"], ["agenda", "Agenda"], ["home2", "Shopping"], ["move", "Trajets"], ["trip", "Voyage"], ["admin", "Papiers"]];
+const VIEWS = [["home", "Accueil"], ["news", "Infos"], ["agenda", "Agenda"], ["home2", "Shopping"], ["trip", "Voyage"], ["admin", "Papiers"]];
 const VIEW_SEC = { home: "wx", news: "news", agenda: "agenda", home2: "house", move: "car", trip: "trip", admin: "admin" };
 const svg = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
 for (const [id, label] of VIEWS) {
@@ -860,12 +852,13 @@ for (const [id, label] of VIEWS) {
 }
 let moveLoaded = false;
 function show(id) {
+  if (id === "move") id = "trip";
   if (!$("#view-" + id)) id = "home";
   for (const sec of document.querySelectorAll("section.view")) sec.hidden = sec.id !== "view-" + id;
   for (const b of $("#tabbar").children) b.setAttribute("aria-current", b.dataset.view === id ? "page" : "false");
   store.set("view", id);
   if (id === "news" && !newsLoaded) loadNews(currentFeed);
-  if (id === "move" && !moveLoaded) { moveLoaded = true; setTimeout(() => { loadFuel(); loadDepartures(); }); }
+  if (id === "trip" && !moveLoaded) { moveLoaded = true; setTimeout(() => { loadFuel(); loadDepartures(); }); }
   if (id === "serenite") setTimeout(() => { renderRamadan(); prayLocate(); });
   window.scrollTo(0, 0);
 }
@@ -1216,14 +1209,6 @@ function renderPapers() { papers.sort(byDate); $("#papers-list").replaceChildren
 $("#pap-form").addEventListener("submit", e => { e.preventDefault(); papers.push({ id: uid(), title: $("#pap-title").value.trim(), date: $("#pap-date").value }); e.target.reset(); savePapers(); });
 
 /* ---------- voiture / GPS ---------- */
-$("#gps-form").addEventListener("submit", e => {
-  e.preventDefault();
-  const q = encodeURIComponent($("#gps-dest").value.trim());
-  $("#gps-links").replaceChildren(
-    ext(`https://waze.com/ul?q=${q}&navigate=yes`, "Ouvrir dans Waze", "btn primary"),
-    ext(`https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=driving`, "Google Maps"),
-    ext(`https://maps.apple.com/?daddr=${q}`, "Plans (iPhone)"));
-});
 /* Stations-essence autour de moi, partout dans le monde (OpenStreetMap) ; prix du jour en France en plus */
 async function loadFuel() {
   const box = $("#fuel-body");
@@ -1394,7 +1379,7 @@ $("#tr-here").addEventListener("click", () => { $("#tr-from").value = "📍 Ma p
 $("#tr-from").addEventListener("focus", e => { if (/Ma position/.test(e.target.value)) e.target.select(); });
 $("#tr-coach").replaceChildren(lb("https://www.flixbus.fr/", "🟢", "FlixBus"), lb("https://www.blablacar.fr/bus", "🔵", "BlaBlaCar Bus"),
   lb("https://www.blablacar.fr/", "🚗", "Covoiturage"), lb("https://www.thetrainline.com/fr", "🚄", "Trainline (Europe)"));
-let trCards = [], trFilter = "all";
+let trCards = [], trFilter = "all", trDest = null;
 async function findTrains() {
   const to = $("#tr-to").value.trim(), from = $("#tr-from").value.trim(), msg = $("#tr-msg"), res = $("#tr-res");
   if (!to) { msg.textContent = "👆 Écris où tu vas"; $("#tr-to").focus(); return; }
@@ -1425,6 +1410,7 @@ async function findTrains() {
     res.replaceChildren(el("div", { class: "grid2" }, lb(gmT, "🗺️", "Google Maps"), lb("https://www.sncf-connect.com/", "🚄", "SNCF Connect")));
     return;
   }
+  trDest = B.pos;
   trCards = its.map(it => {
     const modes = it.legs.map(l => l.mode), moving = it.legs.filter(l => l.mode !== "WALK");
     const chain = moving.map(l => LEG_EMO(l.mode)).filter((e, i, a) => e !== a[i - 1]).join(" ➜ ");
@@ -1451,7 +1437,9 @@ async function findTrains() {
 }
 function trShow() {
   for (const b of $("#tr-filter").children) b.setAttribute("aria-pressed", String(b.dataset.f === trFilter));
-  $("#tr-res").replaceChildren(...trCards.filter(c => trFilter === "all" || c.cat === trFilter).slice(0, 6).map(c => routeCard(c.card)));
+  const ll = trDest ? `${trDest[0].toFixed(5)},${trDest[1].toFixed(5)}` : "";
+  $("#tr-res").replaceChildren(...trCards.filter(c => trFilter === "all" || c.cat === trFilter).slice(0, 6).map(c => routeCard(c.card)),
+    ...(ll ? [el("div", { class: "grid2", style: "margin-top:10px" }, lb(`https://waze.com/ul?ll=${ll}&navigate=yes`, "🚙", "En voiture avec Waze"), lb(`https://maps.apple.com/?daddr=${ll}`, "🗺️", "Plans (iPhone)"))] : []));
 }
 $("#tr-go").addEventListener("click", findTrains);
 $("#tr-to").addEventListener("keydown", e => { if (e.key === "Enter") findTrains(); });
@@ -2071,7 +2059,6 @@ const TILES = [
   ["culture", "culture", "Culture", () => outings.filter(o => !o.done).length],
   ["home2", "shop", "Shopping", () => shop.filter(i => !i.done).length],
   ["recettes", "meals", "Recettes", () => mealPick.length],
-  ["move", "car", "Trajets", null],
   ["trip", "trip", "Voyage", null],
   ["auto", "auto", "Auto · Moto", () => autoDue().length],
   ["serenite", "pray", "Sérénité", null],
