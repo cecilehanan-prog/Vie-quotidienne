@@ -200,7 +200,7 @@ input.num { width: 7.5em; flex: 0 1 auto !important; }
 [data-sec=agenda] { --sec: var(--c-agenda); } [data-sec=meals] { --sec: #e8590c; } [data-sec=house], [data-sec=shop], [data-sec=habits] { --sec: var(--c-house); }
 [data-sec=energy] { --sec: var(--c-energy); } [data-sec=chores] { --sec: var(--c-chores); } [data-sec=car] { --sec: var(--c-car); }
 [data-sec=transit] { --sec: var(--c-transit); } [data-sec=trip] { --sec: var(--c-trip); } [data-sec=admin], [data-sec=links] { --sec: var(--c-admin); }
-[data-sec=papers] { --sec: var(--c-papers); } [data-sec=todo] { --sec: #7a4fd0; } [data-sec=wish] { --sec: #c2185b; }
+[data-sec=papers] { --sec: var(--c-papers); } [data-sec=todo] { --sec: #7a4fd0; } [data-sec=wish] { --sec: #c2185b; } [data-sec=pharma] { --sec: #0f9d8a; }
 #todo-list .item { grid-template-columns: auto minmax(0, 1fr) auto; }
 #todo-list .item.done .what { text-decoration: line-through; } [data-sec=keep] { --sec: #7a4fd0; }
 .keep-pill { font-size: .8rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; color: #fff; white-space: nowrap; }
@@ -420,6 +420,16 @@ details summary { cursor: pointer; font-weight: 700; }
         <button class="btn primary" type="submit">Ajouter</button>
       </form>
       <div class="list" id="wish-list"></div>
+    </article>
+    <article class="card" data-sec="pharma">
+      <div class="card-head"><h2>Pharmacie</h2><span class="pill" id="pharma-count"></span></div>
+      <p class="small muted">💊 Les médicaments et soins à acheter, pour ne rien oublier.</p>
+      <form class="inline" id="pharma-form">
+        <input type="text" id="pharma-name" placeholder="Ex. Doliprane" required aria-label="Médicament" autocomplete="off">
+        <input type="text" id="pharma-where" placeholder="Note (facultatif)" aria-label="Note">
+        <button class="btn primary" type="submit">Ajouter</button>
+      </form>
+      <div class="list" id="pharma-list"></div>
     </article>
     <article class="card" data-sec="meals">
       <div class="card-head"><h2>🍽️ Idées repas végé</h2><button class="btn" type="button" id="meal-shuffle">🔀 Autres</button></div>
@@ -674,6 +684,7 @@ const SEC_ICON = {
   wx: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   news: ICONS.news, agenda: ICONS.agenda, admin: ICONS.admin, shop: ICONS.home2, car: ICONS.move,
   house: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  pharma: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/>',
   wish: '<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
   todo: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/>',
   good: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
@@ -1456,28 +1467,34 @@ function renderShop() {
   $("#shop-suggest").replaceChildren(...[...new Set([...habits.map(h => h.name), ...purchases.map(p => p.name)])].map(n => el("option", { value: n })));
 }
 /* Envies & achats : liste à part pour les achats exceptionnels */
-let wish = store.get("wish", []);
 const WISH_EMO = [[/chaussure|basket|botte|sandale|escarpin/, "👟"], [/maquillage|rouge à lèvres|mascara|fond de teint|vernis|crème|sérum|parfum|sephora/, "💄"],
   [/robe|pantalon|jean|pull|veste|manteau|tee|t-shirt|chemise|jupe|vêtement|maillot|lingerie|soutien/, "👗"], [/sac|bijou|collier|bague|montre|lunette/, "👜"],
   [/cadeau|anniv/, "🎁"], [/livre|bd|roman/, "📚"], [/téléphone|ordinateur|écouteur|chargeur|câble|tablette/, "📱"], [/meuble|lampe|déco|coussin|rideau|tapis/, "🛋️"],
   [/outil|peinture|bricol|casto|leroy/, "🔧"], [/sport|décathlon|vélo|yoga|piscine/, "🏃"]];
-const wishEmo = n => (WISH_EMO.find(([re]) => re.test(n.toLowerCase())) || [, "🛍️"])[1];
-function renderWish() {
-  const left = wish.filter(w => !w.done).length;
-  $("#wish-count").textContent = wish.length ? `${left} à acheter` : "vide";
-  $("#wish-list").replaceChildren(...(wish.length ? [...wish].sort((a, b) => a.done - b.done).map(w => el("label", { class: "shop-item" + (w.done ? " done" : "") },
-    el("input", { type: "checkbox", checked: !!w.done, onchange: e => { w.done = e.target.checked; store.set("wish", wish); renderWish(); } }),
-    el("span", { class: "what" }, el("i", { class: "emo", "aria-hidden": "true", text: wishEmo(w.name) }), w.name, w.where ? el("span", { class: "muted", text: " · " + w.where }) : null),
-    el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + w.name, text: "✕", onclick: e => { e.preventDefault(); wish = wish.filter(x => x !== w); store.set("wish", wish); renderWish(); } })))
-    : [el("p", { class: "muted", text: "Rien pour l'instant. Note ici ce que tu veux acheter un jour." })]));
+const PHARMA_EMO = [[/doliprane|paracétamol|ibuprof|advil|aspirine|spasfon|imigrane|douleur|tête/, "💊"], [/sirop|toux/, "🍯"], [/pansement|compresse|sparadrap|désinfect|bétadine/, "🩹"],
+  [/crème|pommade|baume|solaire/, "🧴"], [/vitamine|magnésium|fer\b|probiot|complément/, "🌿"], [/ordonnance/, "📄"], [/collyre|yeux|lentille/, "👁️"], [/thermomètre|test/, "🌡️"], [/chat|chien|véto/, "🐾"]];
+function simpleList(key, emoList, fallback, emptyText) {
+  let items = store.get(key, []);
+  const save = () => { store.set(key, items); render(); };
+  const render = () => {
+    const left = items.filter(w => !w.done).length;
+    $(`#${key}-count`).textContent = items.length ? `${left} à acheter` : "vide";
+    $(`#${key}-list`).replaceChildren(...(items.length ? [...items].sort((a, b) => a.done - b.done).map(w => el("label", { class: "shop-item" + (w.done ? " done" : "") },
+      el("input", { type: "checkbox", checked: !!w.done, onchange: e => { w.done = e.target.checked; save(); } }),
+      el("span", { class: "what" }, el("i", { class: "emo", "aria-hidden": "true", text: (emoList.find(([re]) => re.test(w.name.toLowerCase())) || [, fallback])[1] }), w.name, w.where ? el("span", { class: "muted", text: " · " + w.where }) : null),
+      el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + w.name, text: "✕", onclick: e => { e.preventDefault(); items = items.filter(x => x !== w); save(); } })))
+      : [el("p", { class: "muted", text: emptyText })]));
+  };
+  $(`#${key}-form`).addEventListener("submit", e => {
+    e.preventDefault();
+    const name = $(`#${key}-name`).value.trim(); if (!name) return;
+    items.push({ id: uid(), name: name[0].toUpperCase() + name.slice(1), where: $(`#${key}-where`).value.trim(), done: false });
+    e.target.reset(); save();
+  });
+  render();
 }
-$("#wish-form").addEventListener("submit", e => {
-  e.preventDefault();
-  const name = $("#wish-name").value.trim(); if (!name) return;
-  wish.push({ id: uid(), name: name[0].toUpperCase() + name.slice(1), where: $("#wish-where").value.trim(), done: false });
-  store.set("wish", wish); e.target.reset(); renderWish();
-});
-renderWish();
+simpleList("wish", WISH_EMO, "🛍️", "Rien pour l'instant. Note ici ce que tu veux acheter un jour.");
+simpleList("pharma", PHARMA_EMO, "💊", "Rien à prendre à la pharmacie pour l'instant.");
 function addToList(name, qty = "") {
   name = name.trim(); if (!name) return;
   const ex = shop.find(i => i.name.toLowerCase() === name.toLowerCase());
