@@ -375,6 +375,21 @@ details summary { cursor: pointer; font-weight: 700; }
 
   <!-- ===== MAISON ===== -->
   <section class="view" id="view-home2" hidden>
+    <article class="card" data-sec="loyal">
+      <div class="card-head"><h2>💳 Mes cartes de fidélité</h2><span class="pill" id="loyal-count"></span></div>
+      <div class="loyal-grid" id="loyal-list"></div>
+      <details id="loyal-add">
+        <summary>➕ Ajouter une carte</summary>
+        <form id="loyal-form" style="display:grid;gap:8px;margin-top:10px">
+          <input type="text" id="loyal-name" placeholder="Magasin (ex. Auchan)" required aria-label="Magasin" autocomplete="off" list="loyal-suggest">
+          <datalist id="loyal-suggest"></datalist>
+          <input type="text" id="loyal-num" placeholder="Numéro de la carte (sous le code-barres)" aria-label="Numéro" inputmode="numeric" autocomplete="off">
+          <label class="btn" style="justify-self:start">🖼️ Ou une capture d'écran <input type="file" id="loyal-img" accept="image/*" hidden></label>
+          <span class="small muted" id="loyal-img-name"></span>
+          <button class="btn primary" type="submit">💾 Ranger la carte</button>
+        </form>
+      </details>
+    </article>
     <article class="card" data-sec="shop">
       <div class="card-head"><h2>Liste de courses</h2><span class="pill" id="shop-count"></span></div>
       <div id="store-banner" hidden></div>
@@ -412,21 +427,6 @@ details summary { cursor: pointer; font-weight: 700; }
         <button class="btn primary" type="button" id="shop-paste-go">➕ Tout ajouter</button>
       </details>
       <p class="small muted" id="shop-msg"></p>
-    </article>
-    <article class="card" data-sec="loyal">
-      <div class="card-head"><h2>💳 Mes cartes de fidélité</h2><span class="pill" id="loyal-count"></span></div>
-      <div class="loyal-grid" id="loyal-list"></div>
-      <details id="loyal-add">
-        <summary>➕ Ajouter une carte</summary>
-        <form id="loyal-form" style="display:grid;gap:8px;margin-top:10px">
-          <input type="text" id="loyal-name" placeholder="Magasin (ex. Auchan)" required aria-label="Magasin" autocomplete="off" list="loyal-suggest">
-          <datalist id="loyal-suggest"></datalist>
-          <input type="text" id="loyal-num" placeholder="Numéro de la carte (sous le code-barres)" aria-label="Numéro" inputmode="numeric" autocomplete="off">
-          <label class="btn" style="justify-self:start">🖼️ Ou une capture d'écran <input type="file" id="loyal-img" accept="image/*" hidden></label>
-          <span class="small muted" id="loyal-img-name"></span>
-          <button class="btn primary" type="submit">💾 Ranger la carte</button>
-        </form>
-      </details>
     </article>
     <article class="card" data-sec="wish">
       <div class="card-head"><h2>Envies &amp; achats</h2><span class="pill" id="wish-count"></span></div>
