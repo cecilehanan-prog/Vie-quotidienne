@@ -235,6 +235,7 @@ input.num { width: 7.5em; flex: 0 1 auto !important; }
 .card[data-sec=wx][data-sky=rain] { background: linear-gradient(140deg, #2f5f9e, #5f8cc4); }
 .card[data-sec=wx][data-sky=snow] { background: linear-gradient(140deg, #5a8fc6, #9ec0e4); }
 .card[data-sec=wx][data-sky=storm] { background: linear-gradient(140deg, #3b3a6e, #75609e); }
+.card[data-sec=wx][data-sky=moon], .card[data-sec=wx][data-sky=moonpartly] { background: linear-gradient(140deg, #1d2b5a, #4a4f8f); }
 .card[data-sec=wx] .muted, .card[data-sec=wx] a { color: rgba(255,255,255,.92); }
 .card[data-sec=wx] .badge { background: rgba(255,255,255,.25); color: #fff; }
 .card[data-sec=wx] .btn { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.35); color: #fff; }
@@ -699,7 +700,10 @@ const WMO = c =>
 /* Pictos météo en couleur : soleil jaune, nuage blanc, gris pour la pluie, noir pour l'orage */
 const SUN = (cx, cy, r) => `<g stroke="#f5b400" stroke-width="1.6" stroke-linecap="round">${[0, 45, 90, 135, 180, 225, 270, 315].map(a => { const t = a * Math.PI / 180; return `<line x1="${(cx + Math.cos(t) * (r + 1.6)).toFixed(1)}" y1="${(cy + Math.sin(t) * (r + 1.6)).toFixed(1)}" x2="${(cx + Math.cos(t) * (r + 3.4)).toFixed(1)}" y2="${(cy + Math.sin(t) * (r + 3.4)).toFixed(1)}"/>`; }).join("")}</g><circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffd21f" stroke="#f5b400" stroke-width=".8"/>`;
 const CLOUD = (fill, stroke, dy = 0) => `<path transform="translate(0 ${dy})" d="M7 19h10.2a4.3 4.3 0 0 0 .5-8.6A5.8 5.8 0 0 0 6.6 11.6 3.7 3.7 0 0 0 7 19z" fill="${fill}" stroke="${stroke}" stroke-width="1" stroke-linejoin="round"/>`;
+const MOON = (cx, cy, r) => `<path d="M${cx + r * .35} ${cy - r}a${r} ${r} 0 1 0 ${r * .65} ${r * 1.55}A${r * .8} ${r * .8} 0 0 1 ${cx + r * .35} ${cy - r}z" fill="#ffe58a" stroke="#e6c34a" stroke-width=".8" stroke-linejoin="round"/><circle cx="${cx + r + 2}" cy="${cy - r}" r=".7" fill="#ffe58a"/><circle cx="${cx - r - 1.5}" cy="${cy + r - 1}" r=".5" fill="#ffe58a"/>`;
 const WX_ICON = {
+  moon: MOON(12, 12, 6),
+  moonpartly: MOON(8.5, 8.5, 4) + CLOUD("#ffffff", "#b8c4d0", 1.5),
   sun: SUN(12, 12, 5),
   partly: SUN(8.5, 8, 3.6) + CLOUD("#ffffff", "#b8c4d0", 1.5),
   cloud: CLOUD("#ffffff", "#b8c4d0", -1),
@@ -708,6 +712,7 @@ const WX_ICON = {
   snow: CLOUD("#dfe6ee", "#9aa7b4", -4) + '<g fill="#7cc3ff"><circle cx="8" cy="19" r="1.2"/><circle cx="12" cy="21" r="1.2"/><circle cx="16" cy="19" r="1.2"/></g>',
   storm: CLOUD("#3d434b", "#22262b", -4) + '<path d="M12.8 14.5l-3 4.6h2.6l-1.6 4 4.4-5.6h-2.7l1.6-3z" fill="#ffd21f" stroke="#e0a800" stroke-width=".6" stroke-linejoin="round"/>',
 };
+const night = (k, isDay) => isDay === 0 ? (k === "sun" ? "moon" : k === "partly" ? "moonpartly" : k) : k;
 const wxSvg = (k, cls = "") => `<svg class="wx-pic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${WX_ICON[k]}</svg>`;
 let wxPlace = store.get("wxPlace", "tarare");
 for (const [k, p] of Object.entries(PLACES)) {
@@ -717,7 +722,7 @@ async function loadWeather() {
   for (const b of $("#wx-places").children) b.setAttribute("aria-pressed", String(b.dataset.place === wxPlace));
   const p = PLACES[wxPlace];
   const body = $("#wx-body");
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation&hourly=temperature_2m,weather_code,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FParis&forecast_days=5`;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current=temperature_2m,apparent_temperature,weather_code,is_day,wind_speed_10m,precipitation&hourly=temperature_2m,weather_code,precipitation_probability,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FParis&forecast_days=5`;
   try {
     const d = await getJSON(url);
     store.set("wx:" + wxPlace, d);
@@ -731,15 +736,15 @@ async function loadWeather() {
 }
 function renderWeather(d, p, stale) {
   const c = d.current, [label, ic] = WMO(c.weather_code);
-  $(".card[data-sec=wx]").dataset.sky = ic;
+  $(".card[data-sec=wx]").dataset.sky = night(ic, c.is_day);
   const hourIdx = d.hourly.time.findIndex(t => new Date(t) >= new Date(Date.now() - 3600000));
   const hours = d.hourly.time.slice(hourIdx, hourIdx + 12).map((t, i) => {
     const j = hourIdx + i;
-    return `<div><span class="muted">${new Date(t).getHours()}h</span>${wxSvg(WMO(d.hourly.weather_code[j])[1])}<strong>${Math.round(d.hourly.temperature_2m[j])}°</strong><span class="muted">${d.hourly.precipitation_probability[j] ?? 0}%</span></div>`;
+    return `<div><span class="muted">${new Date(t).getHours()}h</span>${wxSvg(night(WMO(d.hourly.weather_code[j])[1], d.hourly.is_day?.[j]))}<strong>${Math.round(d.hourly.temperature_2m[j])}°</strong><span class="muted">${d.hourly.precipitation_probability[j] ?? 0}%</span></div>`;
   }).join("");
   const days = d.daily.time.slice(0, 5).map((t, i) => `<div><span class="small">${i === 0 ? "Auj." : new Date(t).toLocaleDateString("fr-FR", { weekday: "short" })}</span>${wxSvg(WMO(d.daily.weather_code[i])[1])}<span><strong>${Math.round(d.daily.temperature_2m_max[i])}°</strong> <span class="muted">${Math.round(d.daily.temperature_2m_min[i])}°</span></span><span class="small muted">${d.daily.precipitation_probability_max[i] ?? 0}%</span></div>`).join("");
   $("#wx-body").innerHTML = `
-    <div class="wx-now">${wxSvg(ic, "wx-icon")}<div class="wx-temp">${Math.round(c.temperature_2m)}°</div>
+    <div class="wx-now">${wxSvg(night(ic, c.is_day), "wx-icon")}<div class="wx-temp">${Math.round(c.temperature_2m)}°</div>
       <div><strong>${label}</strong> à ${p.name}<br><span class="muted small">Ressenti ${Math.round(c.apparent_temperature)}° · Vent ${Math.round(c.wind_speed_10m)} km/h</span>
       ${stale ? '<br><span class="pill warn">Hors ligne, dernières données</span>' : ""}</div></div>
     <div class="wx-hours" aria-label="Heure par heure">${hours}</div>
