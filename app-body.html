@@ -1,7 +1,7 @@
 <title>Mon Quotidien</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,600;1,500;1,600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,600;1,500;1,600&family=Amiri:wght@400;700&display=swap">
 <style>
 /* Layout : appli mobile, une colonne, barre d'onglets en bas ; cartes posées sur un fond "ciel du matin" */
 :root {
@@ -326,6 +326,23 @@ details summary { cursor: pointer; font-weight: 700; }
 @keyframes skyFloat { from { transform: translateY(2px); } to { transform: translateY(-3px); } }
 @keyframes skyTw { from { opacity: .2; transform: scale(.75); } to { opacity: 1; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .sky-anim * { animation: none !important; } }
+
+/* Sourates */
+.q-ar { font-family: "Amiri", "Geeza Pro", serif; direction: rtl; font-size: 1.6rem; line-height: 2.1; }
+.q-ar.big { font-size: 2.2rem; line-height: 1.5; color: var(--gold, #b8860b); }
+.q-chips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: none; }
+.q-chip { flex: 0 0 auto; display: grid; justify-items: center; gap: 0; min-width: 96px; padding: 4px 12px 8px; border-radius: 16px; border: 2px solid var(--line); background: var(--surface); color: var(--fg); font: inherit; cursor: pointer; }
+.q-chip .q-ar { font-size: 1.25rem; line-height: 1.8; } .q-chip small { font-size: .72rem; color: var(--muted); }
+.q-chip[aria-pressed=true] { border-color: #c9a227; background: color-mix(in srgb, #e9c46a 22%, var(--surface)); }
+.q-title { text-align: center; display: grid; gap: 2px; }
+.q-bar { height: 6px; border-radius: 99px; background: var(--surface-2); margin: 10px 0; overflow: hidden; } .q-bar span { display: block; height: 100%; background: linear-gradient(90deg, #e9c46a, #c9a227); }
+.basmala { text-align: center; color: #b8860b; }
+.ayah { border-radius: 14px; padding: 10px 12px; margin-top: 8px; background: var(--surface); border: 2px solid transparent; transition: border-color .2s; }
+.ayah.known { border-color: color-mix(in srgb, #2e9b57 45%, transparent); }
+.ayah.playing { border-color: #c9a227; background: color-mix(in srgb, #e9c46a 14%, var(--surface)); }
+.ayah .q-ar { text-align: right; } .ayah .q-tr { font-style: italic; font-weight: 600; margin: 4px 0; } .ayah .q-fr { color: var(--muted); }
+.ayah.hide:not(.peek) .q-ar, .ayah.hide:not(.peek) .q-tr { filter: blur(7px); user-select: none; cursor: pointer; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .q-ar.big, :root:not([data-theme="light"]) .basmala { color: #e2b04a; } }
 </style>
 
 <div class="wrap">
@@ -713,6 +730,18 @@ details summary { cursor: pointer; font-weight: 700; }
       <p class="small pray-src"><span id="pray-where"></span> · <a href="https://assalate.latrach.net/masjid/69008-lyon-grande-mosquee" target="_blank" rel="noopener">voir leur calendrier</a></p>
     </article>
     <article class="card" data-sec="pray">
+      <h2>📖 Apprendre les sourates</h2>
+      <p class="small" id="q-next"></p>
+      <div class="q-chips" id="q-chips"></div>
+      <div class="row" style="margin:10px 0">
+        <button class="btn primary" type="button" id="q-play">▶️ Écouter toute la sourate</button>
+        <button class="btn" type="button" id="q-repeat"></button>
+        <button class="btn" type="button" id="q-hide" aria-pressed="false">🙈 Me tester</button>
+      </div>
+      <div id="q-surah"></div>
+      <p class="small muted" style="margin-top:10px">Récitation : Mishary Alafasy · Traduction : Muhammad Hamidullah · Source : alquran.cloud</p>
+    </article>
+    <article class="card" data-sec="pray">
       <div class="card-head"><h2>📣 Nouvelles de la Grande Mosquée</h2><button class="btn" type="button" id="gml-refresh">🔄</button></div>
       <p class="small muted">Événements, marches, appels aux dons, informations importantes : ce que la presse en dit ces dernières semaines.</p>
       <div class="list" id="gml-news"></div>
@@ -869,7 +898,7 @@ function show(id) {
   store.set("view", id);
   if (id === "news" && !newsLoaded) loadNews(currentFeed);
   if (id === "trip" && !moveLoaded) { moveLoaded = true; setTimeout(() => { loadFuel(); loadDepartures(); }); }
-  if (id === "serenite") setTimeout(() => { renderRamadan(); prayLocate(); if (!gmlLoaded) { gmlLoaded = true; loadGmlNews(); } });
+  if (id === "serenite") setTimeout(() => { renderRamadan(); prayLocate(); if (!gmlLoaded) { gmlLoaded = true; loadGmlNews(); } openQuran(); });
   window.scrollTo(0, 0);
 }
 document.addEventListener("click", e => {
@@ -2502,6 +2531,74 @@ async function loadGmlNews() {
   } catch { box.replaceChildren(el("p", { class: "muted small", text: "😕 Les nouvelles ne répondent pas pour l'instant." })); }
 }
 $("#gml-refresh").addEventListener("click", loadGmlNews);
+/* Apprendre les sourates : texte arabe, translittération, traduction (Hamidullah), récitation de Mishary Alafasy (api.alquran.cloud) */
+const SURAHS = [
+  ["1", "Al-Fâtiha", "L'Ouverture", "الفاتحة"], ["112", "Al-Ikhlâs", "Le Monothéisme pur", "الإخلاص"], ["113", "Al-Falaq", "L'Aube naissante", "الفلق"],
+  ["114", "An-Nâs", "Les Hommes", "الناس"], ["108", "Al-Kawthar", "L'Abondance", "الكوثر"], ["103", "Al-'Asr", "Le Temps", "العصر"],
+  ["110", "An-Nasr", "Les Secours", "النصر"], ["109", "Al-Kâfiroûn", "Les Infidèles", "الكافرون"], ["111", "Al-Masad", "Les Fibres", "المسد"],
+  ["107", "Al-Mâ'oûn", "L'Ustensile", "الماعون"], ["106", "Quraysh", "Les Qoraïch", "قريش"], ["105", "Al-Fîl", "L'Éléphant", "الفيل"],
+  ["104", "Al-Humaza", "Les Calomniateurs", "الهمزة"], ["102", "At-Takâthur", "La Course aux richesses", "التكاثر"], ["101", "Al-Qâri'a", "Le Fracas", "القارعة"],
+  ["99", "Az-Zalzala", "La Secousse", "الزلزلة"], ["97", "Al-Qadr", "La Destinée", "القدر"], ["94", "Ash-Sharh", "L'Ouverture de la poitrine", "الشرح"],
+  ["93", "Ad-Duhâ", "Le Jour montant", "الضحى"], ["2:255", "Âyat al-Kursî", "Le Verset du Trône", "آية الكرسي"],
+];
+const BASMALA = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
+let qSel = store.get("qSel", "1"), qLearn = store.get("qLearn", {}), qHide = false, qRepeat = store.get("qRepeat", 1), qAudio = new Audio(), qQueue = [], qData = null;
+async function loadSurah(id) {
+  const c = store.get("quran:" + id); if (c) return c;
+  const ed = "quran-uthmani,en.transliteration,fr.hamidullah,ar.alafasy";
+  const j = await getJSON(`https://api.alquran.cloud/v1/${id.includes(":") ? "ayah" : "surah"}/${id}/editions/${ed}`, 15000);
+  const eds = j.data.map(d => d.ayahs ? d.ayahs : [d]);
+  const out = eds[0].map((a, i) => {
+    let ar = a.text; if (id !== "1" && a.numberInSurah === 1 && ar.startsWith(BASMALA)) ar = ar.slice(BASMALA.length).trim();
+    return { n: id.includes(":") ? 255 : a.numberInSurah, ar, tr: eds[1][i].text, fr: eds[2][i].text, au: eds[3][i].audio };
+  });
+  store.set("quran:" + id, out); return out;
+}
+const qKnown = id => qLearn[id] || [];
+function qProgress(id) { const s = store.get("quran:" + id); return s ? qKnown(id).length / s.length : 0; }
+function qPlay(list) {
+  qQueue = list.flatMap(v => Array(qRepeat).fill(v)); qNext();
+}
+function qNext() {
+  document.querySelectorAll(".ayah.playing").forEach(e => e.classList.remove("playing"));
+  const v = qQueue.shift(); if (!v) { $("#q-play").textContent = "▶️ Écouter toute la sourate"; return; }
+  const row = document.querySelector(`.ayah[data-n="${v.n}"]`); row?.classList.add("playing"); row?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  qAudio.src = v.au; qAudio.play().catch(() => {}); $("#q-play").textContent = "⏸️ Arrêter";
+}
+qAudio.addEventListener("ended", qNext);
+function qStop() { qQueue = []; qAudio.pause(); qNext(); }
+function renderQuranList() {
+  const next = SURAHS.find(s => qProgress(s[0]) < 1);
+  $("#q-chips").replaceChildren(...SURAHS.map(([id, name, , ar]) => { const p = qProgress(id);
+    return el("button", { class: "q-chip", type: "button", "aria-pressed": String(id === qSel), onclick: () => { qStop(); qSel = id; store.set("qSel", id); renderQuranList(); renderSurah(); } },
+      el("span", { class: "q-ar", text: ar }), el("small", { text: (p >= 1 ? "✅ " : p > 0 ? "🌱 " : "") + name })); }));
+  $("#q-next").textContent = next ? `🌱 À apprendre en ce moment : ${next[1]} (${next[2]})` : "🌟 Tu connais toutes les sourates de la liste, bravo !";
+}
+async function renderSurah() {
+  const box = $("#q-surah"), meta = SURAHS.find(s => s[0] === qSel);
+  box.replaceChildren(el("p", { class: "muted small", text: "⏳ J'ouvre la sourate…" }));
+  try { qData = await loadSurah(qSel); } catch { box.replaceChildren(el("p", { class: "muted small", text: "😕 La sourate ne s'ouvre pas sans internet la première fois. Réessaie avec du réseau." })); return; }
+  const known = qKnown(qSel);
+  box.replaceChildren(
+    el("div", { class: "q-title" }, el("div", { class: "q-ar big", text: meta[3] }), el("strong", { text: `${meta[1]} · ${meta[2]}` }),
+      el("div", { class: "small muted", text: `${qData.length} verset${qData.length > 1 ? "s" : ""} · ${known.length} appris` })),
+    el("div", { class: "q-bar" }, el("span", { style: `width:${Math.round(known.length / qData.length * 100)}%` })),
+    qSel !== "1" && qSel !== "2:255" ? el("p", { class: "q-ar basmala", text: BASMALA }) : null,
+    ...qData.map(v => el("div", { class: "ayah" + (known.includes(v.n) ? " known" : "") + (qHide ? " hide" : ""), "data-n": v.n, onclick: e => { if (qHide && !e.target.closest("button")) e.currentTarget.classList.toggle("peek"); } },
+      el("div", { class: "q-ar", text: v.ar + " ﴿" + v.n.toLocaleString("ar-EG") + "﴾" }),
+      el("div", { class: "q-tr", text: v.tr }),
+      el("div", { class: "q-fr small", text: v.fr }),
+      el("div", { class: "row" },
+        el("button", { class: "btn", type: "button", text: "▶️ Écouter", onclick: () => { qStop(); qPlay([v]); } }),
+        el("button", { class: "btn", type: "button", text: known.includes(v.n) ? "✅ Je la connais" : "☐ Je la connais", onclick: () => {
+          qLearn[qSel] = known.includes(v.n) ? known.filter(x => x !== v.n) : [...known, v.n]; store.set("qLearn", qLearn); renderSurah(); renderQuranList(); } })))));
+}
+$("#q-play").addEventListener("click", () => { if (qQueue.length || !qAudio.paused) { qStop(); return; } if (qData) qPlay(qData); });
+$("#q-repeat").addEventListener("click", () => { qRepeat = qRepeat === 1 ? 3 : qRepeat === 3 ? 5 : 1; store.set("qRepeat", qRepeat); $("#q-repeat").textContent = `🔁 Chaque verset ×${qRepeat}`; });
+$("#q-repeat").textContent = `🔁 Chaque verset ×${qRepeat}`;
+$("#q-hide").addEventListener("click", () => { qHide = !qHide; $("#q-hide").setAttribute("aria-pressed", String(qHide)); $("#q-hide").textContent = qHide ? "👀 Montrer le texte" : "🙈 Me tester"; renderSurah(); });
+let quranLoaded = false;
+function openQuran() { if (quranLoaded) return; quranLoaded = true; renderQuranList(); renderSurah(); }
 renderPrayers(); renderRamadan(); setInterval(renderPrayers, 60000);
 renderKeep(); renderMeals(); renderStores(); renderAisles(); renderShop(); renderLeclerc(); renderHabits(); renderMeter(); renderChores(); renderHouseHome();
 show(store.get("view", "home"));
