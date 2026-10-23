@@ -324,11 +324,6 @@ details summary { cursor: pointer; font-weight: 700; }
       <div class="list" id="todo-list"></div>
       <p class="small muted">Pas besoin de date : coche quand c'est fait. Tu peux ajouter une date si tu veux.</p>
     </article>
-
-    <article class="card" data-sec="house">
-      <div class="card-head"><h2>À la maison</h2><button class="btn" data-goto="home2">Voir tout</button></div>
-      <div class="list" id="home-house"></div>
-    </article>
   </section>
 
   <!-- ===== INFOS ===== -->
@@ -2018,7 +2013,7 @@ function renderHouseHome() {
   for (const c of chores.filter(c => c.last && choreLeft(c) <= 0).slice(0, 3)) rows.push(el("div", { class: "item soon" }, el("div", { class: "when emo", text: emo(c.name, "✨") }), el("div", { class: "what", text: c.name }), el("span", { class: "pill soon", text: choreLeft(c) < 0 ? "en retard" : "aujourd'hui" })));
   const lastElec = [...readings.elec].filter(r => !r.sample).map(r => r.date).sort().pop();
   if (!lastElec || daysUntil(lastElec) < -30) rows.push(el("div", { class: "item" }, el("div", { class: "when emo", text: "⚡💧" }), el("div", { class: "what", text: "Relève tes compteurs" }), el("span")));
-  $("#home-house").replaceChildren(...rows);
+  $("#home-house")?.replaceChildren(...rows);
 }
 
 
