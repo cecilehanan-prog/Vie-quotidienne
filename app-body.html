@@ -713,6 +713,15 @@ details summary { cursor: pointer; font-weight: 700; }
       <p class="small pray-src"><span id="pray-where"></span> · <a href="https://assalate.latrach.net/masjid/69008-lyon-grande-mosquee" target="_blank" rel="noopener">voir leur calendrier</a></p>
     </article>
     <article class="card" data-sec="pray">
+      <div class="card-head"><h2>📣 Nouvelles de la Grande Mosquée</h2><button class="btn" type="button" id="gml-refresh">🔄</button></div>
+      <p class="small muted">Événements, marches, appels aux dons, informations importantes : ce que la presse en dit ces dernières semaines.</p>
+      <div class="list" id="gml-news"></div>
+      <div class="grid2" style="margin-top:10px">
+        <a class="linkbox" href="https://www.facebook.com/search/top?q=Grande%20Mosqu%C3%A9e%20de%20Lyon" target="_blank" rel="noopener"><i class="emo">📘</i><strong>Leur page Facebook</strong></a>
+        <a class="linkbox" href="https://assalate.latrach.net/masjid/69008-lyon-grande-mosquee" target="_blank" rel="noopener"><i class="emo">🕰️</i><strong>Calendrier des prières</strong></a>
+      </div>
+    </article>
+    <article class="card" data-sec="pray">
       <div class="card-head"><h2>🌙 Ramadan</h2><label class="small muted">1er jour <input type="date" id="ram-start" aria-label="Premier jour du Ramadan"></label></div>
       <div id="ram-body"></div>
     </article>
@@ -851,7 +860,7 @@ for (const [id, label] of VIEWS) {
   b.addEventListener("click", () => show(id));
   $("#tabbar").append(b);
 }
-let moveLoaded = false;
+let moveLoaded = false, gmlLoaded = false;
 function show(id) {
   if (id === "move") id = "trip";
   if (!$("#view-" + id)) id = "home";
@@ -860,7 +869,7 @@ function show(id) {
   store.set("view", id);
   if (id === "news" && !newsLoaded) loadNews(currentFeed);
   if (id === "trip" && !moveLoaded) { moveLoaded = true; setTimeout(() => { loadFuel(); loadDepartures(); }); }
-  if (id === "serenite") setTimeout(() => { renderRamadan(); prayLocate(); });
+  if (id === "serenite") setTimeout(() => { renderRamadan(); prayLocate(); if (!gmlLoaded) { gmlLoaded = true; loadGmlNews(); } });
   window.scrollTo(0, 0);
 }
 document.addEventListener("click", e => {
@@ -2477,6 +2486,22 @@ function renderSky() {
   box.innerHTML = `<svg viewBox="0 0 220 74">${scenes[mode]}</svg>`;
 }
 renderSky(); setInterval(renderSky, 60000);
+/* Nouvelles de la Grande Mosquée de Lyon (articles de presse récents via Google Actualités) */
+const GML_KEYS = /marche|paix|don|dons|collecte|solidarit|appel|communiqu|conf[ée]rence|f[êe]te|a[ïi]d|ramadan|iftar|portes ouvertes|recteur|hommage|rassemblement|inondation|s[ée]isme|catastrophe/i;
+async function loadGmlNews() {
+  const box = $("#gml-news"); if (!box) return;
+  box.replaceChildren(el("p", { class: "muted small", text: "⏳ Je cherche les dernières nouvelles…" }));
+  try {
+    const items = (await fetchFeed(gnews('"Grande Mosquée de Lyon" when:45d'))).filter(i => i.title)
+      .sort((a, b) => (GML_KEYS.test(b.title) - GML_KEYS.test(a.title)) || (new Date(b.date) - new Date(a.date))).slice(0, 6);
+    if (!items.length) { box.replaceChildren(el("p", { class: "muted small", text: "Rien de nouveau ces dernières semaines 🕊️" })); return; }
+    box.replaceChildren(...items.map(i => { const { title, src } = splitSource(i);
+      return el("a", { class: "item", href: i.link, target: "_blank", rel: "noopener", style: "text-decoration:none;color:inherit" },
+        el("i", { class: "emo", "aria-hidden": "true", text: GML_KEYS.test(title) ? "📣" : "📰" }),
+        el("div", { class: "what" }, el("strong", { text: title }), el("div", { class: "small muted", text: `${src || ""}${i.date ? " · " + new Date(i.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" }) : ""}` }))); }));
+  } catch { box.replaceChildren(el("p", { class: "muted small", text: "😕 Les nouvelles ne répondent pas pour l'instant." })); }
+}
+$("#gml-refresh").addEventListener("click", loadGmlNews);
 renderPrayers(); renderRamadan(); setInterval(renderPrayers, 60000);
 renderKeep(); renderMeals(); renderStores(); renderAisles(); renderShop(); renderLeclerc(); renderHabits(); renderMeter(); renderChores(); renderHouseHome();
 show(store.get("view", "home"));
