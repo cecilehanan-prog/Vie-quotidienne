@@ -193,7 +193,7 @@ input.num { width: 7.5em; flex: 0 1 auto !important; }
 [data-sec=agenda] { --sec: var(--c-agenda); } [data-sec=meals] { --sec: #e8590c; } [data-sec=house], [data-sec=shop], [data-sec=habits] { --sec: var(--c-house); }
 [data-sec=energy] { --sec: var(--c-energy); } [data-sec=chores] { --sec: var(--c-chores); } [data-sec=car] { --sec: var(--c-car); }
 [data-sec=transit] { --sec: var(--c-transit); } [data-sec=trip] { --sec: var(--c-trip); } [data-sec=admin], [data-sec=links] { --sec: var(--c-admin); }
-[data-sec=papers] { --sec: var(--c-papers); } [data-sec=todo] { --sec: #7a4fd0; } [data-sec=wish] { --sec: #c2185b; } [data-sec=pharma] { --sec: #0f9d8a; }
+[data-sec=papers] { --sec: var(--c-papers); } [data-sec=todo] { --sec: #7a4fd0; } [data-sec=wish] { --sec: #c2185b; } [data-sec=pharma] { --sec: #0f9d8a; } [data-sec=culture] { --sec: #8e44ad; } [data-sec=films] { --sec: #d1495b; }
 #todo-list .item { grid-template-columns: auto minmax(0, 1fr) auto; }
 #todo-list .item.done .what { text-decoration: line-through; } [data-sec=keep] { --sec: #7a4fd0; }
 .keep-pill { font-size: .8rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; color: #fff; white-space: nowrap; }
@@ -530,6 +530,16 @@ details summary { cursor: pointer; font-weight: 700; }
       </details>
     </article>
     <article class="card" data-sec="trip">
+      <div class="card-head"><h2>🎫 Mes billets</h2><span class="pill" id="vt-count"></span></div>
+      <p class="small muted">Range ici tes billets de train, car ou avion (capture d'écran, photo ou PDF). Ils restent sur ton téléphone et s'affichent même sans internet.</p>
+      <form class="inline" id="vt-form">
+        <input type="text" id="vt-name" placeholder="Ex. Train Lyon → Paris" required aria-label="Billet" autocomplete="off">
+        <input type="date" id="vt-date" aria-label="Date du voyage">
+        <button class="btn primary" type="submit">📎 Choisir le billet</button>
+      </form>
+      <div class="list" id="vt-list"></div>
+    </article>
+    <article class="card" data-sec="trip">
       <div class="card-head"><h2>🌍 Mes envies de voyage</h2><span class="pill" id="dream-count"></span></div>
       <p class="small muted">Les lieux où tu veux aller un jour. Touche un lieu pour préparer le voyage.</p>
       <form class="inline" id="dream-form">
@@ -561,6 +571,39 @@ details summary { cursor: pointer; font-weight: 700; }
   </section>
 
   <!-- ===== DÉMARCHES ===== -->
+  <div id="ticket-view" hidden role="dialog" aria-modal="true" aria-label="Billet" style="position:fixed;inset:0;z-index:100;background:#fff;color:#111;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;border-bottom:1px solid #ddd">
+      <strong id="ticket-title" style="flex:1;font-size:1.1rem"></strong>
+      <button class="btn" type="button" id="ticket-close" style="background:#111;color:#fff;border-color:#111">✕ Fermer</button>
+    </div>
+    <div id="ticket-body" style="flex:1;overflow:auto;display:grid;place-items:center;padding:10px"></div>
+  </div>
+  <!-- ===== CULTURE (tuile de l'accueil) ===== -->
+  <section class="view" id="view-culture" hidden>
+    <button class="btn" type="button" data-goto="home" style="margin-bottom:10px">⬅️ Accueil</button>
+    <article class="card" data-sec="culture">
+      <div class="card-head"><h2>🎨 Mes idées de sorties</h2><span class="pill" id="outing-count"></span></div>
+      <p class="small muted">Musée, expo, concert, théâtre… à Lyon, à Paris ou ailleurs. Touche 🎟️ pour ranger ton billet (photo, capture ou PDF) : il reste sur ton téléphone.</p>
+      <form class="inline" id="outing-form">
+        <input type="text" id="outing-name" placeholder="Ex. Expo Picasso" required aria-label="Sortie" autocomplete="off">
+        <input type="text" id="outing-where" placeholder="Où ? (ex. Lyon)" aria-label="Où">
+        <input type="date" id="outing-date" aria-label="Jusqu'à quand (facultatif)">
+        <button class="btn primary" type="submit">Ajouter</button>
+      </form>
+      <div class="list" id="outing-list"></div>
+    </article>
+    <article class="card" data-sec="films">
+      <div class="card-head"><h2>🎬 Mes films coup de cœur</h2><span class="pill" id="film-count"></span></div>
+      <form class="inline" id="film-form">
+        <input type="text" id="film-name" placeholder="Titre du film" required aria-label="Film" autocomplete="off">
+        <div class="seg" role="group" id="film-stars" aria-label="Note"></div>
+        <input type="text" id="film-note" placeholder="Un petit mot (facultatif)" aria-label="Note">
+        <button class="btn primary" type="submit">Ajouter</button>
+      </form>
+      <div class="list" id="film-list"></div>
+    </article>
+  </section>
+
   <section class="view" id="view-admin" hidden>
     <article class="card" data-sec="admin">
       <div class="card-head"><h2>Démarches</h2></div>
@@ -669,7 +712,8 @@ for (const [id, label] of VIEWS) {
   $("#tabbar").append(b);
 }
 function show(id) {
-  for (const [v] of VIEWS) $("#view-" + v).hidden = v !== id;
+  if (!$("#view-" + id)) id = "home";
+  for (const sec of document.querySelectorAll("section.view")) sec.hidden = sec.id !== "view-" + id;
   for (const b of $("#tabbar").children) b.setAttribute("aria-current", b.dataset.view === id ? "page" : "false");
   store.set("view", id);
   if (id === "news" && !newsLoaded) loadNews(currentFeed);
@@ -687,6 +731,8 @@ const SEC_ICON = {
   wx: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   news: ICONS.news, agenda: ICONS.agenda, admin: ICONS.admin, shop: ICONS.home2, car: ICONS.move,
   house: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  culture: '<path d="M4 5c3 1.5 13 1.5 16 0v6a8 8 0 0 1-16 0z"/><path d="M9 10h.01M15 10h.01M9 14c1.5 1.5 4.5 1.5 6 0"/>',
+  films: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 5l2 4M12 5l2 4M17 5l2 4"/>',
   pharma: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/>',
   wish: '<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
   todo: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/>',
@@ -1685,7 +1731,104 @@ const TILES = [
   ["news", "news", "Infos", null], ["agenda", "agenda", "Agenda", () => events.filter(e => !e.sample && daysUntil(e.date) >= 0 && daysUntil(e.date) <= 7).length],
   ["home2", "shop", "Courses", () => shop.filter(i => !i.done).length], ["move", "car", "Trajets", null],
   ["admin", "admin", "Démarches", () => admin.filter(x => !x.done && x.date && daysUntil(x.date) <= 30).length], ["trip", "trip", "Voyage", null],
+  ["culture", "culture", "Culture", () => outings.filter(o => !o.done).length],
 ];
+/* ----- Culture : idées de sorties + films coup de cœur ----- */
+/* Billets (photo ou PDF) rangés sur le téléphone, dans IndexedDB : rien n'est envoyé ailleurs */
+const ticketDB = () => new Promise((ok, ko) => { const r = indexedDB.open("mq-billets", 1); r.onupgradeneeded = () => r.result.createObjectStore("t"); r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); });
+const ticketDo = async (mode, fn) => { const db = await ticketDB(); return new Promise((ok, ko) => { const tx = db.transaction("t", mode), q = fn(tx.objectStore("t")); tx.oncomplete = () => ok(q?.result); tx.onerror = () => ko(tx.error); }); };
+const ticketPut = (id, file) => ticketDo("readwrite", st => st.put(file, id));
+const ticketGet = id => ticketDo("readonly", st => st.get(id));
+const ticketDel = id => ticketDo("readwrite", st => st.delete(id));
+/* Affiche un billet en plein écran, fond blanc, écran gardé allumé pour le scan du QR code */
+let ticketURL = null, ticketLock = null;
+async function showTicket(id, title) {
+  let f; try { f = await ticketGet(id); } catch {}
+  if (!f) { alert("Billet introuvable sur ce téléphone."); return; }
+  if (ticketURL) URL.revokeObjectURL(ticketURL);
+  ticketURL = URL.createObjectURL(f);
+  $("#ticket-title").textContent = "🎫 " + title;
+  $("#ticket-body").replaceChildren(f.type === "application/pdf"
+    ? el("div", { style: "width:100%;height:100%;display:grid;grid-template-rows:1fr auto;gap:10px" },
+        el("iframe", { src: ticketURL, title: title, style: "width:100%;height:100%;border:0;min-height:70vh" }),
+        el("a", { class: "btn primary", href: ticketURL, target: "_blank", rel: "noopener", text: "🔍 Ouvrir le PDF en grand", style: "justify-self:center" }))
+    : el("img", { src: ticketURL, alt: title, style: "max-width:100%;max-height:100%;object-fit:contain" }));
+  $("#ticket-view").hidden = false;
+  try { ticketLock = await navigator.wakeLock?.request("screen"); } catch {}
+}
+$("#ticket-close").addEventListener("click", () => { $("#ticket-view").hidden = true; ticketLock?.release?.(); ticketLock = null; });
+const pickFile = cb => { const inp = el("input", { type: "file", accept: "image/*,application/pdf" }); inp.onchange = () => inp.files[0] && cb(inp.files[0]); inp.click(); };
+/* Billets de voyage */
+let vtix = store.get("vtix", []);
+function renderVtix() {
+  const today = new Date().toISOString().slice(0, 10);
+  $("#vt-count").textContent = vtix.length ? `${vtix.length} billet${vtix.length > 1 ? "s" : ""}` : "vide";
+  const sorted = [...vtix].sort((a, b) => ((a.date || "9999") < today) - ((b.date || "9999") < today) || (a.date || "9999").localeCompare(b.date || "9999"));
+  $("#vt-list").replaceChildren(...(sorted.length ? sorted.map(t => el("div", { class: "shop-item" + (t.date && t.date < today ? " done" : "") },
+    el("button", { class: "what", type: "button", style: "border:0;background:none;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:0", onclick: () => showTicket(t.id, t.name) },
+      el("i", { class: "emo", "aria-hidden": "true", text: /avion|vol|easyjet|air/i.test(t.name) ? "✈️" : /car|bus|flix|blabla/i.test(t.name) ? "🚌" : "🚆" }), el("strong", { text: t.name }),
+      t.date ? el("span", { class: "muted", text: " · " + new Date(t.date + "T12:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) }) : null),
+    el("button", { class: "btn primary", type: "button", style: "padding:4px 10px", text: "🎫 Afficher", onclick: () => showTicket(t.id, t.name) }),
+    el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + t.name, text: "✕", onclick: () => { if (!confirm("Supprimer ce billet ?")) return; ticketDel(t.id).catch(() => {}); vtix = vtix.filter(x => x !== t); store.set("vtix", vtix); renderVtix(); } })))
+    : [el("p", { class: "muted", text: "Aucun billet rangé pour l'instant 🧳" })]));
+}
+$("#vt-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = $("#vt-name").value.trim(); if (!name) return;
+  const date = $("#vt-date").value;
+  pickFile(async f => {
+    const id = uid();
+    try { await ticketPut(id, f); } catch { alert("Impossible d'enregistrer le billet sur ce téléphone."); return; }
+    vtix.push({ id, name: name[0].toUpperCase() + name.slice(1), date }); store.set("vtix", vtix); e.target.reset(); renderVtix();
+  });
+});
+let outings = store.get("outings", []), films = store.get("films", []), filmStars = 5;
+const OUT_EMO = [[/musée|museum/, "🏛️"], [/expo/, "🖼️"], [/concert|opéra|festival de musique|jazz/, "🎵"], [/théâtre|pièce|spectacle|danse|ballet/, "🎭"],
+  [/cinéma|ciné|film/, "🎬"], [/festival|fête/, "🎪"], [/château|monument|visite|patrimoine/, "🏰"], [/jardin|parc/, "🌳"]];
+function renderOutings() {
+  $("#outing-count").textContent = outings.length ? `${outings.filter(o => !o.done).length} à voir` : "vide";
+  const sorted = [...outings].sort((a, b) => a.done - b.done || (a.date || "9999").localeCompare(b.date || "9999"));
+  $("#outing-list").replaceChildren(...(sorted.length ? sorted.map(o => el("label", { class: "shop-item" + (o.done ? " done" : "") },
+    el("input", { type: "checkbox", checked: !!o.done, "aria-label": "Vu", onchange: e => { o.done = e.target.checked; store.set("outings", outings); renderOutings(); renderTiles(); } }),
+    el("span", { class: "what" }, el("i", { class: "emo", "aria-hidden": "true", text: (OUT_EMO.find(([re]) => re.test(o.name.toLowerCase())) || [, "🎨"])[1] }), o.name,
+      el("span", { class: "muted", text: [o.where && " · 📍 " + o.where, o.date && ` · jusqu'au ${new Date(o.date + "T12:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`].filter(Boolean).join("") })),
+    el("a", { class: "icon-btn", href: `https://www.google.com/search?q=${encodeURIComponent(o.name + " " + (o.where || ""))}`, target: "_blank", rel: "noopener", "aria-label": "Infos", text: "🔎" }),
+    o.ticket
+      ? el("button", { class: "btn primary", type: "button", style: "padding:4px 10px", text: "🎟️ Billet", onclick: async e => {
+          e.preventDefault(); showTicket(o.id, o.name); } })
+      : el("button", { class: "icon-btn", type: "button", "aria-label": "Ajouter le billet", title: "Ajouter le billet", text: "🎟️", onclick: e => { e.preventDefault(); ticketPick(o); } }),
+    el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + o.name, text: "✕", onclick: e => { e.preventDefault(); if (o.ticket) ticketDel(o.id).catch(() => {}); outings = outings.filter(x => x !== o); store.set("outings", outings); renderOutings(); renderTiles(); } })))
+    : [el("p", { class: "muted", text: "Note ici les sorties qui te font envie ✨" })]));
+}
+function ticketPick(o) {
+  const inp = el("input", { type: "file", accept: "image/*,application/pdf" });
+  inp.onchange = async () => { const f = inp.files[0]; if (!f) return; try { await ticketPut(o.id, f); o.ticket = true; store.set("outings", outings); renderOutings(); } catch { alert("Impossible d'enregistrer le billet sur ce téléphone."); } };
+  inp.click();
+}
+$("#outing-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = $("#outing-name").value.trim(); if (!name) return;
+  outings.push({ id: uid(), name: name[0].toUpperCase() + name.slice(1), where: $("#outing-where").value.trim(), date: $("#outing-date").value, done: false });
+  store.set("outings", outings); e.target.reset(); renderOutings(); renderTiles();
+});
+function renderStars() {
+  $("#film-stars").replaceChildren(...[1, 2, 3, 4, 5].map(n => el("button", { class: "btn", type: "button", "aria-pressed": String(n <= filmStars), "aria-label": n + " étoiles", text: "★", style: "padding:6px 8px", onclick: () => { filmStars = n; renderStars(); } })));
+}
+function renderFilms() {
+  $("#film-count").textContent = films.length ? `${films.length} film${films.length > 1 ? "s" : ""}` : "vide";
+  $("#film-list").replaceChildren(...(films.length ? [...films].reverse().map(f => el("div", { class: "shop-item" },
+    el("span", { class: "what" }, el("i", { class: "emo", "aria-hidden": "true", text: "🎬" }), el("strong", { text: f.name }), el("span", { text: " " + "⭐".repeat(f.stars) }),
+      f.note ? el("div", { class: "small muted", text: f.note }) : null),
+    el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + f.name, text: "✕", onclick: () => { films = films.filter(x => x !== f); store.set("films", films); renderFilms(); } })))
+    : [el("p", { class: "muted", text: "Note ici les films que tu as adorés 🍿" })]));
+}
+$("#film-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = $("#film-name").value.trim(); if (!name) return;
+  films.push({ id: uid(), name: name[0].toUpperCase() + name.slice(1), stars: filmStars, note: $("#film-note").value.trim(), date: new Date().toISOString().slice(0, 10) });
+  store.set("films", films); e.target.reset(); filmStars = 5; renderStars(); renderFilms();
+});
+renderOutings(); renderStars(); renderFilms(); renderVtix();
 function renderTiles() {
   $("#tiles").replaceChildren(...TILES.map(([go, sec, label, count]) => {
     const n = count ? count() : 0;
