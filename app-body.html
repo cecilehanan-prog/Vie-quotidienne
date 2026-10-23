@@ -124,10 +124,10 @@ form.inline > input { flex: 1 1 140px; }
 /* Météo */
 .wx-now { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .wx-temp { font-family: var(--font-display); font-size: 3.2rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-.wx-icon { width: 56px; height: 56px; color: var(--sun); }
+.wx-icon { width: 72px; height: 72px; }
 .wx-days { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; text-align: center; font-variant-numeric: tabular-nums; }
 .wx-days > div { background: var(--surface-2); border-radius: 10px; padding: 8px 2px; display: grid; gap: 2px; justify-items: center; }
-.wx-days svg { width: 26px; height: 26px; color: var(--sun); }
+.wx-days svg { width: 32px; height: 32px; }
 .wx-hours { overflow-x: auto; display: flex; gap: 12px; padding-bottom: 4px; font-variant-numeric: tabular-nums; }
 .wx-hours > div { display: grid; justify-items: center; font-size: .85rem; min-width: 42px; }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); font-size: .85rem; }
@@ -232,7 +232,8 @@ input.num { width: 7.5em; flex: 0 1 auto !important; }
 .card[data-sec=wx] .badge { background: rgba(255,255,255,.25); color: #fff; }
 .card[data-sec=wx] .btn { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.35); color: #fff; }
 .card[data-sec=wx] .btn[aria-pressed="true"] { background: #fff; color: #1d3550; border-color: #fff; }
-.card[data-sec=wx] .wx-icon, .card[data-sec=wx] .wx-days svg, .card[data-sec=wx] .wx-hours svg { color: #fff; }
+.wx-pic { filter: drop-shadow(0 1px 2px rgba(0,0,0,.18)); overflow: visible; }
+.wx-hours svg { width: 28px; height: 28px; }
 .card[data-sec=wx] .wx-days > div { background: rgba(255,255,255,.2); }
 .card[data-sec=wx] .chip { background: rgba(255,255,255,.22); color: #fff; }
 .card[data-sec=wx] .wx-temp { text-shadow: 0 2px 10px rgba(0,0,0,.15); }
@@ -688,16 +689,19 @@ const WMO = c =>
   c === 0 ? ["Ciel dégagé", "sun"] : c <= 2 ? ["Éclaircies", "partly"] : c === 3 ? ["Couvert", "cloud"] :
   c <= 48 ? ["Brouillard", "fog"] : c <= 57 ? ["Bruine", "rain"] : c <= 67 ? ["Pluie", "rain"] :
   c <= 77 ? ["Neige", "snow"] : c <= 82 ? ["Averses", "rain"] : c <= 86 ? ["Averses de neige", "snow"] : ["Orage", "storm"];
+/* Pictos météo en couleur : soleil jaune, nuage blanc, gris pour la pluie, noir pour l'orage */
+const SUN = (cx, cy, r) => `<g stroke="#f5b400" stroke-width="1.6" stroke-linecap="round">${[0, 45, 90, 135, 180, 225, 270, 315].map(a => { const t = a * Math.PI / 180; return `<line x1="${(cx + Math.cos(t) * (r + 1.6)).toFixed(1)}" y1="${(cy + Math.sin(t) * (r + 1.6)).toFixed(1)}" x2="${(cx + Math.cos(t) * (r + 3.4)).toFixed(1)}" y2="${(cy + Math.sin(t) * (r + 3.4)).toFixed(1)}"/>`; }).join("")}</g><circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffd21f" stroke="#f5b400" stroke-width=".8"/>`;
+const CLOUD = (fill, stroke, dy = 0) => `<path transform="translate(0 ${dy})" d="M7 19h10.2a4.3 4.3 0 0 0 .5-8.6A5.8 5.8 0 0 0 6.6 11.6 3.7 3.7 0 0 0 7 19z" fill="${fill}" stroke="${stroke}" stroke-width="1" stroke-linejoin="round"/>`;
 const WX_ICON = {
-  sun: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
-  partly: '<circle cx="8.5" cy="8.5" r="3.5"/><path d="M8.5 2.5v1M2.5 8.5h1M4.3 4.3l.7.7M12.7 4.3l-.7.7"/><path d="M8 20h9a4 4 0 0 0 0-8 5 5 0 0 0-9.6 1.6A3.2 3.2 0 0 0 8 20z"/>',
-  cloud: '<path d="M7 19h10a4.5 4.5 0 0 0 .4-9A6 6 0 0 0 6 11.5 3.8 3.8 0 0 0 7 19z"/>',
-  fog: '<path d="M4 10h16M3 14h18M5 18h14"/>',
-  rain: '<path d="M7 15h10a4 4 0 0 0 .4-8A5.5 5.5 0 0 0 6.5 8.5 3.3 3.3 0 0 0 7 15z"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/>',
-  snow: '<path d="M7 14h10a4 4 0 0 0 .4-8A5.5 5.5 0 0 0 6.5 7.5 3.3 3.3 0 0 0 7 14z"/><path d="M8 18h.01M12 20h.01M16 18h.01M10 22h.01M14 22h.01"/>',
-  storm: '<path d="M7 14h10a4 4 0 0 0 .4-8A5.5 5.5 0 0 0 6.5 7.5 3.3 3.3 0 0 0 7 14z"/><path d="M12 14l-2 4h3l-2 4"/>',
+  sun: SUN(12, 12, 5),
+  partly: SUN(8.5, 8, 3.6) + CLOUD("#ffffff", "#b8c4d0", 1.5),
+  cloud: CLOUD("#ffffff", "#b8c4d0", -1),
+  fog: CLOUD("#eef1f4", "#b8c4d0", -4) + '<g stroke="#9aa7b4" stroke-width="1.6" stroke-linecap="round"><path d="M4 18.5h16M6 21.5h12"/></g>',
+  rain: CLOUD("#9aa5b1", "#6f7b88", -4) + '<g stroke="#2f8de4" stroke-width="1.8" stroke-linecap="round"><path d="M8.5 18l-1 3M12.5 18l-1 3M16.5 18l-1 3"/></g>',
+  snow: CLOUD("#dfe6ee", "#9aa7b4", -4) + '<g fill="#7cc3ff"><circle cx="8" cy="19" r="1.2"/><circle cx="12" cy="21" r="1.2"/><circle cx="16" cy="19" r="1.2"/></g>',
+  storm: CLOUD("#3d434b", "#22262b", -4) + '<path d="M12.8 14.5l-3 4.6h2.6l-1.6 4 4.4-5.6h-2.7l1.6-3z" fill="#ffd21f" stroke="#e0a800" stroke-width=".6" stroke-linejoin="round"/>',
 };
-const wxSvg = (k, cls = "") => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${WX_ICON[k]}</svg>`;
+const wxSvg = (k, cls = "") => `<svg class="wx-pic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${WX_ICON[k]}</svg>`;
 let wxPlace = store.get("wxPlace", "tarare");
 for (const [k, p] of Object.entries(PLACES)) {
   $("#wx-places").append(el("button", { class: "btn", type: "button", "data-place": k, "aria-pressed": String(k === wxPlace), text: p.name, onclick: () => { wxPlace = k; store.set("wxPlace", k); loadWeather(); } }));
