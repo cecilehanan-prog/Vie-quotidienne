@@ -1236,14 +1236,24 @@ async function tripWeather(to) {
   } catch { wxFor = ""; }
 }
 /* ----- info trafic : grèves, lignes coupées, routes ----- */
-const alertQueries = city => [
+/* Zone de transport selon la position : réseau TCL autour de Lyon (Tarare compris), RATP/IDFM autour de Paris, sinon la ville où l'on est */
+const zoneOf = pos => !pos ? "lyon" : distKm(pos, NETS.lyon.center) <= 60 ? "lyon" : distKm(pos, NETS.paris.center) <= 50 ? "paris" : "autre";
+const BAD = "(interrompu OR perturbé OR perturbation OR grève OR arrêté OR panne OR \"mouvement social\" OR suspendu OR \"trafic perturbé\")";
+const alertQueries = (city, zone = "lyon") => [
   ["🚆", "Trains, TER et grèves SNCF", gnews('(grève OR préavis OR perturbation OR "trafic interrompu" OR suspendu OR supprimés) (SNCF OR TER) when:2d')],
-  ["🚇", "Métro, tram et bus TCL", gnews('(TCL OR "métro A" OR "métro B" OR "métro C" OR "métro D" OR tramway OR funiculaire) Lyon (interrompu OR perturbé OR perturbation OR grève OR arrêté OR panne OR "mouvement social" OR suspendu) when:2d')],
-  ["🚌", "Cars de la région", gnews('(cars OR autocar OR "lignes de car" OR Cars du Rhône) (grève OR perturbation OR suspendu) (Rhône OR Tarare OR "Ouest rhodanien") when:2d')],
+  ...(zone === "lyon" ? [
+    ["🚇", "Métro, tram et bus TCL (Lyon)", gnews(`(TCL OR "métro A" OR "métro B" OR "métro C" OR "métro D" OR tramway OR funiculaire) Lyon ${BAD} when:2d`)],
+    ["🚌", "Cars de la région", gnews('(cars OR autocar OR "lignes de car" OR Cars du Rhône) (grève OR perturbation OR suspendu) (Rhône OR Tarare OR "Ouest rhodanien") when:2d')],
+  ] : zone === "paris" ? [
+    ["🚇", "Métro, RER, tram et bus (Paris)", gnews(`(RATP OR métro OR RER OR Transilien OR tramway OR bus) (Paris OR "Île-de-France") ${BAD} when:2d`)],
+  ] : [
+    ["🚇", `Bus, tram et métro à ${city}`, gnews(`(bus OR tram OR tramway OR métro OR "transports en commun") "${city}" ${BAD} when:2d`)],
+  ]),
   ["🚗", `Routes autour de ${city}`, gnews(`(accident OR bouchon OR bouchons OR fermée OR fermeture OR coupée OR travaux OR déviation) (route OR autoroute OR A89 OR A6 OR A7 OR N7 OR RN7 OR circulation) "${city}" when:1d`)],
 ];
-async function loadAlerts(city = "Tarare") {
-  const rows = await Promise.all(alertQueries(city).map(async ([e, t, url]) => {
+async function loadAlerts(city = "Tarare", zone = "lyon") {
+  $("#tcl-live").hidden = zone !== "lyon";
+  const rows = await Promise.all(alertQueries(city, zone).map(async ([e, t, url]) => {
     try {
       const seen = new Set();
       const items = (await fetchFeed(url)).filter(i => i.title && Date.now() - new Date(i.date) < 48 * 3600e3)
@@ -1263,8 +1273,9 @@ function alertsHere(silent) {
   navigator.geolocation.getCurrentPosition(async pos => {
     let city = "Tarare";
     try { const j = await getJSON(`https://photon.komoot.io/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&lang=fr`); const pr = j.features?.[0]?.properties; city = pr?.city || pr?.town || pr?.village || pr?.name || city; } catch {}
-    $("#alerts-where").textContent = `📍 Autour de ${city}`;
-    loadAlerts(city);
+    const zone = zoneOf([pos.coords.latitude, pos.coords.longitude]);
+    $("#alerts-where").textContent = `📍 Autour de ${city}` + (zone === "paris" ? " · réseau RATP" : zone === "lyon" ? " · réseau TCL" : "");
+    loadAlerts(city, zone);
   }, () => { if (!silent) $("#alerts-where").textContent = "Localisation refusée : je montre Tarare."; }, { maximumAge: 600000, timeout: 10000 });
 }
 loadAlerts();
