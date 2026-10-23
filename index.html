@@ -292,7 +292,8 @@ details summary { cursor: pointer; font-weight: 700; }
       <div class="alerts" id="tcl-live"></div>
       <details>
         <summary>⚙️ TCL en direct</summary>
-        <p class="small muted">Tape ici l'e-mail et le mot de passe de ton compte data.grandlyon.com. Ils restent seulement sur ton téléphone.</p>
+        <p class="small muted">Tape ici l'e-mail et le mot de passe « données » de data.grandlyon.com. Ils restent seulement sur ton téléphone.</p>
+        <p class="small">🔑 Ce mot de passe est <b>différent</b> de celui du compte Grand Lyon. Pour le créer : <a href="https://data.grandlyon.com/portail/fr/mot-de-passe-oublie" target="_blank" rel="noopener">clique ici</a> (déconnectée), mets ton e-mail, et suis le mail reçu.</p>
         <input type="email" id="tcl-user" placeholder="E-mail" autocomplete="username" style="width:100%;margin:4px 0">
         <input type="password" id="tcl-pass" placeholder="Mot de passe" autocomplete="current-password" style="width:100%;margin:4px 0">
         <button class="btn primary" type="button" id="tcl-save">💾 Enregistrer</button>
@@ -1238,8 +1239,15 @@ async function loadTclLive() {
   const auth = store.get("tclAuth", null), box = $("#tcl-live");
   if (!auth) { box.replaceChildren(); return; }
   try {
-    const r = await fetch("https://data.grandlyon.com/fr/datapusher/ws/rdata/tcl_sytral.tclalertetrafic_2/all.json?maxfeatures=200&start=1", { headers: { Authorization: "Basic " + auth } });
-    if (r.status === 401 || r.status === 403) throw new Error("acces");
+    let r = null, last = null;
+    for (const u of ["https://download.data.grandlyon.com/ws/rdata/tcl_sytral.tclalertetrafic_2/all.json?maxfeatures=200&start=1",
+      "https://data.grandlyon.com/fr/datapusher/ws/rdata/tcl_sytral.tclalertetrafic_2/all.json?maxfeatures=200&start=1"]) {
+      try { r = await fetch(u, { headers: { Authorization: "Basic " + auth } }); if (r.ok) break; } catch (e) { last = e; r = null; }
+    }
+    if (!r) throw last || new Error("reseau");
+    if (r.status === 401) throw new Error("mdp");
+    if (r.status === 403) throw new Error("acces");
+    if (!r.ok) throw new Error("reseau");
     const j = await r.json();
     const now = Date.now();
     const seen = new Set();
@@ -1253,7 +1261,9 @@ async function loadTclLive() {
     $("#tcl-msg").textContent = "✅ Connecté aux TCL";
   } catch (e) {
     box.replaceChildren();
-    $("#tcl-msg").textContent = e.message === "acces" ? "❌ Le site refuse : vérifie l'e-mail, le mot de passe et que l'accès aux données TCL est validé." : "❌ Impossible de joindre le site des TCL pour l'instant.";
+    $("#tcl-msg").textContent = e.message === "mdp" ? "❌ Mot de passe refusé. Il faut le mot de passe « données » (voir 🔑 au-dessus), pas celui du compte Grand Lyon."
+      : e.message === "acces" ? "❌ Connexion OK, mais l'accès aux « Alertes trafic TCL » n'est pas encore validé."
+      : "❌ Le site des TCL bloque l'appli pour l'instant. Dis-le-moi, je cherche une autre solution.";
   }
 }
 $("#tcl-save").addEventListener("click", () => {
