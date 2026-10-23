@@ -292,11 +292,7 @@ details summary { cursor: pointer; font-weight: 700; }
       <div class="alerts" id="tcl-live"></div>
       <details>
         <summary>⚙️ TCL en direct</summary>
-        <p class="small muted">Tape ici l'e-mail et le mot de passe « données » de data.grandlyon.com. Ils restent seulement sur ton téléphone.</p>
-        <p class="small">🔑 Ce mot de passe est <b>différent</b> de celui du compte Grand Lyon. Pour le créer : <a href="https://data.grandlyon.com/portail/fr/mot-de-passe-oublie" target="_blank" rel="noopener">clique ici</a> (déconnectée), mets ton e-mail, et suis le mail reçu.</p>
-        <input type="email" id="tcl-user" placeholder="E-mail" autocomplete="username" style="width:100%;margin:4px 0">
-        <input type="password" id="tcl-pass" placeholder="Mot de passe" autocomplete="current-password" style="width:100%;margin:4px 0">
-        <button class="btn primary" type="button" id="tcl-save">💾 Enregistrer</button>
+        <p class="small muted">Un petit robot gratuit sur ton GitHub va chercher les alertes TCL toutes les 10 minutes. Il a besoin de ton compte data.grandlyon.com, rangé dans un coffre GitHub (jamais dans l'appli ni dans le chat).</p>
         <p class="small" id="tcl-msg"></p>
       </details>
     </article>
@@ -1234,45 +1230,34 @@ function alertsHere(silent) {
 }
 loadAlerts();
 $("#alerts-here").addEventListener("click", () => alertsHere(false));
-/* ----- TCL en direct (compte data.grandlyon.com de l'utilisatrice, gardé sur le téléphone) ----- */
+/* ----- TCL en direct : lu dans tcl.json (branche data), rempli par le robot GitHub « Relais TCL » ----- */
 async function loadTclLive() {
-  const auth = store.get("tclAuth", null), box = $("#tcl-live");
-  if (!auth) { box.replaceChildren(); return; }
+  const box = $("#tcl-live"), msg = $("#tcl-msg");
   try {
-    let r = null, last = null;
-    for (const u of ["https://download.data.grandlyon.com/ws/rdata/tcl_sytral.tclalertetrafic_2/all.json?maxfeatures=200&start=1",
-      "https://data.grandlyon.com/fr/datapusher/ws/rdata/tcl_sytral.tclalertetrafic_2/all.json?maxfeatures=200&start=1"]) {
-      try { r = await fetch(u, { headers: { Authorization: "Basic " + auth } }); if (r.ok) break; } catch (e) { last = e; r = null; }
-    }
-    if (!r) throw last || new Error("reseau");
-    if (r.status === 401) throw new Error("mdp");
-    if (r.status === 403) throw new Error("acces");
-    if (!r.ok) throw new Error("reseau");
+    const r = await fetch("https://raw.githubusercontent.com/cecilehanan-prog/Vie-quotidienne/data/tcl.json?t=" + Date.now(), { cache: "no-store" });
     const j = await r.json();
-    const now = Date.now();
-    const seen = new Set();
+    if (String(j.status) !== "200") {
+      box.replaceChildren();
+      msg.textContent = j.status == 401 ? "🔑 Le robot attend ton compte data.grandlyon.com (à ranger dans le coffre GitHub)."
+        : j.status == 403 ? "⏳ Compte OK, mais l'accès aux « Alertes trafic TCL » n'est pas encore validé."
+        : "❌ Le robot n'a pas pu joindre les TCL cette fois-ci, il réessaie dans 10 minutes.";
+      return;
+    }
+    const now = Date.now(), seen = new Set();
     const al = (j.values || []).filter(v => !v.fin || new Date(v.fin.replace(" ", "T")) > now)
       .map(v => ({ line: v.ligne_com || v.ligne_cli || "", txt: v.titre || v.message || v.type || "" }))
       .filter(v => v.txt && !seen.has(v.line + v.txt) && seen.add(v.line + v.txt));
     const shown = al.slice(0, 8);
+    const age = Math.round((now - new Date(j.updated)) / 60000);
     box.replaceChildren(el("div", { class: "alert" + (al.length ? " bad" : "") }, el("i", { text: "🚇" }),
       el("strong", { text: al.length ? `TCL en direct : ⚠️ ${al.length} alerte${al.length > 1 ? "s" : ""}` : "TCL en direct : ✅ tout roule" }),
-      el("div", { class: "alert-news" }, ...shown.map(v => el("div", { class: "small", text: `• ${v.line ? "Ligne " + v.line + " : " : ""}${v.txt}` })))));
-    $("#tcl-msg").textContent = "✅ Connecté aux TCL";
-  } catch (e) {
-    box.replaceChildren();
-    $("#tcl-msg").textContent = e.message === "mdp" ? "❌ Mot de passe refusé. Il faut le mot de passe « données » (voir 🔑 au-dessus), pas celui du compte Grand Lyon."
-      : e.message === "acces" ? "❌ Connexion OK, mais l'accès aux « Alertes trafic TCL » n'est pas encore validé."
-      : "❌ Le site des TCL bloque l'appli pour l'instant. Dis-le-moi, je cherche une autre solution.";
-  }
+      el("div", { class: "alert-news" }, ...shown.map(v => el("div", { class: "small", text: `• ${v.line ? "Ligne " + v.line + " : " : ""}${v.txt}` })),
+        el("div", { class: "small muted", text: `Mis à jour il y a ${age < 1 ? "moins d'1" : age} min` }))));
+    msg.textContent = "✅ Le robot TCL marche";
+  } catch (e) { box.replaceChildren(); msg.textContent = "❌ Pas de nouvelles du robot TCL pour l'instant."; }
 }
-$("#tcl-save").addEventListener("click", () => {
-  const u = $("#tcl-user").value.trim(), pw = $("#tcl-pass").value;
-  if (!u || !pw) { $("#tcl-msg").textContent = "👆 Remplis les deux cases."; return; }
-  store.set("tclAuth", btoa(unescape(encodeURIComponent(u + ":" + pw)))); $("#tcl-pass").value = "";
-  $("#tcl-msg").textContent = "⏳ Je me connecte…"; loadTclLive();
-});
-loadTclLive();
+try { localStorage.removeItem("mq:tclAuth"); } catch (e) {}
+loadTclLive(); setInterval(loadTclLive, 10 * 60000);
 let pack = store.get("pack", null) || ["Carte d'identité ou passeport", "Billets et réservations", "Chargeur de téléphone", "Médicaments", "Carte Vitale", "Trousse de toilette", "Vêtements pour la météo prévue"].map(t => ({ t, ok: false }));
 function renderPack() {
   $("#pack-list").replaceChildren(...pack.map(p => el("label", { class: "item" + (p.ok ? " done" : "") },
