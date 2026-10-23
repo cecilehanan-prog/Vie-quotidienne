@@ -280,6 +280,31 @@ nav.tabbar button[aria-current="page"] span { color: var(--fg); font-weight: 700
 section.view { display: grid; gap: 16px; }
 details summary { cursor: pointer; font-weight: 700; }
 @media (prefers-reduced-motion: no-preference) { .card { transition: border-color .2s; } }
+
+/* Sérénité : nuit bleue et or */
+[data-sec=pray] { --sec: #23305e; }
+.pray-card { background: linear-gradient(160deg, #18214a, #2c3a78); color: #fff; border: 0; text-align: center; }
+.pray-date { margin: 0; color: #f3d98a; font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: 1.15rem; }
+.pray-next { margin: 6px 0 12px; font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; }
+.pray-row { display: grid; grid-template-columns: 36px 1fr auto; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 14px; margin-top: 6px; background: rgba(255,255,255,.08); text-align: left; }
+.pray-row .pe { font-size: 1.4rem; } .pray-row .pn { font-weight: 700; font-size: 1.05rem; } .pray-row .pt { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.pray-row.sun { opacity: .7; } .pray-row.sun .pn, .pray-row.sun .pt { font-weight: 500; font-size: .95rem; }
+.pray-row.past { opacity: .5; }
+.pray-row.next { background: linear-gradient(120deg, #e9c46a, #f6dc8c); color: #2a1f00; }
+.pray-src { margin: 12px 0 0; color: rgba(255,255,255,.75); } .pray-src a { color: #f3d98a; }
+.ram-when { font-weight: 700; font-size: 1.05rem; margin: 4px 0; }
+.fast-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 10px 0; }
+.fast { border: 2px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 12px; padding: 6px 0; display: grid; gap: 2px; font: inherit; cursor: pointer; }
+.fast b { font-size: .95rem; } .fast small { font-size: .7rem; color: var(--muted); }
+.fast.ok { background: color-mix(in srgb, #2e9b57 22%, var(--surface)); border-color: #2e9b57; }
+.fast.owe { background: color-mix(in srgb, #e9a23b 22%, var(--surface)); border-color: #e9a23b; }
+.fast.today { outline: 3px solid #e9c46a; outline-offset: 1px; }
+/* Tuiles : palette « pierres précieuses », une couleur bien distincte par tuile */
+.tile[data-sec=news] { --sec: #3e63dd; } .tile[data-sec=agenda] { --sec: #d9466f; } .tile[data-sec=shop] { --sec: #2e9b57; }
+.tile[data-sec=meals] { --sec: #e0663a; } .tile[data-sec=culture] { --sec: #8e4ec6; } .tile[data-sec=car] { --sec: #b8780b; }
+.tile[data-sec=trip] { --sec: #0f93a3; } .tile[data-sec=auto] { --sec: #56687a; } .tile[data-sec=pray] { --sec: #23305e; }
+.tile[data-sec=admin] { --sec: #6f7f22; }
+.tile { color: #fff; } .tile[data-sec=pray] svg { color: #f3d98a; }
 </style>
 
 <div class="wrap">
@@ -665,6 +690,20 @@ details summary { cursor: pointer; font-weight: 700; }
     </article>
   </section>
 
+  <section class="view" id="view-serenite" hidden>
+    <button class="btn" type="button" data-goto="home" style="margin-bottom:10px">⬅️ Accueil</button>
+    <article class="card pray-card">
+      <p class="pray-date" id="pray-date"></p>
+      <p class="pray-next" id="pray-next"></p>
+      <div id="pray-today"></div>
+      <p class="small pray-src"><span id="pray-where"></span> · <a href="https://assalate.latrach.net/masjid/69008-lyon-grande-mosquee" target="_blank" rel="noopener">voir leur calendrier</a></p>
+    </article>
+    <article class="card" data-sec="pray">
+      <div class="card-head"><h2>🌙 Ramadan</h2><label class="small muted">1er jour <input type="date" id="ram-start" aria-label="Premier jour du Ramadan"></label></div>
+      <div id="ram-body"></div>
+    </article>
+  </section>
+
   <section class="view" id="view-culture" hidden>
     <button class="btn" type="button" data-goto="home" style="margin-bottom:10px">⬅️ Accueil</button>
     <article class="card" data-sec="culture">
@@ -805,6 +844,7 @@ function show(id) {
   store.set("view", id);
   if (id === "news" && !newsLoaded) loadNews(currentFeed);
   if (id === "move" && !moveLoaded) { moveLoaded = true; setTimeout(() => { loadFuel(); loadDepartures(); }); }
+  if (id === "serenite") setTimeout(() => { renderRamadan(); prayLocate(); });
   window.scrollTo(0, 0);
 }
 document.addEventListener("click", e => {
@@ -820,6 +860,7 @@ const SEC_ICON = {
   news: ICONS.news, agenda: ICONS.agenda, admin: ICONS.admin, shop: ICONS.home2, car: ICONS.move,
   house: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   meals: '<path d="M4 3v8a3 3 0 0 0 3 3v7M7 3v6M10 3v8a3 3 0 0 1-3 3"/><path d="M17 21V3c-2 1-3 4-3 8h3"/>',
+  pray: '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/><path d="M17 4l.7 1.6 1.6.7-1.6.7L17 8.6l-.7-1.6-1.6-.7 1.6-.7z"/>',
   culture: '<path d="M4 5c3 1.5 13 1.5 16 0v6a8 8 0 0 1-16 0z"/><path d="M9 10h.01M15 10h.01M9 14c1.5 1.5 4.5 1.5 6 0"/>',
   films: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 5l2 4M12 5l2 4M17 5l2 4"/>',
   loyal: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h4"/>',
@@ -2011,6 +2052,7 @@ const TILES = [
   ["move", "car", "Trajets", null],
   ["trip", "trip", "Voyage", null],
   ["auto", "auto", "Auto · Moto", () => autoDue().length],
+  ["serenite", "pray", "Sérénité", null],
   ["admin", "admin", "Papiers", () => admin.filter(x => !x.done && x.date && daysUntil(x.date) <= 30).length],
 ];
 /* ----- Culture : idées de sorties + films coup de cœur ----- */
@@ -2322,6 +2364,88 @@ $("#keep-q").addEventListener("input", renderKeep);
 /* ---------- démarrage ---------- */
 setInterval(renderAgenda, 30 * 60000);
 renderAgenda(); renderPapers(); renderAdmin(); renderTodos(); renderPack(); showNet("lyon");
+/* ---------- Sérénité : prières du jour calées sur la Grande Mosquée de Lyon ---------- */
+// Réglages déduits du calendrier publié par la Grande Mosquée de Lyon (octobre 2026, écart ≤ 2 min) :
+// Fajr 14,4°, Icha 13,5°, Dhohr = midi solaire + 5 min, Asr standard, Maghreb = coucher + 3 min (arrondis du côté prudent pour le jeûne).
+const GML = { pos: [45.7487, 4.8669], fajr: 14.4, isha: 13.5, dhohr: 5.5, maghreb: 3 };
+function prayerTimes(date, pos = GML.pos) {
+  const [lat, lon] = pos, rad = Math.PI / 180;
+  const d0 = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 12);
+  const jd = d0 / 864e5 + 2440587.5 - 2451545;
+  const g = (357.529 + 0.98560028 * jd) % 360 * rad, q = (280.459 + 0.98564736 * jd) % 360;
+  const L = (q + 1.915 * Math.sin(g) + 0.02 * Math.sin(2 * g)) % 360 * rad, e = (23.439 - 3.6e-7 * jd) * rad;
+  const RA = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L)) / rad / 15, D = Math.asin(Math.sin(e) * Math.sin(L));
+  let eq = q / 15 - ((RA % 24) + 24) % 24; if (eq > 12) eq -= 24; if (eq < -12) eq += 24;
+  const noon = 12 - lon / 15 - eq, la = lat * rad;
+  const hourAngle = a => Math.acos(Math.max(-1, Math.min(1, (-Math.sin(a * rad) - Math.sin(la) * Math.sin(D)) / (Math.cos(la) * Math.cos(D))))) / rad / 15;
+  const asrAlt = -Math.atan(1 / (1 + Math.tan(Math.abs(la - D)))) / rad;
+  const at = (h, plus = 0) => new Date(d0 - 12 * 36e5 + Math.round((h * 60 + plus)) * 6e4);
+  return [
+    ["fajr", "Fajr", "🌌", at(noon - hourAngle(GML.fajr))],
+    ["sun", "Chourouk", "🌅", at(noon - hourAngle(0.833))],
+    ["dhohr", "Dhohr", "☀️", at(noon, GML.dhohr)],
+    ["asr", "Asr", "🌤️", at(noon + hourAngle(asrAlt))],
+    ["maghreb", "Maghreb", "🌇", at(noon + hourAngle(0.833), GML.maghreb)],
+    ["icha", "Icha", "🌙", at(noon + hourAngle(GML.isha))],
+  ];
+}
+const hijri = d => { try { return new Intl.DateTimeFormat("fr-FR-u-ca-islamic-umalqura", { day: "numeric", month: "long", year: "numeric" }).format(d); } catch { return ""; } };
+const hijriParts = d => { try { const p = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn", { day: "numeric", month: "numeric", year: "numeric" }).formatToParts(d); const v = t => +p.find(x => x.type === t).value; return { d: v("day"), m: v("month"), y: parseInt(p.find(x => x.type === "year").value) }; } catch { return null; } };
+let prayPos = null, prayPlace = "Lyon";
+async function renderPrayers() {
+  const box = $("#pray-today"); if (!box) return;
+  const now = new Date();
+  let list = prayerTimes(now, prayPos || GML.pos);
+  let next = list.find(p => p[0] !== "sun" && p[3] > now);
+  if (!next) { const t = prayerTimes(new Date(+now + DAY), prayPos || GML.pos); next = t[0]; }
+  const left = Math.max(0, Math.round((next[3] - now) / 6e4));
+  $("#pray-date").textContent = `${now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} · ${hijri(now)}`;
+  $("#pray-next").textContent = `${next[2]} ${next[1]} à ${hm(next[3])} · dans ${left >= 60 ? Math.floor(left / 60) + " h " + pad(left % 60) : left + " min"}`;
+  box.replaceChildren(...list.map(([k, n, e, t]) => el("div", { class: "pray-row" + (k === next[0] && t > now ? " next" : "") + (k === "sun" ? " sun" : "") + (t < now && k !== next[0] ? " past" : "") },
+    el("span", { class: "pe", text: e }), el("span", { class: "pn", text: n }), el("span", { class: "pt", text: hm(t) }))));
+  $("#pray-where").textContent = prayPos ? `📍 Calculés pour ${prayPlace}, avec la méthode de la Grande Mosquée de Lyon` : "🕌 Horaires de la Grande Mosquée de Lyon";
+}
+async function prayLocate() {
+  const p = await hereOnce();
+  if (p && distKm(p, GML.pos) > 60) { prayPos = p; try { prayPlace = (await (await fetch(`https://photon.komoot.io/reverse?lat=${p[0]}&lon=${p[1]}&lang=fr`)).json()).features?.[0]?.properties?.city || "ta position"; } catch { prayPlace = "ta position"; } }
+  else prayPos = null;
+  renderPrayers();
+}
+/* Ramadan : début annoncé par la Grande Mosquée (nuit du doute), modifiable ; jours de jeûne à cocher */
+function ramadanStart(from = new Date()) {
+  const saved = store.get("ramStart", null);
+  if (saved && daysUntil(saved) > -40) return saved;
+  for (let i = -35; i < 400; i++) { const d = new Date(+startOfDay(from) + i * DAY), h = hijriParts(d); if (h && h.m === 9 && h.d === 1) return d.toLocaleDateString("sv-SE"); }
+  return null;
+}
+let fasts = store.get("fasts", {});
+function renderRamadan() {
+  const box = $("#ram-body"); if (!box) return;
+  const start = ramadanStart(); if (!start) { box.replaceChildren(); return; }
+  const sd = new Date(start + "T12:00"), dd = daysUntil(start), today = Math.floor((startOfDay(new Date()) - startOfDay(sd)) / DAY);
+  $("#ram-start").value = start;
+  const fmtD = d => d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const aid = new Date(+sd + 30 * DAY);
+  const days = Array.from({ length: 30 }, (_, i) => i);
+  const key = i => `${start}:${i}`;
+  const done = days.filter(i => fasts[key(i)] === "ok").length, made = store.get("fastMade", 0), owed = Math.max(0, days.filter(i => fasts[key(i)] === "owe").length - made);
+  box.replaceChildren(
+    el("p", { class: "ram-when", text: dd > 0 ? `🌙 Ramadan commence ${fmtD(sd)} · dans ${dd} jour${dd > 1 ? "s" : ""}` : today < 30 ? `🌙 Ramadan · jour ${today + 1}` : `🌙 Ramadan terminé · Aïd el-Fitr ${fmtD(aid)}` }),
+    el("p", { class: "small muted", text: `Aïd el-Fitr vers le ${aid.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} · dates confirmées par la Grande Mosquée de Lyon la nuit du doute` }),
+    el("div", { class: "fast-grid" }, ...days.map(i => {
+      const d = new Date(+sd + i * DAY), v = fasts[key(i)] || "";
+      return el("button", { type: "button", class: "fast " + v + (i === today ? " today" : ""), "aria-label": `Jour ${i + 1}, ${d.toLocaleDateString("fr-FR")}`,
+        onclick: () => { fasts[key(i)] = v === "" ? "ok" : v === "ok" ? "owe" : ""; if (!fasts[key(i)]) delete fasts[key(i)]; store.set("fasts", fasts); renderRamadan(); } },
+        el("b", { text: i + 1 }), el("small", { text: v === "ok" ? "✅" : v === "owe" ? "⏳" : d.getDate() + "/" + (d.getMonth() + 1) }));
+    })),
+    el("p", { class: "small", text: `✅ ${done} jour${done > 1 ? "s" : ""} jeûné${done > 1 ? "s" : ""} · ⏳ ${owed} à rattraper` }),
+    el("p", { class: "small muted", text: "Touche un jour : ✅ jeûné, encore une fois : ⏳ à rattraper." }),
+    owed || made ? el("div", { class: "row" },
+      owed ? el("button", { class: "btn", type: "button", text: "✔️ J'ai rattrapé un jour", onclick: () => { store.set("fastMade", made + 1); renderRamadan(); } }) : null,
+      made ? el("button", { class: "btn", type: "button", text: `↩️ Annuler (${made} rattrapé${made > 1 ? "s" : ""})`, onclick: () => { store.set("fastMade", made - 1); renderRamadan(); } }) : null) : null);
+}
+$("#ram-start").addEventListener("change", e => { if (e.target.value) { store.set("ramStart", e.target.value); renderRamadan(); } });
+renderPrayers(); renderRamadan(); setInterval(renderPrayers, 60000);
 renderKeep(); renderMeals(); renderStores(); renderAisles(); renderShop(); renderLeclerc(); renderHabits(); renderMeter(); renderChores(); renderHouseHome();
 show(store.get("view", "home"));
 loadWeather(); loadGoodNews(); scheduleReminders();
