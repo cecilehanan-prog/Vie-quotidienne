@@ -91,7 +91,8 @@ h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; mar
 .alert.off { background: var(--surface-2); color: var(--muted); }
 .alert.bad { background: #ffe8d6; color: #7a3300; }
 .alert i { font-style: normal; font-size: 1.4rem; grid-row: span 2; }
-.alert a { color: inherit; font-size: .85rem; display: block; }
+.alert a { color: inherit; font-size: .85rem; display: block; text-decoration: none; margin-top: 3px; }
+.alert-news .muted { font-size: .75rem; }
 .meals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 8px 0; }
 .meal { position: relative; border: 2px solid color-mix(in srgb, var(--sec) 30%, transparent); background: var(--surface); border-radius: 18px; padding: 12px 4px 10px; display: grid; justify-items: center; gap: 4px; cursor: pointer; font: inherit; color: var(--fg); text-align: center; }
 .meal i { font-style: normal; font-size: 2.2rem; line-height: 1; }
@@ -279,16 +280,18 @@ details summary { cursor: pointer; font-weight: 700; }
       <a class="small" href="https://vigilance.meteofrance.fr/fr/rhone" target="_blank" rel="noopener">⚠️ Vigilance Rhône</a>
     </article>
 
-    <article class="card" data-sec="car">
-      <div class="card-head"><h2>🚦 Info trafic</h2><button class="btn" data-goto="trip">Un trajet ?</button></div>
-      <div class="alerts" id="home-alerts"></div>
-    </article>
-
-
     <article class="card" data-sec="agenda">
       <div class="card-head"><h2>Rendez-vous</h2><button class="btn" data-goto="agenda">Voir tout</button></div>
       <div class="list" id="home-agenda"></div>
     </article>
+
+    <article class="card" data-sec="car">
+      <div class="card-head"><h2>🚦 Info trafic</h2><button class="btn" type="button" id="alerts-here">📍 Autour de moi</button></div>
+      <p class="small muted" id="alerts-where"></p>
+      <div class="alerts" id="home-alerts"></div>
+    </article>
+
+
 
     <article class="card" data-sec="admin">
       <div class="card-head"><h2>À ne pas oublier</h2><button class="btn" data-goto="admin">Voir tout</button></div>
@@ -1188,28 +1191,39 @@ async function tripWeather(to) {
   } catch { wxFor = ""; }
 }
 /* ----- info trafic : grèves, lignes coupées, routes ----- */
-const ALERTS = [
-  ["🚆", "Trains et TER", gnews('(grève OR perturbation OR "trafic interrompu" OR suspendu OR supprimés) (SNCF OR TER) (Lyon OR "Auvergne-Rhône-Alpes" OR Roanne OR Tarare) when:1d')],
-  ["🚇", "Bus et métro TCL", gnews('TCL (grève OR perturbation OR interrompu OR "mouvement social" OR suspendu) when:1d')],
-  ["🚌", "Cars de la région", gnews('(cars OR autocar OR "lignes de car") (grève OR perturbation OR suspendu) (Rhône OR Tarare OR "Ouest rhodanien") when:2d')],
-  ["🚗", "Routes", gnews('(A89 OR A6 OR A7 OR N7 OR "périphérique" OR Fourvière) (accident OR bouchon OR fermée OR fermeture OR coupée) Lyon when:1d')],
+const alertQueries = city => [
+  ["🚆", "Trains, TER et grèves SNCF", gnews('(grève OR préavis OR perturbation OR "trafic interrompu" OR suspendu OR supprimés) (SNCF OR TER) when:2d')],
+  ["🚇", "Métro, tram et bus TCL", gnews('(TCL OR "métro A" OR "métro B" OR "métro C" OR "métro D" OR tramway OR funiculaire) Lyon (interrompu OR perturbé OR perturbation OR grève OR arrêté OR panne OR "mouvement social" OR suspendu) when:2d')],
+  ["🚌", "Cars de la région", gnews('(cars OR autocar OR "lignes de car" OR Cars du Rhône) (grève OR perturbation OR suspendu) (Rhône OR Tarare OR "Ouest rhodanien") when:2d')],
+  ["🚗", `Routes autour de ${city}`, gnews(`(accident OR bouchon OR bouchons OR fermée OR fermeture OR coupée OR travaux OR déviation) (route OR autoroute OR A89 OR A6 OR A7 OR N7 OR RN7 OR circulation) "${city}" when:1d`)],
 ];
-let alertCache = null;
-async function loadAlerts() {
-  if (!alertCache) alertCache = Promise.all(ALERTS.map(async ([e, t, url]) => {
+async function loadAlerts(city = "Tarare") {
+  const rows = await Promise.all(alertQueries(city).map(async ([e, t, url]) => {
     try {
-      const items = (await fetchFeed(url)).filter(i => i.title && Date.now() - new Date(i.date) < 36 * 3600e3).slice(0, 2);
+      const seen = new Set();
+      const items = (await fetchFeed(url)).filter(i => i.title && Date.now() - new Date(i.date) < 48 * 3600e3)
+        .map(i => ({ ...i, title: splitSource(i).title, src: splitSource(i).src })).filter(i => !seen.has(i.title) && seen.add(i.title)).slice(0, 3);
       return { e, t, items, ok: true };
     } catch { return { e, t, items: [], ok: false }; }
   }));
-  const rows = await alertCache;
   const render = () => rows.map(r => el("div", { class: "alert" + (!r.ok ? " off" : r.items.length ? " bad" : "") }, el("i", { text: r.e }),
-    el("strong", { text: `${r.t} : ${!r.ok ? "pas de connexion" : r.items.length ? "⚠️ attention" : "✅ rien de signalé"}` }),
-    el("div", {}, ...r.items.map(i => el("a", { href: i.link, target: "_blank", rel: "noopener", text: splitSource(i).title })))));
+    el("strong", { text: `${r.t} : ${!r.ok ? "pas de connexion" : r.items.length ? "⚠️" : "✅ rien de signalé"}` }),
+    el("div", { class: "alert-news" }, ...r.items.map(i => el("a", { href: i.link, target: "_blank", rel: "noopener" }, "• " + i.title, i.src ? el("span", { class: "muted", text: " · " + i.src }) : null)))));
   $("#home-alerts").replaceChildren(...render());
-  $("#trip-alerts").replaceChildren(...render(), el("p", { class: "small muted", text: "D'après les infos des dernières 24 h." }));
+  $("#trip-alerts").replaceChildren(...render(), el("p", { class: "small muted", text: "D'après les infos des dernières 48 h." }));
+}
+function alertsHere(silent) {
+  if (!navigator.geolocation) return;
+  if (!silent) $("#alerts-where").textContent = "⏳ Je regarde où tu es…";
+  navigator.geolocation.getCurrentPosition(async pos => {
+    let city = "Tarare";
+    try { const j = await getJSON(`https://photon.komoot.io/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&lang=fr`); const pr = j.features?.[0]?.properties; city = pr?.city || pr?.town || pr?.village || pr?.name || city; } catch {}
+    $("#alerts-where").textContent = `📍 Autour de ${city}`;
+    loadAlerts(city);
+  }, () => { if (!silent) $("#alerts-where").textContent = "Localisation refusée : je montre Tarare."; }, { maximumAge: 600000, timeout: 10000 });
 }
 loadAlerts();
+$("#alerts-here").addEventListener("click", () => alertsHere(false));
 let pack = store.get("pack", null) || ["Carte d'identité ou passeport", "Billets et réservations", "Chargeur de téléphone", "Médicaments", "Carte Vitale", "Trousse de toilette", "Vêtements pour la météo prévue"].map(t => ({ t, ok: false }));
 function renderPack() {
   $("#pack-list").replaceChildren(...pack.map(p => el("label", { class: "item" + (p.ok ? " done" : "") },
@@ -1577,7 +1591,7 @@ renderAgenda(); renderPapers(); renderAdmin(); renderTodos(); renderPack(); show
 renderKeep(); renderMeals(); renderStores(); renderAisles(); renderShop(); renderLeclerc(); renderHabits(); renderMeter(); renderChores(); renderHouseHome();
 show(store.get("view", "home"));
 loadWeather(); loadGoodNews(); loadFuel(); scheduleReminders();
-try { if (navigator.permissions) navigator.permissions.query({ name: "geolocation" }).then(s => { if (s.state === "granted") { locate(true); detectStore(false); } }).catch(() => {}); } catch {}
+try { if (navigator.permissions) navigator.permissions.query({ name: "geolocation" }).then(s => { if (s.state === "granted") { locate(true); detectStore(false); alertsHere(true); } }).catch(() => {}); } catch {}
 $("#store-detect").addEventListener("click", () => detectStore(true));
 try { if ("serviceWorker" in navigator && location.protocol === "https:" && document.querySelector('link[rel="manifest"]')) navigator.serviceWorker.register("sw.js").catch(() => {}); } catch {}
 try {
