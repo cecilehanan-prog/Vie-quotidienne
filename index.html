@@ -193,7 +193,7 @@ input.num { width: 7.5em; flex: 0 1 auto !important; }
 [data-sec=agenda] { --sec: var(--c-agenda); } [data-sec=meals] { --sec: #e8590c; } [data-sec=house], [data-sec=shop], [data-sec=habits] { --sec: var(--c-house); }
 [data-sec=energy] { --sec: var(--c-energy); } [data-sec=chores] { --sec: var(--c-chores); } [data-sec=car] { --sec: var(--c-car); }
 [data-sec=transit] { --sec: var(--c-transit); } [data-sec=trip] { --sec: var(--c-trip); } [data-sec=admin], [data-sec=links] { --sec: var(--c-admin); }
-[data-sec=papers] { --sec: var(--c-papers); } [data-sec=todo] { --sec: #7a4fd0; }
+[data-sec=papers] { --sec: var(--c-papers); } [data-sec=todo] { --sec: #7a4fd0; } [data-sec=wish] { --sec: #c2185b; }
 #todo-list .item { grid-template-columns: auto minmax(0, 1fr) auto; }
 #todo-list .item.done .what { text-decoration: line-through; } [data-sec=keep] { --sec: #7a4fd0; }
 .keep-pill { font-size: .8rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; color: #fff; white-space: nowrap; }
@@ -403,6 +403,16 @@ details summary { cursor: pointer; font-weight: 700; }
         <button class="btn primary" type="button" id="shop-paste-go">➕ Tout ajouter</button>
       </details>
       <p class="small muted" id="shop-msg"></p>
+    </article>
+    <article class="card" data-sec="wish">
+      <div class="card-head"><h2>Envies &amp; achats</h2><span class="pill" id="wish-count"></span></div>
+      <p class="small muted">👟 💄 👗 🎁 Les achats moins fréquents, pour ne pas les oublier.</p>
+      <form class="inline" id="wish-form">
+        <input type="text" id="wish-name" placeholder="Ex. chaussures" required aria-label="Achat" autocomplete="off">
+        <input type="text" id="wish-where" placeholder="Où ? (facultatif)" aria-label="Où l'acheter">
+        <button class="btn primary" type="submit">Ajouter</button>
+      </form>
+      <div class="list" id="wish-list"></div>
     </article>
     <article class="card" data-sec="meals">
       <div class="card-head"><h2>🍽️ Idées repas végé</h2><button class="btn" type="button" id="meal-shuffle">🔀 Autres</button></div>
@@ -629,7 +639,7 @@ const ICONS = {
   admin: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
   home2: '<path d="M4 7h2l2.2 9.2a1 1 0 0 0 1 .8h7.6a1 1 0 0 0 1-.8L19.5 10H7"/><circle cx="10" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/>',
 };
-const VIEWS = [["home", "Accueil"], ["news", "Infos"], ["agenda", "Agenda"], ["home2", "Maison"], ["move", "Trajets"], ["trip", "Voyage"], ["admin", "Papiers"]];
+const VIEWS = [["home", "Accueil"], ["news", "Infos"], ["agenda", "Agenda"], ["home2", "Shopping"], ["move", "Trajets"], ["trip", "Voyage"], ["admin", "Papiers"]];
 const VIEW_SEC = { home: "wx", news: "news", agenda: "agenda", home2: "house", move: "car", trip: "trip", admin: "admin" };
 const svg = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
 for (const [id, label] of VIEWS) {
@@ -657,6 +667,7 @@ const SEC_ICON = {
   wx: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   news: ICONS.news, agenda: ICONS.agenda, admin: ICONS.admin, shop: ICONS.home2, car: ICONS.move,
   house: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  wish: '<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
   todo: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/>',
   good: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
   habits: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
@@ -1437,6 +1448,29 @@ function renderShop() {
   $("#shop-list").replaceChildren(...(kids.length ? kids : [el("p", { class: "muted", text: "Ta liste est vide. Ajoute un article ou tes habituels." })]));
   $("#shop-suggest").replaceChildren(...[...new Set([...habits.map(h => h.name), ...purchases.map(p => p.name)])].map(n => el("option", { value: n })));
 }
+/* Envies & achats : liste à part pour les achats exceptionnels */
+let wish = store.get("wish", []);
+const WISH_EMO = [[/chaussure|basket|botte|sandale|escarpin/, "👟"], [/maquillage|rouge à lèvres|mascara|fond de teint|vernis|crème|sérum|parfum|sephora/, "💄"],
+  [/robe|pantalon|jean|pull|veste|manteau|tee|t-shirt|chemise|jupe|vêtement|maillot|lingerie|soutien/, "👗"], [/sac|bijou|collier|bague|montre|lunette/, "👜"],
+  [/cadeau|anniv/, "🎁"], [/livre|bd|roman/, "📚"], [/téléphone|ordinateur|écouteur|chargeur|câble|tablette/, "📱"], [/meuble|lampe|déco|coussin|rideau|tapis/, "🛋️"],
+  [/outil|peinture|bricol|casto|leroy/, "🔧"], [/sport|décathlon|vélo|yoga|piscine/, "🏃"]];
+const wishEmo = n => (WISH_EMO.find(([re]) => re.test(n.toLowerCase())) || [, "🛍️"])[1];
+function renderWish() {
+  const left = wish.filter(w => !w.done).length;
+  $("#wish-count").textContent = wish.length ? `${left} à acheter` : "vide";
+  $("#wish-list").replaceChildren(...(wish.length ? [...wish].sort((a, b) => a.done - b.done).map(w => el("label", { class: "shop-item" + (w.done ? " done" : "") },
+    el("input", { type: "checkbox", checked: !!w.done, onchange: e => { w.done = e.target.checked; store.set("wish", wish); renderWish(); } }),
+    el("span", { class: "what" }, el("i", { class: "emo", "aria-hidden": "true", text: wishEmo(w.name) }), w.name, w.where ? el("span", { class: "muted", text: " · " + w.where }) : null),
+    el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + w.name, text: "✕", onclick: e => { e.preventDefault(); wish = wish.filter(x => x !== w); store.set("wish", wish); renderWish(); } })))
+    : [el("p", { class: "muted", text: "Rien pour l'instant. Note ici ce que tu veux acheter un jour." })]));
+}
+$("#wish-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = $("#wish-name").value.trim(); if (!name) return;
+  wish.push({ id: uid(), name: name[0].toUpperCase() + name.slice(1), where: $("#wish-where").value.trim(), done: false });
+  store.set("wish", wish); e.target.reset(); renderWish();
+});
+renderWish();
 function addToList(name, qty = "") {
   name = name.trim(); if (!name) return;
   const ex = shop.find(i => i.name.toLowerCase() === name.toLowerCase());
