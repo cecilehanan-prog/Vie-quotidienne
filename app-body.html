@@ -1,7 +1,7 @@
 <title>Mon Quotidien</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,600;1,500;1,600&family=Amiri:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,600;1,500;1,600&family=Amiri:wght@400;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,500;6..12,600&display=swap">
 <style>
 /* Layout : appli mobile, une colonne, barre d'onglets en bas ; cartes posées sur un fond "ciel du matin" */
 :root {
@@ -285,11 +285,15 @@ details summary { cursor: pointer; font-weight: 700; }
 [data-sec=pray] { --sec: #23305e; }
 .pray-card { background: linear-gradient(160deg, #18214a, #2c3a78); color: #fff; border: 0; text-align: center; }
 .pray-date { margin: 0; color: #f3d98a; font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: 1.15rem; }
-.pray-next { margin: 6px 0 12px; font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; }
+.pray-next { margin: 6px 0 12px; font-family: "Cormorant Garamond", Georgia, serif; font-weight: 600; font-size: 1.5rem; letter-spacing: .02em; }
 .pray-row { display: grid; grid-template-columns: 36px 1fr auto; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 14px; margin-top: 6px; background: rgba(255,255,255,.08); text-align: left; }
-.pray-row .pe { font-size: 1.4rem; } .pray-row .pn { font-weight: 700; font-size: 1.05rem; } .pray-row .pt { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; font-variant-numeric: tabular-nums; }
-.pray-row.sun { opacity: .7; } .pray-row.sun .pn, .pray-row.sun .pt { font-weight: 500; font-size: .95rem; }
+.pray-row .pe { width: 30px; height: 30px; color: #f3d98a; } .pray-row .pe svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.pray-row .pn, .pray-row .pt { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 600; letter-spacing: .02em; }
+.pray-row .pn { font-size: 1.35rem; } .pray-row .pt { font-size: 1.45rem; font-variant-numeric: lining-nums tabular-nums; }
+.pray-row.next .pe { color: #7a5200; }
+.pray-row.sun { opacity: .7; } .pray-row.sun .pn, .pray-row.sun .pt { font-size: 1.1rem; }
 .pray-row.past { opacity: .5; }
+.pray-row .pn small { display: block; font-family: system-ui, -apple-system, sans-serif; font-size: .72rem; font-weight: 400; letter-spacing: 0; opacity: .8; margin-top: 1px; }
 .pray-row.next { background: linear-gradient(120deg, #e9c46a, #f6dc8c); color: #2a1f00; }
 .pray-src { margin: 12px 0 0; color: rgba(255,255,255,.75); } .pray-src a { color: #f3d98a; }
 .ram-when { font-weight: 700; font-size: 1.05rem; margin: 4px 0; }
@@ -343,6 +347,45 @@ details summary { cursor: pointer; font-weight: 700; }
 .ayah .q-ar { text-align: right; } .ayah .q-tr { font-style: italic; font-weight: 600; margin: 4px 0; } .ayah .q-fr { color: var(--muted); }
 .ayah.hide:not(.peek) .q-ar, .ayah.hide:not(.peek) .q-tr { filter: blur(7px); user-select: none; cursor: pointer; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .q-ar.big, :root:not([data-theme="light"]) .basmala { color: #e2b04a; } }
+
+/* Chapelet et invocations */
+.tsb { display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: center; }
+.tsb-ring { position: relative; width: 120px; height: 120px; border-radius: 50%; border: 0; background: linear-gradient(160deg, #18214a, #2c3a78); cursor: pointer; display: grid; place-items: center; }
+.tsb-ring span { position: absolute; inset: 6px; border-radius: 50%; background: conic-gradient(#e9c46a calc(var(--p, 0) * 360deg), rgba(255,255,255,.12) 0); -webkit-mask: radial-gradient(circle, transparent 46px, #000 47px); mask: radial-gradient(circle, transparent 46px, #000 47px); }
+.tsb-ring b { font-size: 2.2rem; } .tsb-ring:active { transform: scale(.96); }
+.tsb-info { display: grid; gap: 2px; justify-items: start; } .tsb-info .q-ar { font-size: 1.5rem; line-height: 1.6; }
+.tsb-info strong { font-family: var(--font-display); font-size: 1.4rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.tsb-steps { display: flex; gap: 6px; margin: 4px 0 6px; } .tsb-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line); } .tsb-dot.on { background: #e9c46a; } .tsb-dot.done { background: #c9a227; }
+.dk { background: var(--surface); border-radius: 14px; padding: 10px 12px; margin-top: 8px; }
+.dk summary { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; cursor: pointer; }
+.dk[open] summary { margin-bottom: 6px; } .dk .dk-ar { text-align: right; font-size: 1.4rem; } .dk-fr { margin: 6px 0; line-height: 1.5; }
+.dk.tip summary::before { content: "💡 "; } .dk-note { background: color-mix(in srgb, #e9c46a 16%, var(--surface)); border-radius: 12px; padding: 8px 12px; }
+
+/* Sérénité : une seule police douce et lisible (Avenir Next sur iPhone, Nunito Sans ailleurs), ni trop fine ni grasse */
+#view-serenite { --font-zen: "Avenir Next", Avenir, "Nunito Sans", system-ui, sans-serif; font-family: var(--font-zen); font-weight: 400; }
+#view-serenite :is(h2, h3, .btn, summary, .pray-date, .pray-next, .pray-row .pn, .pray-row .pt, .pray-row .pn small, .tsb-info strong, .q-chip small, .q-tr, .ram-when) { font-family: var(--font-zen); font-style: normal; letter-spacing: 0; }
+#view-serenite h2 { font-weight: 600; } #view-serenite .btn, #view-serenite summary { font-weight: 500; }
+#view-serenite .pray-date { font-size: 1rem; font-weight: 500; }
+#view-serenite .pray-next { font-size: 1.3rem; font-weight: 500; }
+#view-serenite .pray-row .pn { font-size: 1.12rem; font-weight: 500; } #view-serenite .pray-row .pt { font-size: 1.2rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+#view-serenite .pray-row.sun .pn, #view-serenite .pray-row.sun .pt { font-size: 1rem; }
+#view-serenite .pray-row .pn small { font-size: .74rem; font-weight: 400; }
+#view-serenite .ayah .q-tr { font-style: italic; font-weight: 500; } #view-serenite .q-ar { font-weight: 400; }
+#view-serenite .card .btn.primary, #view-serenite .card .btn[aria-pressed="true"] { background: linear-gradient(120deg, #e9c46a, #f6dc8c); border-color: #d9b45a; color: #2a1f00; font-weight: 600; }
+
+/* Pictos libres : pas de cadre autour des lignes, juste un fin trait entre elles */
+#view-serenite .pray-row { background: none; border-radius: 0; margin-top: 0; padding: 12px 6px; border-top: 1px solid rgba(255,255,255,.12); grid-template-columns: 42px 1fr auto; }
+#view-serenite .pray-row:first-child { border-top: 0; }
+#view-serenite .pray-row.next { background: none; color: #f6dc8c; border-top-color: rgba(255,255,255,.12); }
+#view-serenite .pray-row.next + .pray-row { border-top-color: rgba(255,255,255,.12); }
+#view-serenite .pray-row.next .pe { color: #f6dc8c; } #view-serenite .pray-row.next .pn, #view-serenite .pray-row.next .pt { font-weight: 600; }
+#view-serenite .pray-row .pe { width: 36px; height: 36px; }
+
+#view-serenite #dk-tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 8px; padding-bottom: 4px; scrollbar-width: none; }
+#view-serenite #dk-tabs .btn { flex: 0 0 auto; white-space: nowrap; }
+.dk .dk-peek { display: block; font-weight: 400; font-size: .85rem; color: var(--muted); margin-top: 2px; }
+
+#view-serenite .badge { display: none; }
 </style>
 
 <div class="wrap">
@@ -751,6 +794,16 @@ details summary { cursor: pointer; font-weight: 700; }
       </div>
     </article>
     <article class="card" data-sec="pray">
+      <h2>📿 Douas et dhikr</h2>
+      <div class="tsb">
+        <button type="button" class="tsb-ring" id="tsb-btn" aria-label="Compter un dhikr"><span id="tsb-ring"></span><b>📿</b></button>
+        <div class="tsb-info"><div class="q-ar" id="tsb-ar"></div><div class="q-tr" id="tsb-tr"></div><strong id="tsb-n"></strong><div class="tsb-steps" id="tsb-steps"></div>
+          <button class="btn" type="button" id="tsb-reset">↺ Recommencer</button></div>
+      </div>
+      <div class="tabs" id="dk-tabs" style="margin-top:12px"></div>
+      <div id="dk-list"></div>
+    </article>
+    <article class="card" data-sec="pray">
       <div class="card-head"><h2>🌙 Ramadan</h2><label class="small muted">1er jour <input type="date" id="ram-start" aria-label="Premier jour du Ramadan"></label></div>
       <div id="ram-body"></div>
     </article>
@@ -898,7 +951,7 @@ function show(id) {
   store.set("view", id);
   if (id === "news" && !newsLoaded) loadNews(currentFeed);
   if (id === "trip" && !moveLoaded) { moveLoaded = true; setTimeout(() => { loadFuel(); loadDepartures(); }); }
-  if (id === "serenite") setTimeout(() => { renderRamadan(); prayLocate(); if (!gmlLoaded) { gmlLoaded = true; loadGmlNews(); } openQuran(); });
+  if (id === "serenite") setTimeout(() => { renderRamadan(); prayLocate(); if (!gmlLoaded) { gmlLoaded = true; loadGmlNews(); } openQuran(); openDhikr(); });
   window.scrollTo(0, 0);
 }
 document.addEventListener("click", e => {
@@ -2429,18 +2482,41 @@ function prayerTimes(date, pos = GML.pos) {
   const asrAlt = -Math.atan(1 / (1 + Math.tan(Math.abs(la - D)))) / rad;
   const at = (h, plus = 0) => new Date(d0 - 12 * 36e5 + Math.round((h * 60 + plus)) * 6e4);
   return [
-    ["fajr", "Fajr", "🌌", at(noon - hourAngle(GML.fajr))],
-    ["sun", "Chourouk", "🌅", at(noon - hourAngle(0.833))],
-    ["dhohr", "Dhohr", "☀️", at(noon, GML.dhohr)],
-    ["asr", "Asr", "🌤️", at(noon + hourAngle(asrAlt))],
-    ["maghreb", "Maghreb", "🌇", at(noon + hourAngle(0.833), GML.maghreb)],
-    ["icha", "Icha", "🌙", at(noon + hourAngle(GML.isha))],
+    ["fajr", "Fajr", "fajr", at(noon - hourAngle(GML.fajr))],
+    ["sun", "Chourouk", "rise", at(noon - hourAngle(0.833))],
+    ["dhohr", "Dhohr", "sun", at(noon, GML.dhohr)],
+    ["asr", "Asr", "asr", at(noon + hourAngle(asrAlt))],
+    ["maghreb", "Maghreb", "set", at(noon + hourAngle(0.833), GML.maghreb)],
+    ["icha", "Icha", "moon", at(noon + hourAngle(GML.isha))],
   ];
 }
+/* Petits pictos des prières, au trait fin doré */
+const PRAY_ICON = (() => {
+  const rays = (cx, cy, r1, r2, n, from = 0, to = 2 * Math.PI) => Array.from({ length: n }, (_, i) => { const a = from + (to - from) * (n === 1 ? .5 : i / (n - 1)); return `<line x1="${(cx + Math.cos(a) * r1).toFixed(1)}" y1="${(cy + Math.sin(a) * r1).toFixed(1)}" x2="${(cx + Math.cos(a) * r2).toFixed(1)}" y2="${(cy + Math.sin(a) * r2).toFixed(1)}"/>`; }).join("");
+  const hz = `<line x1="2" y1="22" x2="30" y2="22"/>`, half = r => `<path d="M${16 - r} 22a${r} ${r} 0 0 1 ${2 * r} 0"/>`;
+  const star = (x, y, r) => `<path fill="currentColor" stroke="none" d="M${x} ${y - r}Q${x} ${y} ${x + r} ${y}Q${x} ${y} ${x} ${y + r}Q${x} ${y} ${x - r} ${y}Q${x} ${y} ${x} ${y - r}Z"/>`;
+  return {
+    fajr: hz + star(16, 9, 3.2) + star(8, 14, 2) + star(24, 13, 2.2) + star(12, 5, 1.3) + star(21, 4.5, 1.2),
+    rise: hz + half(4) + rays(16, 22, 6.5, 10, 3, Math.PI * 1.25, Math.PI * 1.75),
+    sun: `<circle cx="16" cy="16" r="5.5"/>` + rays(16, 16, 9, 12.5, 8, 0, Math.PI * 1.75),
+    asr: `<circle cx="14" cy="15" r="5"/>` + rays(14, 15, 8, 10.5, 5, Math.PI * .9, Math.PI * 1.9) + `<path d="M18 25h9a3 3 0 0 0-1-5.8 4 4 0 0 0-7.6.8A2.6 2.6 0 0 0 18 25z"/>`,
+    set: hz + half(5.5) + `<line x1="11" y1="25.5" x2="21" y2="25.5"/><line x1="13.5" y1="28.5" x2="18.5" y2="28.5"/>`,
+    moon: `<path d="M19 6a10 10 0 1 0 7 15 8 8 0 1 1-7-15z"/>` + star(25, 9, 2.4),
+  };
+})();
 const hijri = d => { try { return new Intl.DateTimeFormat("fr-FR-u-ca-islamic-umalqura", { day: "numeric", month: "long", year: "numeric" }).format(d); } catch { return ""; } };
 const hijriParts = d => { try { const p = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn", { day: "numeric", month: "numeric", year: "numeric" }).formatToParts(d); const v = t => +p.find(x => x.type === t).value; return { d: v("day"), m: v("month"), y: parseInt(p.find(x => x.type === "year").value) }; } catch { return null; } };
 let prayPos = null, prayPlace = "Lyon";
+/* Repères : Chourouk = fin du temps de Fajr (pas de prière au lever du soleil) ; en Ramadan, début et rupture du jeûne */
+function praySub(k, list) {
+  const ram = hijriParts(new Date())?.m === 9, at = key => list.find(p => p[0] === key)?.[3];
+  if (k === "fajr") return ram ? `🍽️ Début du jeûne · imsak ${hm(new Date(+at("fajr") - 10 * 6e4))}` : `jusqu'à ${hm(at("sun"))}`;
+  if (k === "sun") return "lever du soleil · on ne prie pas";
+  if (k === "maghreb" && ram) return "🌙 Rupture du jeûne";
+  return "";
+}
 async function renderPrayers() {
+  const sub = praySub;
   const box = $("#pray-today"); if (!box) return;
   const now = new Date();
   let list = prayerTimes(now, prayPos || GML.pos);
@@ -2448,9 +2524,9 @@ async function renderPrayers() {
   if (!next) { const t = prayerTimes(new Date(+now + DAY), prayPos || GML.pos); next = t[0]; }
   const left = Math.max(0, Math.round((next[3] - now) / 6e4));
   $("#pray-date").textContent = `${now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} · ${hijri(now)}`;
-  $("#pray-next").textContent = `${next[2]} ${next[1]} à ${hm(next[3])} · dans ${left >= 60 ? Math.floor(left / 60) + " h " + pad(left % 60) : left + " min"}`;
+  $("#pray-next").textContent = `${next[1]} à ${hm(next[3])} · dans ${left >= 60 ? Math.floor(left / 60) + " h " + pad(left % 60) : left + " min"}`;
   box.replaceChildren(...list.map(([k, n, e, t]) => el("div", { class: "pray-row" + (k === next[0] && t > now ? " next" : "") + (k === "sun" ? " sun" : "") + (t < now && k !== next[0] ? " past" : "") },
-    el("span", { class: "pe", text: e }), el("span", { class: "pn", text: n }), el("span", { class: "pt", text: hm(t) }))));
+    (() => { const sp = el("span", { class: "pe" }); sp.innerHTML = `<svg viewBox="0 0 32 32" aria-hidden="true">${PRAY_ICON[e]}</svg>`; return sp; })(), el("span", { class: "pn" }, n, ...(sub(k, list) ? [el("small", { text: sub(k, list) })] : [])), el("span", { class: "pt", text: hm(t) }))));
   $("#pray-where").textContent = prayPos ? `📍 Calculés pour ${prayPlace}, avec la méthode de la Grande Mosquée de Lyon` : "🕌 Horaires de la Grande Mosquée de Lyon";
 }
 async function prayLocate() {
@@ -2599,6 +2675,54 @@ $("#q-repeat").textContent = `🔁 Chaque verset ×${qRepeat}`;
 $("#q-hide").addEventListener("click", () => { qHide = !qHide; $("#q-hide").setAttribute("aria-pressed", String(qHide)); $("#q-hide").textContent = qHide ? "👀 Montrer le texte" : "🙈 Me tester"; renderSurah(); });
 let quranLoaded = false;
 function openQuran() { if (quranLoaded) return; quranLoaded = true; renderQuranList(); renderSurah(); }
+/* Douas et dhikr (Hisn al-Muslim) + chapelet : la bonne rubrique s'ouvre selon le moment */
+let DHIKR = store.get("dhikrData", null), dkSec = null, dkAudio = new Audio();
+const TASBIH = [["سُبْحَانَ ٱللَّٰهِ", "Subhân Allâh", 33], ["ٱلْحَمْدُ لِلَّٰهِ", "Al-hamdu lillâh", 33], ["ٱللَّٰهُ أَكْبَرُ", "Allâhu akbar", 34]];
+let tsb = store.get("tasbih", { step: 0, n: 0, total: 0 });
+function renderTasbih() {
+  const [ar, tr, max] = TASBIH[tsb.step];
+  $("#tsb-ar").textContent = ar; $("#tsb-tr").textContent = tr;
+  $("#tsb-n").textContent = `${tsb.n} / ${max}`;
+  $("#tsb-steps").replaceChildren(...TASBIH.map((t, i) => el("span", { class: "tsb-dot" + (i < tsb.step ? " done" : i === tsb.step ? " on" : "") })));
+  $("#tsb-ring").style.setProperty("--p", tsb.n / max);
+}
+$("#tsb-btn").addEventListener("click", () => {
+  const max = TASBIH[tsb.step][2]; tsb.n++; tsb.total++;
+  if (tsb.n >= max) { navigator.vibrate?.([60, 40, 60]); tsb.n = 0; tsb.step = (tsb.step + 1) % 3; } else navigator.vibrate?.(12);
+  store.set("tasbih", tsb); renderTasbih();
+});
+$("#tsb-reset").addEventListener("click", () => { tsb = { step: 0, n: 0, total: 0 }; store.set("tasbih", tsb); renderTasbih(); });
+function dkMoment() {
+  const now = new Date(), t = prayerTimes(now, prayPos || GML.pos), h = hijriParts(now);
+  if (h && h.m === 9) return "ramadan";
+  const last = [...t].reverse().find(p => p[0] !== "sun" && p[3] <= now);
+  if (last && now - last[3] < 30 * 6e4) return "apres";
+  const next = t.find(p => p[0] !== "sun" && p[3] > now);
+  if (next && next[3] - now < 20 * 6e4) return "avant";
+  if (now >= t[0][3] && now < t[2][3]) return "matin";
+  if (now >= t[3][3] && now < t[4][3]) return "matin";
+  if (now >= t[5][3] || now < t[0][3]) return "witr";
+  return "vie";
+}
+async function openDhikr() {
+  if (!DHIKR) try { DHIKR = await getJSON("dhikr.json", 15000); store.set("dhikrData", DHIKR); } catch { $("#dk-list").replaceChildren(el("p", { class: "muted small", text: "😕 Les invocations ne s'ouvrent pas sans internet la première fois." })); return; }
+  if (!dkSec) dkSec = dkMoment();
+  renderTasbih(); renderDhikr();
+}
+function renderDhikr() {
+  $("#dk-tabs").replaceChildren(...DHIKR.sections.map(s => el("button", { class: "btn", type: "button", "aria-pressed": String(s.k === dkSec), text: s.t, onclick: () => { dkSec = s.k; renderDhikr(); } })));
+  const sec = DHIKR.sections.find(s => s.k === dkSec) || DHIKR.sections[0];
+  requestAnimationFrame(() => $("#dk-tabs [aria-pressed=true]")?.scrollIntoView({ block: "nearest", inline: "center" }));
+  $("#dk-list").replaceChildren(
+    ...(sec.note ? [el("p", { class: "dk-note small", text: "🕌 " + sec.note })] : []),
+    ...sec.items.map(it => el("details", { class: "dk" + (it.tip ? " tip" : "") },
+      el("summary", {}, el("span", {}, it.t, el("small", { class: "dk-peek", text: it.fr.replace(/^💡\s*/, "").split(/[.;:!?(]/)[0].slice(0, 60) + "…" })), it.rep > 1 ? el("span", { class: "pill", text: "×" + it.rep }) : null),
+      it.ar ? el("div", { class: "q-ar dk-ar", text: it.ar }) : null,
+      it.tr ? el("div", { class: "q-tr", text: it.tr }) : null,
+      el("div", { class: "dk-fr", text: it.fr }),
+      it.au ? el("button", { class: "btn", type: "button", text: "▶️ Écouter", onclick: e => { if (!dkAudio.paused && dkAudio.dataset.src === it.au) { dkAudio.pause(); e.target.textContent = "▶️ Écouter"; return; } dkAudio.src = it.au; dkAudio.dataset.src = it.au; dkAudio.play().catch(() => {}); e.target.textContent = "⏸️ Pause"; dkAudio.onended = () => { e.target.textContent = "▶️ Écouter"; }; } }) : null)),
+    el("p", { class: "small muted", text: "Source : " + DHIKR.source + "." }));
+}
 renderPrayers(); renderRamadan(); setInterval(renderPrayers, 60000);
 renderKeep(); renderMeals(); renderStores(); renderAisles(); renderShop(); renderLeclerc(); renderHabits(); renderMeter(); renderChores(); renderHouseHome();
 show(store.get("view", "home"));
