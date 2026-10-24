@@ -632,6 +632,10 @@ details summary { cursor: pointer; font-weight: 700; }
   <!-- ===== TRAJETS ===== -->
   <section class="view" id="view-move" hidden>
     <article class="card" data-sec="car">
+      <h2>🚦 Info trafic</h2>
+      <div class="alerts" id="trip-alerts"></div>
+    </article>
+    <article class="card" data-sec="car">
       <h2>🧭 Aller à…</h2>
       <p class="small muted">Bus, train, car, voiture + bus : je combine tout, partout dans le monde 🌍</p>
       <div class="go-row"><span class="go-ic">🟢</span><input type="text" id="tr-from" value="📍 Ma position" aria-label="Départ"><button class="btn" type="button" id="tr-here" title="Ma position">📍</button></div>
@@ -648,10 +652,6 @@ details summary { cursor: pointer; font-weight: 700; }
       <div class="card-head"><h2>🚉 Prochains trains</h2><button class="btn" type="button" id="dep-go">🔄</button></div>
       <p class="small muted" id="dep-msg">📍 Je cherche la gare la plus proche de toi…</p>
       <div id="dep-res"></div>
-    </article>
-    <article class="card" data-sec="car">
-      <h2>🚦 Info trafic</h2>
-      <div class="alerts" id="trip-alerts"></div>
     </article>
     <article class="card" data-sec="car">
       <h2>⛽ En voiture</h2>
