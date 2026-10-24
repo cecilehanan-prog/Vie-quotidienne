@@ -282,7 +282,7 @@ details summary { cursor: pointer; font-weight: 700; }
 @media (prefers-reduced-motion: no-preference) { .card { transition: border-color .2s; } }
 
 /* Sérénité : nuit bleue et or */
-[data-sec=pray] { --sec: #23305e; }
+[data-sec=pray] { --sec: #23305e; } [data-sec=rdv] { --sec: #c2508f; } [data-sec=bien] { --sec: #5f8a4a; } [data-sec=bienwarn] { --sec: #c27c0e; } [data-sec=ionic] { --sec: #3f88b5; }
 .pray-card { background: linear-gradient(160deg, #18214a, #2c3a78); color: #fff; border: 0; text-align: center; }
 .pray-date { margin: 0; color: #f3d98a; font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: 1.15rem; }
 .pray-next { margin: 6px 0 12px; font-family: "Cormorant Garamond", Georgia, serif; font-weight: 600; font-size: 1.5rem; letter-spacing: .02em; }
@@ -307,7 +307,7 @@ details summary { cursor: pointer; font-weight: 700; }
 :is(.tile, nav.tabbar button)[data-sec=news] { --sec: #3e63dd; } :is(.tile, nav.tabbar button)[data-sec=agenda] { --sec: #d9466f; } :is(.tile, nav.tabbar button)[data-sec=shop] { --sec: #2e9b57; }
 :is(.tile, nav.tabbar button)[data-sec=meals] { --sec: #e0663a; } :is(.tile, nav.tabbar button)[data-sec=culture] { --sec: #8e4ec6; } :is(.tile, nav.tabbar button)[data-sec=car] { --sec: #b8780b; }
 :is(.tile, nav.tabbar button)[data-sec=trip] { --sec: #0f93a3; } :is(.tile, nav.tabbar button)[data-sec=auto] { --sec: #56687a; } :is(.tile, nav.tabbar button)[data-sec=pray] { --sec: #23305e; }
-:is(.tile, nav.tabbar button)[data-sec=admin] { --sec: #6f7f22; }
+:is(.tile, nav.tabbar button)[data-sec=admin] { --sec: #8a5a3c; } :is(.tile, nav.tabbar button)[data-sec=rdv] { --sec: #c2508f; } :is(.tile, nav.tabbar button)[data-sec=bien] { --sec: #5f8a4a; }
 .tile { color: #fff; } nav.tabbar button[data-sec=wx] { --sec: #2b8ce6; } nav.tabbar button[aria-current="page"] svg { color: #fff; } .tile[data-sec=pray] svg { color: #f3d98a; }
 
 /* Petite scène au-dessus de la citation, selon le moment de la journée : trait fin doré, mouvement lent */
@@ -386,6 +386,28 @@ details summary { cursor: pointer; font-weight: 700; }
 .dk .dk-peek { display: block; font-weight: 400; font-size: .85rem; color: var(--muted); margin-top: 2px; }
 
 #view-serenite .badge { display: none; }
+
+/* Rendez-vous et Bien-être */
+.rdv-form { display: grid; gap: 8px; margin-top: 10px; } .rdv-form textarea { font: inherit; }
+.rdv-add > summary { list-style: none; margin-top: 10px; display: inline-flex; } .rdv-add > summary::-webkit-details-marker { display: none; }
+.pro { background: var(--surface-2); border-radius: 14px; padding: 12px; margin-top: 8px; }
+.pro-top { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; } .pro-top .emo { font-size: 1.6rem; }
+.pro-top b { display: block; } .pro .row { margin-top: 8px; }
+.pro-when { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; } .pro-when button { grid-column: 1 / -1; }
+.bien-rules { margin: 6px 0 0; padding-left: 0; list-style: none; display: grid; gap: 6px; } .bien-rules li { display: grid; grid-template-columns: 1.6em 1fr; gap: 6px; }
+.oil { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start; background: var(--surface-2); border-radius: 14px; padding: 12px; margin-top: 8px; border: 2px solid transparent; }
+.oil.ok { border-color: color-mix(in srgb, #2e9b57 50%, transparent); } .oil.no { opacity: .5; }
+.oil .drop { font-size: 1.5rem; } .oil b { display: block; } .oil .row { flex-wrap: nowrap; gap: 4px; }
+.oil .warn, .bobo .warn { font-size: .8rem; color: color-mix(in srgb, #c27c0e 75%, var(--fg)); margin-top: 4px; }
+.bien-chips { display: flex; gap: 8px; overflow-x: auto; padding: 6px 2px; scrollbar-width: none; } .bien-chips .btn { flex: 0 0 auto; white-space: nowrap; }
+.bobo { background: var(--surface-2); border-radius: 14px; padding: 12px; margin-top: 8px; }
+.bobo h3 { margin-bottom: 6px; } .bobo ol { margin: 6px 0; padding-left: 1.3em; } .bobo li { margin: 3px 0; }
+.bobo .who { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.ion-chart { display: grid; gap: 6px; margin: 8px 0; } .ion-c { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.ion-c i { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); }
+.truth { background: color-mix(in srgb, #3f88b5 14%, var(--surface)); border-radius: 12px; padding: 10px 12px; margin-top: 8px; }
+#view-bien .warn { background: none; border: 0; padding: 0; border-radius: 0; font-size: .82rem; color: #b06a00; margin-top: 6px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #view-bien .warn { color: #f0b860; } }
 </style>
 
 <div class="wrap">
@@ -607,10 +629,9 @@ details summary { cursor: pointer; font-weight: 700; }
   </section>
 
 
-  <!-- ===== VOYAGE ===== -->
-  <section class="view" id="view-trip" hidden>
-    <div class="label" style="margin:2px 4px 6px">🚗 Maintenant, autour de moi</div>
-    <article class="card" data-sec="trip">
+  <!-- ===== TRAJETS ===== -->
+  <section class="view" id="view-move" hidden>
+    <article class="card" data-sec="car">
       <h2>🧭 Aller à…</h2>
       <p class="small muted">Bus, train, car, voiture + bus : je combine tout, partout dans le monde 🌍</p>
       <div class="go-row"><span class="go-ic">🟢</span><input type="text" id="tr-from" value="📍 Ma position" aria-label="Départ"><button class="btn" type="button" id="tr-here" title="Ma position">📍</button></div>
@@ -623,7 +644,7 @@ details summary { cursor: pointer; font-weight: 700; }
       <div class="label" style="margin-top:12px">🚌 Cars longue distance</div>
       <div class="grid2" id="tr-coach"></div>
     </article>
-    <article class="card" data-sec="trip">
+    <article class="card" data-sec="car">
       <div class="card-head"><h2>🚉 Prochains trains</h2><button class="btn" type="button" id="dep-go">🔄</button></div>
       <p class="small muted" id="dep-msg">📍 Je cherche la gare la plus proche de toi…</p>
       <div id="dep-res"></div>
@@ -656,7 +677,10 @@ details summary { cursor: pointer; font-weight: 700; }
       <div class="label">🚦 En direct</div>
       <div class="grid2" id="around-live"></div>
     </article>
-    <div class="label" style="margin:18px 4px 6px">✈️ Mes voyages</div>
+  </section>
+
+  <!-- ===== VOYAGE ===== -->
+  <section class="view" id="view-trip" hidden>
     <article class="card" data-sec="trip">
       <h2>✈️ Préparer un voyage</h2>
       <div class="label">1️⃣ Je réserve où dormir</div>
@@ -761,6 +785,70 @@ details summary { cursor: pointer; font-weight: 700; }
         <textarea id="myrec-steps" rows="3" placeholder="Étapes (facultatif), une par ligne" aria-label="Étapes"></textarea>
         <button class="btn primary" type="submit">❤️ Ranger dans mes préférées</button>
       </form>
+    </article>
+  </section>
+
+  <section class="view" id="view-rdv" hidden>
+    <button class="btn" type="button" data-goto="home" style="margin-bottom:10px">⬅️ Accueil</button>
+    <article class="card" data-sec="rdv">
+      <h2>⏰ Mes prochains rendez-vous</h2>
+      <div class="list" id="rdv-next"></div>
+    </article>
+    <article class="card" data-sec="rdv">
+      <h2>💇 Mes adresses</h2>
+      <p class="small muted">Un geste pour réserver ou appeler, puis je note le rendez-vous dans ton agenda.</p>
+      <div id="rdv-pros"></div>
+      <details class="rdv-add"><summary class="btn">➕ Ajouter une adresse</summary>
+        <form id="rdv-form" class="rdv-form">
+          <select id="rdv-kind" aria-label="Type"></select>
+          <input id="rdv-name" required placeholder="Nom (ex. Salon Léa)" aria-label="Nom">
+          <input id="rdv-phone" type="tel" placeholder="Téléphone" aria-label="Téléphone">
+          <input id="rdv-url" type="url" placeholder="Lien de réservation (Planity, Doctolib…)" aria-label="Lien de réservation">
+          <input id="rdv-city" placeholder="Ville" aria-label="Ville" value="Tarare">
+          <button class="btn primary" type="submit">💾 Garder cette adresse</button>
+        </form>
+      </details>
+    </article>
+    <article class="card" data-sec="rdv">
+      <h2>🔎 Trouver près de moi</h2>
+      <p class="small muted">Je cherche autour de toi, où que tu sois.</p>
+      <div class="grid2" id="rdv-find"></div>
+    </article>
+  </section>
+
+  <section class="view" id="view-bien" hidden>
+    <button class="btn" type="button" data-goto="home" style="margin-bottom:10px">⬅️ Accueil</button>
+    <article class="card" data-sec="bienwarn">
+      <h2>🛟 Les règles d'or</h2>
+      <ul class="bien-rules" id="bien-rules"></ul>
+    </article>
+    <article class="card" data-sec="bien">
+      <div class="card-head"><h2>🧰 Mon kit d'huiles essentielles</h2><span class="pill" id="kit-count"></span></div>
+      <p class="small muted">Ma proposition de petite trousse. Dis-moi ce que tu gardes : touche ✅ ou ❌ sur chaque flacon.</p>
+      <div id="kit-list"></div>
+    </article>
+    <article class="card" data-sec="bien">
+      <h2>🩹 Petits bobos : mes mélanges</h2>
+      <div class="bien-chips" id="bobo-chips"></div>
+      <div id="bobo-list"></div>
+    </article>
+    <article class="card" data-sec="bien">
+      <h2>🌿 Argile, nigelle, miel</h2>
+      <div id="nature-list"></div>
+    </article>
+    <article class="card" data-sec="ionic">
+      <h2>🦶 Mon bain de pieds ionique</h2>
+      <div id="ionic"></div>
+    </article>
+    <article class="card" data-sec="bien">
+      <h2>📝 Mes recettes à moi</h2>
+      <div id="bien-mine"></div>
+      <form id="bien-form" class="rdv-form">
+        <input id="bien-t" required placeholder="Pour quoi ? (ex. Gorge qui gratte)" aria-label="Pour quoi">
+        <textarea id="bien-x" rows="3" placeholder="Ma recette" aria-label="Recette"></textarea>
+        <button class="btn primary" type="submit">💾 Garder</button>
+      </form>
+      <p class="small muted" style="margin-top:12px">Sources recoupées : fiches conseils Aroma-Zone, Compagnie des Sens, Vidal, Allodocteurs. Ces conseils ne remplacent pas un médecin ou un pharmacien.</p>
     </article>
   </section>
 
@@ -928,13 +1016,13 @@ const ICONS = {
   home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   news: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/>',
   agenda: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
-  move: '<path d="M5 17h14l-1.5-6.5A2 2 0 0 0 15.6 9H8.4a2 2 0 0 0-1.9 1.5z"/><circle cx="8" cy="17" r="2"/><circle cx="16" cy="17" r="2"/>',
+  move: '<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16"/>',
   trip: '<path d="M2 16l20-6-2-3-7 2-5-5-2 1 3 5-5 2-2-2-1 1z"/>',
   admin: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
   home2: '<path d="M4 7h2l2.2 9.2a1 1 0 0 0 1 .8h7.6a1 1 0 0 0 1-.8L19.5 10H7"/><circle cx="10" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/>',
 };
-const VIEWS = [["home", "Accueil"], ["news", "Infos"], ["agenda", "Agenda"], ["culture", "Culture"], ["home2", "Shopping"], ["trip", "Voyage"], ["admin", "Papiers"]];
-const VIEW_SEC = { home: "wx", news: "news", agenda: "agenda", culture: "culture", home2: "shop", trip: "trip", admin: "admin" };
+const VIEWS = [["home", "Accueil"], ["news", "Infos"], ["agenda", "Agenda"], ["culture", "Culture"], ["home2", "Shopping"], ["move", "Trajets"], ["trip", "Voyage"], ["admin", "Papiers"]];
+const VIEW_SEC = { home: "wx", news: "news", agenda: "agenda", culture: "culture", home2: "shop", move: "car", trip: "trip", admin: "admin" };
 const svg = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
 for (const [id, label] of VIEWS) {
   const b = el("button", { type: "button", "data-view": id, "data-sec": VIEW_SEC[id] });
@@ -944,13 +1032,14 @@ for (const [id, label] of VIEWS) {
 }
 let moveLoaded = false, gmlLoaded = false;
 function show(id) {
-  if (id === "move") id = "trip";
   if (!$("#view-" + id)) id = "home";
   for (const sec of document.querySelectorAll("section.view")) sec.hidden = sec.id !== "view-" + id;
   for (const b of $("#tabbar").children) b.setAttribute("aria-current", b.dataset.view === id ? "page" : "false");
   store.set("view", id);
   if (id === "news" && !newsLoaded) loadNews(currentFeed);
-  if (id === "trip" && !moveLoaded) { moveLoaded = true; setTimeout(() => { loadFuel(); loadDepartures(); }); }
+  if (id === "move" && !moveLoaded) { moveLoaded = true; setTimeout(() => { loadFuel(); loadDepartures(); }); }
+  if (id === "rdv") renderRdv();
+  if (id === "bien") renderBien();
   if (id === "serenite") setTimeout(() => { renderRamadan(); prayLocate(); if (!gmlLoaded) { gmlLoaded = true; loadGmlNews(); } openQuran(); openDhikr(); });
   window.scrollTo(0, 0);
 }
@@ -984,6 +1073,10 @@ const SEC_ICON = {
   links: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   keep: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/>',
   papers: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  bienwarn: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+  ionic: '<path d="M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z"/>',
+  rdv: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M5 3L2 6M19 3l3 3"/>',
+  bien: '<path d="M5 20c0-9 5.5-15 15-15 0 9.5-6 15-15 15z"/><path d="M5 20c3-5 6.5-8 10.5-10"/>',
 };
 for (const card of document.querySelectorAll(".card[data-sec]")) {
   const h = card.querySelector("h2"); if (!h) continue;
@@ -2148,11 +2241,14 @@ $("#chore-form").addEventListener("submit", e => { e.preventDefault(); chores.pu
 
 const TILES = [
   ["news", "news", "Infos", null], ["agenda", "agenda", "Agenda", () => events.filter(e => !e.sample && daysUntil(e.date) >= 0 && daysUntil(e.date) <= 7).length],
+  ["rdv", "rdv", "Rendez-vous", () => events.filter(e => e.rdv && daysUntil(e.date) >= 0).length],
   ["culture", "culture", "Culture", () => outings.filter(o => !o.done).length],
   ["home2", "shop", "Shopping", () => shop.filter(i => !i.done).length],
   ["recettes", "meals", "Recettes", () => mealPick.length],
+  ["move", "car", "Trajets", null],
   ["trip", "trip", "Voyage", null],
   ["auto", "auto", "Auto · Moto", () => autoDue().length],
+  ["bien", "bien", "Bien-être", null],
   ["admin", "admin", "Papiers", () => admin.filter(x => !x.done && x.date && daysUntil(x.date) <= 30).length],
   ["serenite", "pray", "Sérénité", null],
 ];
@@ -2723,6 +2819,98 @@ function renderDhikr() {
       it.au ? el("button", { class: "btn", type: "button", text: "▶️ Écouter", onclick: e => { if (!dkAudio.paused && dkAudio.dataset.src === it.au) { dkAudio.pause(); e.target.textContent = "▶️ Écouter"; return; } dkAudio.src = it.au; dkAudio.dataset.src = it.au; dkAudio.play().catch(() => {}); e.target.textContent = "⏸️ Pause"; dkAudio.onended = () => { e.target.textContent = "▶️ Écouter"; }; } }) : null)),
     el("p", { class: "small muted", text: "Source : " + DHIKR.source + "." }));
 }
+
+/* ----- Rendez-vous : mes adresses (coiffeur, ostéo…), réserver ou appeler d'un geste, puis noter dans l'agenda ----- */
+const RDV_KINDS = [["coiffeur", "✂️", "Coiffeur", "maps"], ["osteo", "🦴", "Ostéopathe", "osteopathe"], ["medecin", "🩺", "Médecin", "medecin-generaliste"], ["dentiste", "🦷", "Dentiste", "dentiste"],
+  ["kine", "💆", "Kiné", "masseur-kinesitherapeute"], ["ophtalmo", "👁️", "Ophtalmo", "ophtalmologue"], ["esthe", "💅", "Esthéticienne", "maps"], ["veto", "🐾", "Vétérinaire", "maps"], ["garage", "🔧", "Garage", "maps"], ["autre", "✨", "Autre", "maps"]];
+const rdvKind = k => RDV_KINDS.find(x => x[0] === k) || RDV_KINDS.at(-1);
+let pros = store.get("pros", []);
+const gcalLink = e => { const d = evDate(e), f = x => x.toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z"; return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${f(d)}/${f(new Date(+d + 3600e3))}&location=${encodeURIComponent(e.place || "")}`; };
+let rdvOpen = null;
+function renderRdv() {
+  const next = events.filter(e => e.rdv && evDate(e) >= startOfDay(new Date())).sort((a, b) => evDate(a) - evDate(b));
+  $("#rdv-next").replaceChildren(...(next.length ? next.map(e => { const it = evItem(e, false); it.append(el("a", { class: "btn", href: gcalLink(e), target: "_blank", rel: "noopener", text: "📆 Google", title: "Ajouter à Google Agenda", style: "grid-column:1/-1;justify-self:start" })); return it; }) : [el("p", { class: "muted", text: "🌿 Aucun rendez-vous noté." })]));
+  $("#rdv-pros").replaceChildren(...(pros.length ? pros.map(p => {
+    const [, e, label] = rdvKind(p.kind), box = el("div", { class: "pro" },
+      el("div", { class: "pro-top" }, el("span", { class: "emo", text: e }), el("div", {}, el("b", { text: p.name }), el("span", { class: "small muted", text: [label, p.city].filter(Boolean).join(" · ") })),
+        el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer " + p.name, text: "✕", onclick: () => { if (confirm(`Retirer ${p.name} ?`)) { pros = pros.filter(x => x.id !== p.id); store.set("pros", pros); renderRdv(); } } })),
+      el("div", { class: "row" },
+        p.url ? el("a", { class: "btn primary", href: p.url, target: "_blank", rel: "noopener", text: "📅 Réserver" }) : null,
+        p.phone ? el("a", { class: "btn" + (p.url ? "" : " primary"), href: "tel:" + p.phone.replace(/[^\d+]/g, ""), text: "📞 Appeler" }) : null,
+        el("button", { class: "btn", type: "button", text: "📝 Noter le RDV", onclick: () => { rdvOpen = rdvOpen === p.id ? null : p.id; renderRdv(); } })));
+    if (rdvOpen === p.id) {
+      const d = el("input", { type: "date", required: true, value: new Date(Date.now() + DAY).toLocaleDateString("sv-SE"), "aria-label": "Jour" }), t = el("input", { type: "time", value: "10:00", "aria-label": "Heure" });
+      box.append(el("form", { class: "pro-when", onsubmit: ev => { ev.preventDefault(); events = events.filter(x => !x.sample); const ne = { id: uid(), title: `${label} · ${p.name}`, date: d.value, time: t.value, place: p.city || "", remind: 1440, rdv: true }; events.push(ne); saveEvents(); rdvOpen = null; renderRdv(); renderTiles(); } },
+        d, t, el("button", { class: "btn primary", type: "submit", text: "✅ C'est noté (rappel la veille)" })));
+    }
+    return box;
+  }) : [el("p", { class: "muted", text: "Ajoute ton coiffeur, ton ostéo… une seule fois, ensuite tout se fait d'un geste." })]));
+}
+$("#rdv-kind").replaceChildren(...RDV_KINDS.map(([k, e, l]) => el("option", { value: k, text: `${e} ${l}` })));
+$("#rdv-form").addEventListener("submit", e => { e.preventDefault(); pros.push({ id: uid(), kind: $("#rdv-kind").value, name: $("#rdv-name").value.trim(), phone: $("#rdv-phone").value.trim(), url: $("#rdv-url").value.trim(), city: $("#rdv-city").value.trim() }); store.set("pros", pros); e.target.reset(); $("#rdv-city").value = "Tarare"; e.target.closest("details").open = false; renderRdv(); });
+$("#rdv-find").replaceChildren(...RDV_KINDS.slice(0, -1).map(([k, e, l, doc]) => el("button", { class: "linkbox", type: "button", onclick: async () => {
+  const pos = await hereOnce() || TARARE;
+  if (doc !== "maps") { let city = "tarare"; try { city = (await (await fetch(`https://photon.komoot.io/reverse?lat=${pos[0]}&lon=${pos[1]}&lang=fr`)).json()).features?.[0]?.properties?.city || city; } catch {}
+    open(`https://www.doctolib.fr/${doc}/${city.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, "_blank"); }
+  else open(`https://www.google.com/maps/search/${encodeURIComponent(l.toLowerCase())}/@${pos[0]},${pos[1]},14z`, "_blank");
+} }, el("strong", { text: `${e} ${l}` }))));
+
+/* ----- Bien-être : huiles essentielles, remèdes naturels, bain de pieds ionique (infos recoupées, prudence d'abord) ----- */
+const BIEN_RULES = [["💧", "Toujours diluer dans une huile végétale (sauf mention « pure, 1 goutte »)."], ["🧪", "Nouvelle huile ? Test 24 h : 1 goutte diluée au pli du coude."],
+  ["🤰", "Enceinte ou allaitante : aucune huile essentielle sans avis médical."], ["🧒", "Enfants de moins de 6 ans : pas d'huile essentielle sans avis du pharmacien."],
+  ["⚡", "Épilepsie, asthme, anticoagulants : demander avis avant."], ["👁️", "Jamais près des yeux ni dans les oreilles ; se laver les mains après."],
+  ["🚫", "Pas par la bouche sans avis d'un professionnel."], ["🩺", "Si ça ne passe pas en 2 ou 3 jours, ou si c'est fort : médecin."]];
+const KIT = [
+  ["lavande", "💜", "Lavande vraie", "La plus douce : stress, sommeil, petites brûlures, peau irritée.", "Dès 6 ans diluée. Pas enceinte (3 premiers mois)."],
+  ["aspic", "🦟", "Lavande aspic", "Piqûres d'insectes et petites brûlures, à garder dans le sac l'été.", "Pas enceinte/allaitante, pas avant 6 ans, pas si épilepsie."],
+  ["teatree", "🌱", "Tea tree", "Boutons, petites plaies, mycoses : l'antiseptique de la trousse.", "Pas avant 6 ans, pas enceinte. Déconseillé si reins fragiles."],
+  ["ravintsara", "🍃", "Ravintsara", "Rhume, fatigue de l'hiver, petits virus.", "Pas avant 6 ans, pas enceinte (3 premiers mois), pas si asthme."],
+  ["eucalyptus", "🌬️", "Eucalyptus radié", "Nez bouché, toux grasse, en massage ou inhalation.", "Pas avant 6 ans, pas si asthme ou épilepsie."],
+  ["menthe", "❄️", "Menthe poivrée", "Mal de tête, nausée, coup de fatigue.", "Pas enceinte/allaitante, pas avant 6 ans, pas si épilepsie. Jamais sur une grande surface (effet froid)."],
+  ["helichryse", "🌼", "Hélichryse italienne", "La reine des bleus et des bosses.", "Pas si anticoagulants ou troubles de la coagulation. Pas enceinte."],
+  ["gaultherie", "💪", "Gaulthérie couchée", "Courbatures, douleurs de dos et d'articulations.", "Pas si allergie à l'aspirine ou anticoagulants. Pas enceinte, pas avant 7 ans."],
+  ["camomille", "🌸", "Camomille romaine", "Stress, nervosité, sommeil ; la plus douce pour les enfants.", "Avis du pharmacien avant 3 ans et pendant la grossesse."],
+  ["arnica", "🫙", "Huile végétale d'arnica", "La base pour diluer : bleus, courbatures.", "Jamais sur une plaie ouverte (prendre alors du calophylle)."],
+];
+const BOBOS = [
+  ["bleu", "🟣", "Bleu, bosse", ["1 goutte d'hélichryse + 4 gouttes d'huile d'arnica.", "Masser doucement sur le bleu, le plus tôt possible.", "3 à 5 fois par jour jusqu'à ce qu'il pâlisse."], "Dès 6 ans · pas si anticoagulants · pas sur plaie ouverte"],
+  ["piqure", "🦟", "Piqûre d'insecte", ["1 goutte de lavande aspic sur la piqûre (un peu d'huile végétale sur peau sensible).", "Renouveler 3 ou 4 fois dans l'heure, puis 3 fois par jour."], "Adulte · gonflement du visage ou gêne pour respirer : 15 tout de suite"],
+  ["brulure", "🔥", "Petite brûlure", ["D'abord 10 à 15 min sous l'eau tiède à froide.", "Puis 1 à 2 gouttes de lavande vraie (ou aspic) sur la brûlure.", "Ensuite une fine couche de miel, 3 fois par jour."], "Seulement les petites brûlures superficielles · cloque large ou visage : médecin"],
+  ["tete", "🤕", "Mal de tête", ["1 goutte de menthe poivrée sur chaque tempe, loin des yeux.", "Masser aussi un peu la nuque ; se laver les mains.", "Si rien après 10 minutes, ne pas en remettre."], "Version douce : 2 gouttes de camomille romaine + 2 de lavande vraie dans 1 c. à café d'huile de jojoba"],
+  ["stress", "😮‍💨", "Stress, sommeil", ["2 gouttes de lavande vraie + 2 gouttes de camomille romaine dans 1 c. à café d'huile végétale.", "Masser l'intérieur des poignets et le plexus, respirer lentement.", "Ou 10 minutes de lavande vraie au diffuseur avant le coucher."], "Pour toute la famille dès 6 ans · diffusion pièce aérée, jamais en continu"],
+  ["rhume", "🤧", "Rhume, nez bouché", ["3 gouttes de ravintsara + 3 gouttes d'eucalyptus radié dans 1 c. à café d'huile végétale.", "Masser le haut du torse et le dos, 3 fois par jour, 5 jours au plus.", "Ou 2 gouttes d'eucalyptus radié dans un bol d'eau chaude, inhaler 5 min."], "Dès 6 ans · pas d'inhalation si asthme"],
+  ["bouton", "🔴", "Bouton", ["1 goutte de tea tree sur un coton-tige, directement sur le bouton.", "Matin et soir, 3 à 5 jours."], "Adulte · seulement sur le bouton, pas sur tout le visage"],
+  ["courbature", "💪", "Courbatures, dos", ["3 gouttes de gaulthérie + 10 gouttes d'huile d'arnica.", "Masser la zone douloureuse, 3 fois par jour."], "Pas si allergie à l'aspirine ou anticoagulants"],
+];
+const NATURE = [
+  ["🟢", "Argile verte", ["Cataplasme : mélanger l'argile et de l'eau avec une cuillère en bois (pas de métal) jusqu'à une pâte épaisse.", "Étaler 1 cm sur une compresse, poser 1 à 2 h sur un bleu, une articulation douloureuse ou une piqûre ; retirer avant qu'elle sèche.", "Masque visage : 10 minutes, puis rincer."], "Par la bouche seulement avec avis : elle peut gêner l'effet des médicaments (2 h d'écart)."],
+  ["⚫", "Nigelle (habba sawda)", ["Huile de nigelle sur la peau sèche, les mains abîmées, le cuir chevelu : quelques gouttes en massage.", "Graines : en cuisine, sur le pain, les salades, les légumes.", "Avec le miel : 1 c. à café de miel + quelques graines écrasées, une tradition de l'hiver."], "« La nigelle est un remède à tout mal, sauf la mort » (Bukhârî). En cure par la bouche : avis si enceinte, diabète ou anticoagulants."],
+  ["🍯", "Miel", ["Gorge qui gratte : 1 c. à café de miel dans de l'eau tiède citronnée.", "Toux du soir : 1 c. à café de miel avant de dormir (dès 1 an).", "Petite plaie ou brûlure : une fine couche de miel (de thym ou manuka) sous un pansement."], "« Il sort de leur ventre une liqueur aux couleurs variées, dans laquelle il y a une guérison pour les gens » (Coran 16:69). Jamais de miel avant 1 an."],
+];
+const ION = [["#f3e27a", "Jaune, vert", "vessie, reins, voies urinaires"], ["#e98a2c", "Orange", "articulations"], ["#7a4a24", "Brun", "foie, tabac, cellules"], ["#2b2b2b", "Noir", "foie"], ["#f4f4f4", "Flocons blancs", "lymphe"], ["#b33a2e", "Points rouges", "caillots"], ["#e7eef3", "Mousse blanche", "mucus, ganglions"]];
+let kitOk = store.get("kitOk", {}), boboSel = null, bienMine = store.get("bienMine", []);
+function renderBien() {
+  $("#bien-rules").replaceChildren(...BIEN_RULES.map(([e, t]) => el("li", {}, el("span", { text: e }), el("span", { text: t }))));
+  const kept = KIT.filter(k => kitOk[k[0]] === true).length, decided = KIT.filter(k => k[0] in kitOk).length;
+  $("#kit-count").textContent = decided === KIT.length ? `✅ ${kept} gardés` : `${decided}/${KIT.length} vus`;
+  $("#kit-list").replaceChildren(...KIT.map(([k, e, n, use, warn]) => el("div", { class: "oil" + (kitOk[k] === true ? " ok" : kitOk[k] === false ? " no" : "") },
+    el("span", { class: "drop", text: e }), el("div", {}, el("b", { text: n }), el("span", { class: "small", text: use }), el("div", { class: "warn", text: "⚠️ " + warn })),
+    el("div", { class: "row" }, ...[[true, "✅", "Je garde"], [false, "❌", "Pas pour moi"]].map(([v, ic, lab]) => el("button", { class: "icon-btn", type: "button", "aria-pressed": String(kitOk[k] === v), "aria-label": `${lab} : ${n}`, text: ic, style: kitOk[k] === v ? "" : "opacity:.45",
+      onclick: () => { if (kitOk[k] === v) delete kitOk[k]; else kitOk[k] = v; store.set("kitOk", kitOk); renderBien(); } }))))));
+  $("#bobo-chips").replaceChildren(...BOBOS.map(([k, e, t]) => el("button", { class: "btn", type: "button", "aria-pressed": String(boboSel === k), text: `${e} ${t}`, onclick: () => { boboSel = boboSel === k ? null : k; renderBien(); } })));
+  $("#bobo-list").replaceChildren(...BOBOS.filter(b => !boboSel || b[0] === boboSel).map(([, e, t, steps, who]) => el("div", { class: "bobo" },
+    el("h3", { text: `${e} ${t}` }), el("ol", {}, ...steps.map(x => el("li", { text: x }))), el("div", { class: "warn", text: "⚠️ " + who }))));
+  $("#nature-list").replaceChildren(...NATURE.map(([e, t, steps, note]) => el("details", { class: "dk" }, el("summary", {}, el("span", { text: `${e} ${t}` })), el("ul", { style: "margin:4px 0;padding-left:1.2em" }, ...steps.map(x => el("li", { text: x }))), el("p", { class: "small muted", text: note }))));
+  $("#ionic").replaceChildren(
+    el("div", { class: "label", text: "🛁 Comment faire" }),
+    el("ol", { style: "margin:4px 0;padding-left:1.3em" }, ...["Bassine d'eau tiède, assez pour couvrir les chevilles.", "Une petite pincée de gros sel, comme dit la notice (trop de sel = eau très foncée tout de suite).", "Brancher l'électrode, poser les pieds, 20 à 30 minutes.", "Bien rincer et sécher l'électrode ; boire un grand verre d'eau.", "Une fois par semaine suffit."].map(x => el("li", { text: x }))),
+    el("div", { class: "label", style: "margin-top:10px", text: "🎨 Ce que dit la notice" }),
+    el("div", { class: "ion-chart" }, ...ION.map(([c, n, m]) => el("div", { class: "ion-c" }, el("i", { style: `background:${c}` }), el("span", {}, el("b", { text: n }), " : " + m)))),
+    el("div", { class: "truth" }, el("b", { text: "💡 Pour être honnête : " }), "la couleur vient surtout de l'électrode qui rouille, du sel et de l'eau. L'eau change même sans pieds dedans. Les médecins rappellent que le foie et les reins font seuls la détox. Profite-en comme d'un vrai moment de détente pour les pieds 🌿"),
+    el("p", { class: "warn small", style: "margin-top:8px", text: "⚠️ Pas avec un pacemaker ou un implant électronique, enceinte, si épilepsie, ni sur une plaie ou une peau abîmée. Diabète avec pieds sensibles : demander au médecin." }));
+  $("#bien-mine").replaceChildren(...bienMine.map(r => el("details", { class: "dk" }, el("summary", {}, el("span", { text: "📝 " + r.t }), el("button", { class: "icon-btn", type: "button", text: "✕", "aria-label": "Supprimer " + r.t, onclick: ev => { ev.preventDefault(); bienMine = bienMine.filter(x => x.id !== r.id); store.set("bienMine", bienMine); renderBien(); } })), el("p", { style: "white-space:pre-wrap;margin:4px 0", text: r.x }))));
+}
+$("#bien-form").addEventListener("submit", e => { e.preventDefault(); bienMine.push({ id: uid(), t: $("#bien-t").value.trim(), x: $("#bien-x").value.trim() }); store.set("bienMine", bienMine); e.target.reset(); renderBien(); });
 renderPrayers(); renderRamadan(); setInterval(renderPrayers, 60000);
 renderKeep(); renderMeals(); renderStores(); renderAisles(); renderShop(); renderLeclerc(); renderHabits(); renderMeter(); renderChores(); renderHouseHome();
 show(store.get("view", "home"));
