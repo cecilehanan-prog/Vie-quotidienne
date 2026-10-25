@@ -1292,7 +1292,9 @@ const lb = (href, e, title) => el("a", { class: "linkbox", href, target: "_blank
 /* ---------- météo (Open-Meteo, gratuit, sans clé) ---------- */
 /* Mes villes : Géoloc' en premier, puis les villes enregistrées (comme l'appli La Chaîne Météo), gardées sur ce téléphone */
 let wxFavs = store.get("wxFavs", [{ k: "tarare", name: "Tarare", lat: 45.8961, lon: 4.4331 }, { k: "lyon", name: "Lyon", lat: 45.7640, lon: 4.8357 }]);
-const placeList = () => [{ k: "ici", name: "Géoloc'", here: true }, ...wxFavs];
+// Ordre voulu par CéHa : Tarare, Lyon, Géoloc', puis ses autres villes
+const placeList = () => { const top = [/^tarare/i, /^lyon/i].map(r => wxFavs.find(f => r.test(f.name))).filter(Boolean);
+  return [...top, { k: "ici", name: "Géoloc'", here: true }, ...wxFavs.filter(f => !top.includes(f))]; };
 const placeOf = k => placeList().find(p => p.k === k);
 const WMO = c =>
   c === 0 ? ["Ciel dégagé", "sun"] : c <= 2 ? ["Éclaircies", "partly"] : c === 3 ? ["Couvert", "cloud"] :
