@@ -1505,7 +1505,7 @@ function gardeChip(e) {
   const sat = gardeSat(e.date), sun = new Date(sat.getTime() + DAY), withMe = /c[ée]cile/i.test(e.cal);
   const days = `${sat.getDate()}${sat.getMonth() !== sun.getMonth() ? " " + sat.toLocaleDateString("fr-FR", { month: "short" }).replace(".", "") : ""}–${sun.getDate()} ${sun.toLocaleDateString("fr-FR", { month: "short" }).replace(".", "")}`;
   return el("div", { class: "garde" + (withMe ? " me" : ""), style: `--cal:${CAL_COLOR[e.cal] || "#888"}` },
-    el("span", { class: "g-ico", text: withMe ? "🏡" : "🚗" }),
+    el("span", { class: "g-ico", text: withMe ? "🏡" : "🏙️" }),
     el("span", { class: "g-txt" }, el("small", { text: "Week-end " + days }), el("b", { text: withMe ? "Charlie et Gabriel avec toi" : "Chez leur papa" })));
 }
 /* Vacances scolaires (CéHa, 26/10) : une pastille du début à la fin, au lieu d'un pavé par jour */
