@@ -458,6 +458,7 @@ nav.tabbar button[data-view=home] { --sec: #ffcc00; } nav.tabbar button[data-vie
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) [data-sec=books] { --sec: #e06a7c; --on-sec: #1a0006; } }
 :root[data-theme="dark"] [data-sec=books] { --sec: #e06a7c; --on-sec: #1a0006; }
 .card[data-sec=books] .badge { background: #9b1b30; color: #fff; }
+#fuel-kind { display: flex; flex-wrap: nowrap; overflow-x: auto; max-width: 100%; } #fuel-kind .btn { flex: none; padding: 6px 12px; }
 [data-sec=loved] { --sec: #f4a7c3; --on-sec: #5a1233; }
 .card[data-sec=loved] .badge { background: #f4a7c3; color: #5a1233; }
 </style>
@@ -695,10 +696,10 @@ nav.tabbar button[data-view=home] { --sec: #ffcc00; } nav.tabbar button[data-vie
     <article class="card" data-sec="drive">
       <h2>⛽ En voiture</h2>
       <div class="grid2">
-        <a class="linkbox" href="https://www.bison-fute.gouv.fr/" target="_blank" rel="noopener"><i class="emo">🚦</i><strong>Bison Futé</strong><span>Trafic national, prévisions</span></a>
-        <a class="linkbox" href="https://www.onlymoov.com/" target="_blank" rel="noopener"><i class="emo">🗺️</i><strong>Onlymoov</strong><span>Trafic en direct, Lyon</span></a>
-        <a class="linkbox" href="https://www.prix-carburants.gouv.fr/" target="_blank" rel="noopener"><i class="emo">⛽</i><strong>Prix des carburants</strong><span>Stations les moins chères</span></a>
+        <a class="linkbox" id="gmaps-link" href="https://www.google.com/maps" target="_blank" rel="noopener"><i class="emo">🗺️</i><strong>Google Maps</strong><span>Trafic et itinéraire</span></a>
+        <a class="linkbox" href="https://waze.com/ul" target="_blank" rel="noopener"><i class="emo">🚙</i><strong>Waze</strong><span>GPS en direct</span></a>
       </div>
+      <div class="seg" role="group" id="fuel-kind" aria-label="Carburant" style="margin-top:12px"></div>
       <div id="fuel-body" class="small"></div>
     </article>
     <article class="card" data-sec="metro">
@@ -711,6 +712,10 @@ nav.tabbar button[data-view=home] { --sec: #ffcc00; } nav.tabbar button[data-vie
       <div class="card-head"><h2>🚉 Prochains trains</h2><button class="btn" type="button" id="dep-go">🔄</button></div>
       <p class="small muted" id="dep-msg">📍 Je cherche la gare la plus proche de toi…</p>
       <div id="dep-res"></div>
+      <div class="grid2" style="margin-top:10px">
+        <a class="linkbox" href="https://www.ter.sncf.com/auvergne-rhone-alpes/se-deplacer/info-trafic" target="_blank" rel="noopener"><i class="emo">🚆</i><strong>TER Auvergne-Rhône-Alpes</strong><span>Info trafic des trains</span></a>
+        <a class="linkbox" href="https://www.sncf-connect.com/" target="_blank" rel="noopener"><i class="emo">🎟️</i><strong>SNCF Connect</strong><span>Billets</span></a>
+      </div>
     </article>
     <article class="card" data-sec="car">
       <h2>🧭 Aller à…</h2>
@@ -1549,37 +1554,57 @@ function renderPapers() { papers.sort(byDate); $("#papers-list").replaceChildren
 $("#pap-form").addEventListener("submit", e => { e.preventDefault(); papers.push({ id: uid(), title: $("#pap-title").value.trim(), date: $("#pap-date").value }); e.target.reset(); savePapers(); });
 
 /* ---------- voiture / GPS ---------- */
-/* Stations-essence autour de moi, partout dans le monde (OpenStreetMap) ; prix du jour en France en plus */
+/* Carburant le moins cher autour de moi : prix officiels du jour en France (data.economie.gouv.fr) ; ailleurs, stations proches (OpenStreetMap) */
+const FUELS = [["gazole", "Gazole"], ["e10", "E10"], ["sp95", "SP95"], ["sp98", "SP98"], ["e85", "E85"], ["gplc", "GPL"]];
+let fuelKind = store.get("fuelKind", "gazole"), fuelCache = null;
+function renderFuelKinds() {
+  $("#fuel-kind").replaceChildren(...FUELS.map(([k, t]) => el("button", { class: "btn", type: "button", "aria-pressed": String(k === fuelKind), text: t,
+    onclick: () => { fuelKind = k; store.set("fuelKind", k); renderFuelKinds(); fuelCache ? showFuel() : loadFuel(); } })));
+}
+renderFuelKinds();
+const fuelKm = d => d < 1 ? Math.round(d * 1000) + " m" : d.toFixed(1).replace(".", ",") + " km";
+const goLinks = pos => el("span", { class: "row", style: "gap:6px;flex:none" },
+  el("a", { class: "icon-btn", href: `https://waze.com/ul?ll=${pos[0]},${pos[1]}&navigate=yes`, target: "_blank", rel: "noopener", "aria-label": "Y aller avec Waze", text: "🚙" }),
+  el("a", { class: "icon-btn", href: `https://www.google.com/maps/dir/?api=1&destination=${pos[0]},${pos[1]}`, target: "_blank", rel: "noopener", "aria-label": "Y aller avec Google Maps", text: "🗺️" }));
+function showFuel() {
+  const { me, geo, rows } = fuelCache, box = $("#fuel-body");
+  const list = rows.filter(r => r[fuelKind]).sort((a, b) => a[fuelKind] - b[fuelKind] || a.km - b.km).slice(0, 6);
+  const label = FUELS.find(f => f[0] === fuelKind)[1];
+  if (!list.length) { box.replaceChildren(el("p", { class: "muted", text: `⛽ Pas de ${label} trouvé autour de toi.` })); return; }
+  box.replaceChildren(el("div", { class: "label", text: `⛽ ${label} le moins cher ${geo ? "près de toi" : "près de Tarare"}` }),
+    ...list.map((r, i) => el("div", { class: "row", style: `flex-wrap:nowrap;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding:9px 0${i ? "" : ";font-size:1.05em"}` },
+      el("span", { style: "min-width:0" }, el("strong", { text: (i ? "" : "🏆 ") + r.name }), el("div", { class: "muted", text: `📍 ${fuelKm(r.km)} · ${r.addr}` })),
+      el("span", { style: "display:flex;align-items:center;gap:8px" },
+        el("strong", { style: "font-variant-numeric:tabular-nums;font-size:1.1em;white-space:nowrap", text: r[fuelKind].toFixed(3).replace(".", ",") + " €" }), goLinks(r.pos)))));
+}
 async function loadFuel() {
   const box = $("#fuel-body");
+  box.replaceChildren(el("p", { class: "muted", text: "⏳ Je cherche les prix autour de toi…" }));
   const geo = await hereOnce(), me = geo || TARARE;
+  $("#gmaps-link").href = `https://www.google.com/maps/@${me[0].toFixed(5)},${me[1].toFixed(5)},13z/data=!5m1!1e1`;
+  try {
+    const w = encodeURIComponent(`within_distance(geom, geom'POINT(${me[1]} ${me[0]})', 12km)`);
+    const res = (await getJSON(`https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records?where=${w}&limit=100`, 12000)).results || [];
+    const rows = res.map(r => {
+      const g = r.geom || {}, pos = [g.lat ?? (r.latitude ? r.latitude / 1e5 : null), g.lon ?? (r.longitude ? r.longitude / 1e5 : null)];
+      const o = { pos, km: pos[0] != null ? distKm(me, pos) : 99, name: (r.ville || "Station").toLowerCase().replace(/(^|[\s-])(\S)/g, (m, x, c) => x + c.toUpperCase()).replace(/-(Sur|Sous|Les|La|Le|De|Du|Des|En)-/g, m => m.toLowerCase()), addr: r.adresse || "" };
+      for (const [k] of FUELS) o[k] = r[k + "_prix"] ? Number(r[k + "_prix"]) : null;
+      return o;
+    }).filter(o => o.pos[0] != null);
+    if (rows.length) { fuelCache = { me, geo, rows }; showFuel(); return; }
+  } catch {}
+  // Hors de France : les stations les plus proches, sans prix
   try {
     const q = `[out:json][timeout:10];nwr(around:6000,${me[0]},${me[1]})[amenity=fuel];out center 40;`;
-    const st = ((await getJSON("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(q), 12000)).elements || []).map(e => {
-      const t = e.tags || {}, name = [t.brand, t.name].filter((v, i, a) => v && a.indexOf(v) === i && !(i && a[0] && v.toLowerCase().includes(a[0].toLowerCase()))).join(" · ");
-      const pos = [e.lat ?? e.center?.lat, e.lon ?? e.center?.lon];
-      return { name: name || "Station", pos, km: distKm(me, pos), addr: [t["addr:housenumber"], t["addr:street"], t["addr:city"]].filter(Boolean).join(" ") };
-    }).filter(x => x.pos[0] != null).sort((a, b) => a.km - b.km).slice(0, 5);
-    if (!st.length) { box.replaceChildren(el("p", { class: "muted", text: "⛽ Pas de station trouvée tout près." })); return; }
-    // Prix du jour : seulement en France (flux officiel), rattachés à la station la plus proche
-    let prices = [];
-    try {
-      const w = encodeURIComponent(`within_distance(geom, geom'POINT(${me[1]} ${me[0]})', 7km)`);
-      prices = ((await getJSON(`https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records?where=${w}&limit=40`, 10000)).results || [])
-        .filter(r => r.gazole_prix || r.e10_prix || r.sp95_prix).map(r => { const g = r.geom || {}; return { r, pos: [g.lat ?? (r.latitude ? r.latitude / 1e5 : null), g.lon ?? (r.longitude ? r.longitude / 1e5 : null)] }; }).filter(x => x.pos[0] != null);
-    } catch {}
-    const fmt = v => v ? Number(v).toFixed(3).replace(".", ",") + " €" : "–";
-    const km = d => d < 1 ? Math.round(d * 1000) + " m" : d.toFixed(1).replace(".", ",") + " km";
-    box.replaceChildren(el("div", { class: "label", text: geo ? "⛽ Stations près de toi" : "⛽ Stations près de Tarare" }),
-      ...st.map(s => {
-        const p = prices.map(x => [x, distKm(s.pos, x.pos)]).sort((a, b) => a[1] - b[1])[0];
-        const r = p && p[1] < 0.4 ? p[0].r : null;
-        return el("a", { href: `https://waze.com/ul?ll=${s.pos[0]},${s.pos[1]}&navigate=yes`, target: "_blank", rel: "noopener", class: "row",
-          style: "justify-content:space-between;border-top:1px solid var(--line);padding:8px 0;text-decoration:none;color:inherit" },
-          el("span", {}, el("strong", { text: "⛽ " + s.name }), el("div", { class: "muted", text: `📍 ${km(s.km)}${(r?.adresse || s.addr) ? " · " + (r?.adresse || s.addr) : ""}` })),
-          el("span", { style: "font-variant-numeric:tabular-nums;text-align:right" }, r ? `Gazole ${fmt(r.gazole_prix)} · E10 ${fmt(r.e10_prix)}` : "🚙 Y aller"));
-      }));
-  } catch { /* le lien prix-carburants suffit */ }
+    const u = "?data=" + encodeURIComponent(q);
+    const els = (await Promise.any(["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"].map(h => getJSON(h + u, 12000)))).elements || [];
+    const st = els.map(e => { const t = e.tags || {}, pos = [e.lat ?? e.center?.lat, e.lon ?? e.center?.lon]; return { name: t.brand || t.name || "Station", pos, km: distKm(me, pos) }; })
+      .filter(x => x.pos[0] != null).sort((a, b) => a.km - b.km).slice(0, 5);
+    if (!st.length) throw 0;
+    box.replaceChildren(el("div", { class: "label", text: "⛽ Stations près de toi (prix non publiés dans ce pays)" }),
+      ...st.map(s => el("div", { class: "row", style: "justify-content:space-between;border-top:1px solid var(--line);padding:9px 0" },
+        el("span", {}, el("strong", { text: "⛽ " + s.name }), el("div", { class: "muted", text: "📍 " + fuelKm(s.km) })), goLinks(s.pos))));
+  } catch { box.replaceChildren(el("p", { class: "muted", text: "😕 Les prix ne répondent pas pour l'instant. Réessaie dans un moment." })); }
 }
 
 /* ---------- transports en commun ---------- */
@@ -1588,7 +1613,6 @@ const NETS = {
     ["https://www.tcl.fr/perturbations-et-travaux", "Perturbations TCL", "Métro, tram, bus en direct"],
     ["https://www.tcl.fr/itineraires", "Itinéraire TCL", "Calculer un trajet"],
     ["https://www.tcl.fr/titres-et-tarifs", "Tickets et tarifs", "Ticket, Pass, appli TCL"],
-    ["https://www.ter.sncf.com/auvergne-rhone-alpes/se-deplacer/info-trafic", "TER Auvergne-Rhône-Alpes", "Ligne Tarare–Lyon, info trafic"],
   ] },
 };
 let net = "lyon";
@@ -1777,40 +1801,59 @@ function trShow() {
 }
 $("#tr-go").addEventListener("click", findTrains);
 $("#tr-to").addEventListener("keydown", e => { if (e.key === "Enter") findTrains(); });
-/* Prochains trains depuis la gare la plus proche (OpenStreetMap + Transitous) */
+/* Prochains trains depuis la gare la plus proche (OpenStreetMap + Transitous) : seulement des trains, jamais de bus */
+async function nearStations(me) {
+  const q = `[out:json][timeout:10];node(around:40000,${me[0]},${me[1]})[railway~"^(station|halt)$"];out 60;`;
+  const fromOverpass = async u => ((await getJSON(u + "?data=" + encodeURIComponent(q), 12000)).elements || [])
+    .filter(e => !/subway|light_rail|monorail|funicular|tram/.test(e.tags?.station || "") && e.tags?.subway !== "yes" && e.tags?.tram !== "yes" && e.tags?.name)
+    .map(e => ({ name: e.tags.name, pos: [e.lat, e.lon] }));
+  const fromPhoton = async () => ((await getJSON(`https://photon.komoot.io/api/?q=gare&lat=${me[0]}&lon=${me[1]}&osm_tag=railway:station&osm_tag=railway:halt&limit=15&lang=fr`, 10000)).features || [])
+    .map(f => ({ name: f.properties?.name, pos: [f.geometry.coordinates[1], f.geometry.coordinates[0]] })).filter(x => x.name);
+  let list = [];
+  try { list = await Promise.any([fromOverpass("https://overpass-api.de/api/interpreter"), fromOverpass("https://overpass.kumi.systems/api/interpreter")].map(p => p.then(l => l.length ? l : Promise.reject()))); } catch {}
+  if (!list.length) try { list = await fromPhoton(); } catch {}
+  return list.filter(x => distKm(me, x.pos) <= 40).sort((a, b) => distKm(me, a.pos) - distKm(me, b.pos));
+}
+function dayWord(d) {
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const diff = Math.round((new Date(d).setHours(0, 0, 0, 0) - t) / 864e5);
+  return diff <= 0 ? "" : diff === 1 ? "demain" : d.toLocaleDateString("fr-FR", { weekday: "long" });
+}
 async function loadDepartures() {
   const msg = $("#dep-msg"), res = $("#dep-res");
-  msg.textContent = "📍 Je cherche la gare la plus proche de toi…";
+  msg.textContent = "📍 Je cherche la gare la plus proche de toi…"; res.replaceChildren();
   const me = (await hereOnce()) || TARARE;
+  const noTrain = text => { msg.textContent = text; res.replaceChildren(); };
   try {
-    let st = null;
-    try {
-      const q = `[out:json][timeout:10];node(around:25000,${me[0]},${me[1]})[railway~"^(station|halt)$"];out 40;`;
-      st = ((await getJSON("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(q), 12000)).elements || [])
-        .filter(e => !/subway|light_rail|monorail|funicular/.test(e.tags?.station || "") && e.tags?.subway !== "yes" && e.tags?.name)
-        .map(e => ({ name: e.tags.name, pos: [e.lat, e.lon] })).sort((a, b) => distKm(me, a.pos) - distKm(me, b.pos))[0] || null;
-    } catch {}
-    const at = st ? st.pos : me;
-    const stops = await getJSON(`https://api.transitous.org/api/v1/reverse-geocode?place=${at[0].toFixed(5)},${at[1].toFixed(5)}&type=STOP`, 12000);
-    const stop = (Array.isArray(stops) ? stops : []).filter(s => s.id).sort((a, b) => distKm(at, [a.lat, a.lon]) - distKm(at, [b.lat, b.lon]))[0];
-    if (!stop) throw 0;
-    const j = await getJSON(`https://api.transitous.org/api/v1/stoptimes?stopId=${encodeURIComponent(stop.id)}&n=30&radius=500&time=${new Date().toISOString()}`, 15000);
-    let rows = (j.stopTimes || []).filter(t => isRail(t.mode));
-    const onlyRail = rows.length > 0; if (!onlyRail) rows = j.stopTimes || [];
-    const name = st?.name || stop.name, km = distKm(me, at);
-    if (!rows.length) { msg.textContent = `🚉 ${name} : pas de départ trouvé pour l'instant.`; res.replaceChildren(); return; }
-    msg.textContent = `🚉 ${name}${km > 0.3 ? " · à " + (km < 10 ? km.toFixed(1).replace(".", ",") : Math.round(km)) + " km" : ""}${onlyRail ? "" : " · bus et cars"}`;
-    res.replaceChildren(...rows.slice(0, 8).map(t => {
-      const p = t.place || {}, d = new Date(p.departure || p.scheduledDeparture), s = new Date(p.scheduledDeparture || p.departure);
-      const late = Math.round((d - s) / 60000), off = t.cancelled || p.cancelled;
-      return el("div", { class: "route", style: `--mc:${off ? "#d33" : "#0e7fc0"};padding:8px 12px;margin-top:6px` },
-        el("div", { class: "top" }, el("span", { class: "hours", text: hm(d) }),
-          el("span", { style: "font-weight:700", text: `${LEG_EMO(t.mode)} ${t.routeShortName || t.agencyName || ""}` }),
-          el("span", { class: "muted", text: "➜ " + (t.headsign || "") }),
-          p.track ? el("span", { class: "leg", text: "voie " + p.track }) : null,
-          off ? el("span", { class: "pill warn", text: "❌ supprimé" }) : late >= 2 ? el("span", { class: "pill soon", text: `⏱️ +${late} min` }) : t.realTime ? el("span", { class: "pill", text: "✅ à l'heure" }) : null));
-    }), el("button", { class: "btn", type: "button", style: "margin-top:8px", text: "🧭 Partir de cette gare", onclick: () => { $("#tr-from").value = name; $("#tr-to").focus(); } }));
-  } catch { msg.textContent = "😕 Les horaires ne répondent pas pour l'instant."; res.replaceChildren(el("div", { class: "grid2" }, lb("https://www.sncf-connect.com/", "🚄", "SNCF Connect"), lb("https://www.thetrainline.com/fr", "🌍", "Trainline"))); }
+    const stations = (await nearStations(me)).slice(0, 2);
+    if (!stations.length) return noTrain("🚉 Je ne trouve pas de gare près de toi.");
+    for (const st of stations) {
+      const stops = await getJSON(`https://api.transitous.org/api/v1/reverse-geocode?place=${st.pos[0].toFixed(5)},${st.pos[1].toFixed(5)}&type=STOP`, 12000);
+      const stop = (Array.isArray(stops) ? stops : []).filter(s => s.id).sort((a, b) => distKm(st.pos, [a.lat, a.lon]) - distKm(st.pos, [b.lat, b.lon]))[0];
+      if (!stop) continue;
+      const j = await getJSON(`https://api.transitous.org/api/v1/stoptimes?stopId=${encodeURIComponent(stop.id)}&n=80&radius=300&time=${new Date().toISOString()}`, 15000);
+      const seen = new Set();
+      const rows = (j.stopTimes || []).filter(t => isRail(t.mode)).filter(t => {
+        const p = t.place || {}, k = t.tripId || `${p.scheduledDeparture}|${t.routeShortName}|${t.headsign}`;
+        if (seen.has(k)) return false; seen.add(k); return true;
+      }).sort((a, b) => new Date(a.place?.scheduledDeparture || a.place?.departure) - new Date(b.place?.scheduledDeparture || b.place?.departure));
+      if (!rows.length) continue;
+      const km = distKm(me, st.pos);
+      msg.textContent = `🚉 ${st.name}${km > 0.3 ? " · à " + (km < 10 ? km.toFixed(1).replace(".", ",") : Math.round(km)) + " km de toi" : ""} · prochains départs`;
+      res.replaceChildren(...rows.slice(0, 8).map(t => {
+        const p = t.place || {}, d = new Date(p.departure || p.scheduledDeparture), s = new Date(p.scheduledDeparture || p.departure);
+        const late = Math.round((d - s) / 60000), off = t.cancelled || p.cancelled, day = dayWord(d);
+        return el("div", { class: "route", style: `--mc:${off ? "#d33" : "#0e7fc0"};padding:8px 12px;margin-top:6px` },
+          el("div", { class: "top" }, el("span", { class: "hours", text: (day ? day + " " : "") + hm(d) }),
+            el("span", { style: "font-weight:700", text: `🚆 ${/TER/i.test(t.routeShortName || "") || !t.routeShortName ? "TER" : t.routeShortName}` }),
+            el("span", { class: "muted", text: "➜ " + (t.headsign || "") }),
+            p.track ? el("span", { class: "leg", text: "voie " + p.track }) : null,
+            off ? el("span", { class: "pill warn", text: "❌ supprimé" }) : late >= 2 ? el("span", { class: "pill soon", text: `⏱️ +${late} min` }) : t.realTime ? el("span", { class: "pill", text: "✅ à l'heure" }) : null));
+      }), el("button", { class: "btn", type: "button", style: "margin-top:8px", text: "🧭 Partir de cette gare", onclick: () => { $("#tr-from").value = st.name; $("#tr-to").focus(); } }));
+      return;
+    }
+    noTrain(`🚉 ${stations[0].name} : aucun train annoncé pour l'instant.`);
+  } catch { noTrain("😕 Les horaires ne répondent pas pour l'instant."); }
 }
 $("#dep-go").addEventListener("click", loadDepartures);
 
