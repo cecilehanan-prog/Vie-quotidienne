@@ -8,7 +8,7 @@
 <title>Mon Quotidien</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,600;1,500;1,600&family=Amiri:wght@400;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,500;6..12,600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,600;1,500;1,600&family=Amiri:wght@400;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,500;6..12,600&family=Dancing+Script:wght@700&display=swap">
 <style>
 /* Layout : appli mobile, une colonne, barre d'onglets en bas ; cartes posées sur un fond "ciel du matin" */
 :root {
@@ -471,7 +471,13 @@ header.top { --g1: #8a5a00; --g2: #b8860b; --g3: #7a4e00; }
 :root[data-theme="dark"] header.top { --g1: #f6dc8c; --g2: #e2b04a; --g3: #fbe7a8; }
 #greet { display: flex; align-items: center; gap: 10px; }
 #greet .gt { color: var(--g1); background: linear-gradient(120deg, var(--g1), var(--g2) 45%, var(--g3) 60%, var(--g1)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-#greet .gi { width: 34px; height: 34px; color: var(--g2); flex: none; } #greet .gi svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+header.top { --s1: #ffcf4a; --s2: #f0a020; --s3: #e8743b; --ln: #c8921a; --hal: rgba(255,190,60,.28); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) header.top { --s1: #ffe08a; --s2: #f5b33c; --s3: #f08a52; --ln: #e8b54a; --hal: rgba(255,200,90,.22); } }
+:root[data-theme="dark"] header.top { --s1: #ffe08a; --s2: #f5b33c; --s3: #f08a52; --ln: #e8b54a; --hal: rgba(255,200,90,.22); }
+header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end; gap: 0; margin: 6px 0 10px; padding: 0; min-height: 76px; }
+#greet .gi { width: 76px; height: 76px; flex: none; margin: 0 6px 0 0; } #greet .gi svg { width: 100%; height: 100%; overflow: visible; fill: none; stroke: none; }
+#greet .gt { font-family: 'Dancing Script', cursive; font-weight: 700; font-size: 2.5rem; line-height: 1; padding: 0 4px 0 0; margin-bottom: 22px; position: relative; z-index: 1; }
+#greet .sw { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
 </style>
 <div class="wrap">
   <header class="top">
@@ -522,12 +528,12 @@ header.top { --g1: #8a5a00; --g2: #b8860b; --g3: #7a4e00; }
 
 
     <article class="card" data-sec="admin">
-      <div class="card-head"><h2>À ne pas oublier</h2><button class="btn" data-goto="admin">Voir tout</button></div>
+      <div class="card-head"><h2>Démarches administratives à faire</h2><button class="btn" data-goto="admin">Voir tout</button></div>
       <div class="list" id="home-reminders"></div>
     </article>
 
     <article class="card" data-sec="todo">
-      <div class="card-head"><h2>À faire</h2><span class="pill" id="todo-count"></span></div>
+      <div class="card-head"><h2>Liste de choses à faire</h2><span class="pill" id="todo-count"></span></div>
       <form class="inline" id="todo-form">
         <input type="text" id="todo-title" placeholder="Ajouter une chose à faire" required aria-label="Chose à faire" autocomplete="off">
         <button class="btn primary" type="submit">Ajouter</button>
@@ -1115,20 +1121,48 @@ async function getJSON(url, ms = 9000) {
 const now = new Date();
 $("#today-date").textContent = now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 const h = now.getHours();
-/* Salutation en or (comme la pensée du jour) + petit picto du moment : soleil levant, soleil, soleil couchant, lune et étoile, étoiles */
+/* Salutation en or, écriture calligraphiée + dessin du moment (soleil levant, plein soleil, soleil couchant, lune et étoiles).
+   La ligne d'horizon (ou un fin trait) file sous le mot et s'efface. viewBox 64x64, horizon à y=46. */
+function greetArt(hh) {
+  const g = `<defs><linearGradient id="gsg" gradientUnits="userSpaceOnUse" x1="0" y1="8" x2="0" y2="56"><stop offset="0" style="stop-color:var(--s1)"/><stop offset="1" style="stop-color:var(--s2)"/></linearGradient>
+    <linearGradient id="gss" gradientUnits="userSpaceOnUse" x1="0" y1="30" x2="0" y2="60"><stop offset="0" style="stop-color:var(--s2)"/><stop offset="1" style="stop-color:var(--s3)"/></linearGradient>
+    <radialGradient id="ghl"><stop offset="0" style="stop-color:var(--hal)"/><stop offset="1" stop-opacity="0" style="stop-color:var(--hal)"/></radialGradient>
+    <clipPath id="gup"><rect x="-10" y="-10" width="84" height="56"/></clipPath></defs>`;
+  const ray = (cx, cy, a, r1, r2, w, o, f) => `<line x1="${(cx + r1 * Math.cos(a)).toFixed(2)}" y1="${(cy + r1 * Math.sin(a)).toFixed(2)}" x2="${(cx + r2 * Math.cos(a)).toFixed(2)}" y2="${(cy + r2 * Math.sin(a)).toFixed(2)}" stroke="url(#${f})" stroke-width="${w}" stroke-linecap="round" opacity="${o}"/>`;
+  const crown = (cx, cy, r, n, from, to, long, short, f = "gsg") => { let s = ""; for (let i = 0; i <= n; i++) { const a = from + (to - from) * i / n, L = i % 2 === 0; s += ray(cx, cy, a, r, r + (L ? long : short), L ? 2.4 : 1.6, L ? 1 : .75, f); } return s; };
+  const star = (x, y, r, o = 1) => `<path fill="url(#gsg)" opacity="${o}" d="M${x} ${y - r}Q${x + r * .18} ${y - r * .18} ${x + r} ${y}Q${x + r * .18} ${y + r * .18} ${x} ${y + r}Q${x - r * .18} ${y + r * .18} ${x - r} ${y}Q${x - r * .18} ${y - r * .18} ${x} ${y - r}Z"/>`;
+  const refl = `<line x1="22" y1="51" x2="38" y2="51" stroke="url(#gss)" stroke-width="1.6" stroke-linecap="round" opacity=".7"/><line x1="25.5" y1="55" x2="34.5" y2="55" stroke="url(#gss)" stroke-width="1.4" stroke-linecap="round" opacity=".5"/><line x1="28.5" y1="58.5" x2="31.5" y2="58.5" stroke="url(#gss)" stroke-width="1.2" stroke-linecap="round" opacity=".35"/>`;
+  if (hh >= 5 && hh < 10) return { svg: g + `<circle cx="30" cy="46" r="28" fill="url(#ghl)" clip-path="url(#gup)"/><circle cx="30" cy="46" r="13" fill="url(#gsg)" clip-path="url(#gup)"/>` + crown(30, 46, 17.5, 8, Math.PI * 1.06, Math.PI * 1.94, 9, 5), horizon: 46 };
+  if (hh >= 10 && hh < 17.5) return { svg: g + `<circle cx="30" cy="30" r="30" fill="url(#ghl)"/><circle cx="30" cy="30" r="12" fill="url(#gsg)"/><circle cx="30" cy="30" r="15" fill="none" stroke="url(#gsg)" stroke-width=".8" opacity=".5"/>` + crown(30, 30, 18.5, 15, -Math.PI / 2, Math.PI * 1.5 - Math.PI / 8, 10, 5.5), horizon: 0 };
+  if (hh >= 17.5 && hh < 19.5) return { svg: g + `<circle cx="30" cy="46" r="26" fill="url(#ghl)" clip-path="url(#gup)"/><circle cx="30" cy="50" r="13.5" fill="url(#gss)" clip-path="url(#gup)"/>` + crown(30, 50, 18, 6, Math.PI * 1.18, Math.PI * 1.82, 6, 3.5) + refl, horizon: 46 };
+  return { svg: g + `<circle cx="28" cy="32" r="26" fill="url(#ghl)"/><path fill="url(#gsg)" d="M33 12a17 17 0 1 0 14 27a14 14 0 1 1 -14 -27z"/>` + star(50, 14, 4.5) + star(56, 26, 2.5, .8) + star(44, 6, 2, .6), horizon: 0, stars: true };
+}
+let greetArtNow = null;
+function greetLine() {
+  const h1 = $("#greet"), gi = h1.querySelector(".gi"), gt = h1.querySelector(".gt"), d = greetArtNow; if (!gi || !gt || !d) return;
+  h1.querySelector(".sw")?.remove();
+  const R = h1.getBoundingClientRect(), I = gi.getBoundingClientRect(), T = gt.getBoundingClientRect(); if (!T.width) return;
+  const k = I.width / 64, y = d.horizon ? I.top - R.top + d.horizon * k : T.bottom - R.top + 2;
+  const x0 = d.horizon ? I.left - R.left : T.left - R.left + 6, x1 = T.right - R.left + 14, w = x1 - x0;
+  const c = "style=\"stop-color:var(--ln)\"", fade = d.horizon
+    ? `<stop offset="0" stop-opacity="0" ${c}/><stop offset=".08" ${c}/><stop offset=".7" ${c}/><stop offset="1" stop-opacity="0" ${c}/>`
+    : `<stop offset="0" stop-opacity=".1" ${c}/><stop offset=".3" ${c}/><stop offset="1" stop-opacity="0" ${c}/>`;
+  const sp = (x, yy, r, o) => `<path opacity="${o}" style="fill:var(--ln)" d="M${x} ${yy - r}Q${x + r * .18} ${yy - r * .18} ${x + r} ${yy}Q${x + r * .18} ${yy + r * .18} ${x} ${yy + r}Q${x - r * .18} ${yy + r * .18} ${x - r} ${yy}Q${x - r * .18} ${yy - r * .18} ${x} ${yy - r}Z"/>`;
+  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  s.setAttribute("class", "sw"); s.setAttribute("aria-hidden", "true"); s.setAttribute("width", R.width); s.setAttribute("height", R.height + 20);
+  s.innerHTML = `<defs><linearGradient id="gfd" gradientUnits="userSpaceOnUse" x1="${x0}" y1="0" x2="${x1}" y2="0">${fade}</linearGradient></defs>
+    <path d="M${x0} ${y} L${x0 + w * .78} ${y} C${x0 + w * .9} ${y} ${x0 + w * .95} ${y - 3} ${x1} ${y - 7}" fill="none" stroke="url(#gfd)" stroke-width="1.9" stroke-linecap="round"/>`
+    + (d.stars ? sp(x1 + 7, y - 12, 4.5, .95) + sp(x1 + 17, y - 22, 2.6, .6) : "");
+  h1.appendChild(s);
+}
 function greet() {
   const d = new Date(), hh = d.getHours() + d.getMinutes() / 60;
-  const star = (x, y, r) => `<path fill="currentColor" stroke="none" d="M${x} ${y - r}Q${x} ${y} ${x + r} ${y}Q${x} ${y} ${x} ${y + r}Q${x} ${y} ${x - r} ${y}Q${x} ${y} ${x} ${y - r}Z"/>`;
-  const rays = (cx, cy, r1, r2, n, from, to) => Array.from({ length: n }, (_, i) => { const a = from + (to - from) * (n === 1 ? .5 : i / (n - 1)); return `<line x1="${(cx + Math.cos(a) * r1).toFixed(1)}" y1="${(cy + Math.sin(a) * r1).toFixed(1)}" x2="${(cx + Math.cos(a) * r2).toFixed(1)}" y2="${(cy + Math.sin(a) * r2).toFixed(1)}"/>`; }).join("");
-  const hz = `<line x1="2" y1="22" x2="30" y2="22"/>`, half = r => `<path d="M${16 - r} 22a${r} ${r} 0 0 1 ${2 * r} 0"/>`;
-  const icon = hh < 5 ? star(16, 12, 4) + star(7, 19, 2.4) + star(25, 20, 2.6) + star(9, 6, 1.6) + star(24, 6, 1.5)
-    : hh < 10 ? hz + half(5) + rays(16, 22, 8, 11.5, 5, Math.PI * 1.1, Math.PI * 1.9)
-    : hh < 17.5 ? `<circle cx="16" cy="16" r="5.5"/>` + rays(16, 16, 9, 12.5, 8, 0, Math.PI * 1.75)
-    : hh < 19.5 ? hz + half(5.5) + `<line x1="11" y1="25.5" x2="21" y2="25.5"/><line x1="13.5" y1="28.5" x2="18.5" y2="28.5"/>`
-    : `<path d="M19 6a10 10 0 1 0 7 15 8 8 0 1 1-7-15z"/>` + star(25, 9, 2.4);
-  const gi = el("span", { class: "gi", "aria-hidden": "true" }); gi.innerHTML = `<svg viewBox="0 0 32 32">${icon}</svg>`;
+  greetArtNow = greetArt(hh);
+  const gi = el("span", { class: "gi", "aria-hidden": "true" }); gi.innerHTML = `<svg viewBox="0 0 64 64">${greetArtNow.svg}</svg>`;
   $("#greet").replaceChildren(gi, el("span", { class: "gt", text: hh < 5 ? "Bonne nuit" : hh < 12 ? "Bonjour" : hh < 18 ? "Bon après-midi" : "Bonsoir" }));
+  greetLine();
 }
+document.fonts?.ready.then(greetLine); addEventListener("resize", greetLine);
 greet(); setInterval(greet, 300000);
 
 /* ---------- navigation ---------- */
