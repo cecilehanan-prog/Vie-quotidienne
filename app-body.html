@@ -483,6 +483,12 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 .habits-top .shop-item.off .icon-btn.add { color: var(--sec); font-weight: 700; }
 .habits-top .emo.star { font-size: .95em; }
 #habit-manage { margin-top: 8px; }
+.garde { display: flex; align-items: center; gap: 10px; margin: 8px 0; padding: 8px 14px 8px 8px; border-radius: 999px; width: fit-content; max-width: 100%;
+  background: color-mix(in srgb, var(--cal) 16%, transparent); border: 1.5px solid color-mix(in srgb, var(--cal) 55%, transparent); }
+.garde .g-ico { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--cal); font-size: 1.05rem; box-shadow: 0 2px 6px color-mix(in srgb, var(--cal) 45%, transparent); }
+.garde .g-txt { display: flex; flex-direction: column; line-height: 1.2; }
+.garde small { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.garde b { font-size: .95rem; font-weight: 600; color: var(--fg); }
 /* Date sur la ligne du salut, tout à droite, alignée au bord des cartes */
 header.top { flex-wrap: nowrap; align-items: flex-end; }
 header.top h1#greet { flex: 1 1 auto; min-width: 0; margin-bottom: 6px; }
@@ -1491,15 +1497,26 @@ function evItem(e, withDelete, sameDay) {
     withDelete && !e.gcal ? el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer " + e.title, text: "✕", onclick: () => { events = events.filter(x => x.id !== e.id); saveEvents(); } }) : (dd <= 1 ? el("span", { class: "pill soon", text: dd === 0 ? "aujourd'hui" : "demain" }) : el("span", { class: "pill", text: `J-${dd}` })));
   return it;
 }
+/* Week-ends de garde de Charlie et Gabriel (CéHa, 26/10) : pas de pavé, juste une pastille de la couleur de l'agenda */
+const isGarde = e => /^Charlie & Gabriel chez/.test(e.cal || "");
+const gardeSat = date => { const d = new Date(date + "T12:00"), w = d.getDay(); d.setDate(d.getDate() + (w === 0 ? -1 : 6 - w)); return d; };
+function gardeChip(e) {
+  const sat = gardeSat(e.date), sun = new Date(sat.getTime() + DAY), withMe = /c[ée]cile/i.test(e.cal);
+  const days = `${sat.getDate()}${sat.getMonth() !== sun.getMonth() ? " " + sat.toLocaleDateString("fr-FR", { month: "short" }).replace(".", "") : ""}–${sun.getDate()} ${sun.toLocaleDateString("fr-FR", { month: "short" }).replace(".", "")}`;
+  return el("div", { class: "garde" + (withMe ? " me" : ""), style: `--cal:${CAL_COLOR[e.cal] || "#888"}` },
+    el("span", { class: "g-ico", text: withMe ? "🏡" : "🚗" }),
+    el("span", { class: "g-txt" }, el("small", { text: "Week-end " + days }), el("b", { text: withMe ? "Charlie et Gabriel avec toi" : "Chez leur papa" })));
+}
 const MONTH_EMO = ["❄️", "💝", "🌱", "🌷", "🌸", "☀️", "🏖️", "🌻", "🍎", "🍂", "🍁", "🎄"];
 /* Liste lisible d'un coup d'œil : grand bandeau à chaque nouvelle année et à chaque nouveau mois, jour affiché une seule fois */
 function agendaList(list, withDelete) {
-  const out = []; let ym = "", y = "", day = "";
+  const out = [], seenWe = new Set(); let ym = "", y = "", day = "";
   for (const e of list) {
     const d = new Date(e.date + "T12:00");
     if (String(d.getFullYear()) !== y) { if (y) out.push(el("div", { class: "ev-year", text: `🎆 ${d.getFullYear()}` })); y = String(d.getFullYear()); }
     const k = e.date.slice(0, 7);
     if (k !== ym) { ym = k; out.push(el("div", { class: "ev-month" }, el("span", { text: MONTH_EMO[d.getMonth()] }), d.toLocaleDateString("fr-FR", { month: "long" }), el("small", { text: d.getFullYear() }))); day = ""; }
+    if (isGarde(e)) { const k = gardeSat(e.date).toDateString(); if (!seenWe.has(k)) { seenWe.add(k); out.push(gardeChip(e)); } continue; }
     out.push(evItem(e, withDelete, e.date === day)); day = e.date;
   }
   return out;
@@ -1507,8 +1524,10 @@ function agendaList(list, withDelete) {
 function renderAgenda() {
   const upcoming = events.filter(e => evDate(e) >= startOfDay(new Date())).sort((a, b) => evDate(a) - evDate(b));
   $("#agenda-list").replaceChildren(...(upcoming.length ? agendaList(upcoming, true) : [el("p", { class: "muted", text: "Aucun rendez-vous à venir." })]));
-  const today = startOfDay(new Date()).getTime(), todays = upcoming.filter(e => startOfDay(evDate(e)).getTime() === today);
-  $("#home-agenda").replaceChildren(...(todays.length ? todays.map(e => evItem(e, false)) : [el("p", { class: "muted", text: "🌿 Rien de prévu aujourd'hui." })]));
+  const today = startOfDay(new Date()).getTime(), todays = upcoming.filter(e => !isGarde(e) && startOfDay(evDate(e)).getTime() === today);
+  // Pastille du prochain week-end de garde (dans les 7 jours)
+  const we = upcoming.find(e => isGarde(e) && gardeSat(e.date) - today < 7 * DAY);
+  $("#home-agenda").replaceChildren(...(todays.length ? todays.map(e => evItem(e, false)) : [el("p", { class: "muted", text: "🌿 Rien de prévu aujourd'hui." })]), ...(we ? [gardeChip(we)] : []));
 }
 $("#ev-form").addEventListener("submit", e => {
   e.preventDefault();
