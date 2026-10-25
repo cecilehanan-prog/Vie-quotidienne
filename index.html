@@ -460,6 +460,8 @@ nav.tabbar button[data-view=home] span, nav.tabbar button[data-view=home][aria-c
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) [data-sec=books] { --sec: #e06a7c; --on-sec: #1a0006; } }
 :root[data-theme="dark"] [data-sec=books] { --sec: #e06a7c; --on-sec: #1a0006; }
 .card[data-sec=books] .badge { background: #9b1b30; color: #fff; }
+#notif-state.soon, .item.ev .pill.soon { background: var(--c-agenda); border-color: var(--c-agenda); color: #fff; }
+.item.ev.cal .pill.soon { background: var(--cal); border-color: var(--cal); color: var(--cal-fg); }
 #fuel-kind { display: flex; flex-wrap: nowrap; overflow-x: auto; max-width: 100%; } #fuel-kind .btn { flex: none; padding: 6px 12px; }
 [data-sec=loved] { --sec: #f4a7c3; --on-sec: #5a1233; }
 .card[data-sec=loved] .badge { background: #f4a7c3; color: #5a1233; }
@@ -1366,7 +1368,7 @@ const shortPlace = p => { p = (p || "").replace(/\\n|\n/g, ", ").replace(/#\S+/g
 function evItem(e, withDelete, sameDay) {
   const d = new Date(e.date + "T12:00");
   const dd = daysUntil(e.date);
-  const it = el("div", { class: "item ev" + (dd <= 1 && !e.cal ? " soon" : "") + (e.cal ? " cal" : "") + (sameDay ? " same" : ""), style: e.cal ? `--cal:${CAL_COLOR[e.cal] || "#888"}` : false },
+  const it = el("div", { class: "item ev" + (dd <= 1 && !e.cal ? " soon" : "") + (e.cal ? " cal" : "") + (sameDay ? " same" : ""), style: e.cal ? `--cal:${CAL_COLOR[e.cal] || "#888"};--cal-fg:${calFg(CAL_COLOR[e.cal] || "#888")}` : false },
     el("div", { class: "when" }, sameDay ? "" : el("small", { text: d.toLocaleDateString("fr-FR", { weekday: "short" }).replace(".", "") }), sameDay ? "" : el("b", { text: d.getDate() }), el("span", { class: "ev-time", text: e.time || (sameDay ? "" : "journée") })),
     el("div", { class: "what" }, el("div", { class: "ev-title" }, /^\p{Extended_Pictographic}/u.test(e.title) ? "" : emoSpan(e.title, ""), e.title),
       el("div", { class: "small muted", text: [e.cal ? "● " + e.cal : "", shortPlace(e.place), e.remind && !e.gcal ? "rappel " + ({ 30: "30 min avant", 60: "1 h avant", 1440: "la veille", 2880: "2 jours avant" }[e.remind] || "") : ""].filter(Boolean).join(" · ") })),
@@ -1424,7 +1426,9 @@ const AGENDA_URL = "https://raw.githubusercontent.com/cecilehanan-prog/Vie-quoti
 // Ordre et noms voulus par CéHa : Cé Perso, Cé Santé, Job, Gabriel, Jasmin, Maison (puis les fêtes)
 const CALS = [[/perso/i, "Cé Perso"], [/sant/i, "Cé Santé"], [/job|famil/i, "Job"], [/gabriel/i, "Gabriel"], [/jasmin/i, "Jasmin"], [/bastion|maison/i, "Maison"], [/musulman|islam/i, "Fêtes"]];
 // Une couleur par agenda (choisies par CéHa)
-const CAL_COLOR = { "Cé Perso": "#e8559a", "Cé Santé": "#9cc31c", "Job": "#7b4fd0", "Gabriel": "#f07c1a", "Jasmin": "#d4a017", "Maison": "#17b3c1", "Fêtes": "#5fae3c" };
+// Texte blanc sur les couleurs foncées, foncé sur les claires (vert citron, jaune d'or)
+const calFg = hex => { const n = parseInt(hex.slice(1), 16), r = n >> 16, g = n >> 8 & 255, b = n & 255; return g > 185 ? "#1d2400" : "#fff"; };
+const CAL_COLOR = { "Cé Perso": "#f07cb4", "Cé Santé": "#9cc31c", "Job": "#7b4fd0", "Gabriel": "#f07c1a", "Jasmin": "#d4a017", "Maison": "#17b3c1", "Fêtes": "#5fae3c" };
 const calInfo = n => { const i = CALS.findIndex(([r]) => r.test(n || "")); return i < 0 ? [CALS.length, n || "Agenda"] : [i, CALS[i][1]]; };
 const icsLinks = () => (store.get("icsLinks", "").match(/https:\/\/\S+/g) || []).map(l => l.trim());
 const b64bytes = b => Uint8Array.from(atob(b), c => c.charCodeAt(0));
