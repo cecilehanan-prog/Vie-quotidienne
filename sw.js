@@ -1,5 +1,5 @@
 // Garde l'appli disponible hors connexion (les données en direct restent en cache côté page).
-const CACHE = "mon-quotidien-v16";
+const CACHE = "mon-quotidien-v17";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icon.svg", "jsbarcode.min.js", "dhikr.json"];
 self.addEventListener("install", e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())));
 self.addEventListener("activate", e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));

@@ -435,6 +435,12 @@ details summary { cursor: pointer; font-weight: 700; }
 /* Trajets : couleurs choisies par CéHa */
 [data-sec=traf] { --sec: #6b7280; } [data-sec=drive] { --sec: #1a2f8a; } [data-sec=metro] { --sec: #d32f2f; } [data-sec=rail] { --sec: #0e9fc0; } [data-sec=near] { --sec: #ffcc00; --on-sec: #2a1f00; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) [data-sec=traf] { --sec: #9aa1ac; } :root:not([data-theme="light"]) [data-sec=drive] { --sec: #5470d6; } :root:not([data-theme="light"]) [data-sec=metro] { --sec: #ef6b6b; } }
+/* Tuiles : couleurs choisies par CéHa (25/10) */
+:is(.tile, nav.tabbar button)[data-sec=meals] { --sec: #f5c400; } .tile[data-sec=meals] { color: #3a2a00; }
+:is(.tile, nav.tabbar button)[data-sec=car] { --sec: #f07c1a; }
+:is(.tile, nav.tabbar button)[data-sec=bien] { --sec: #9cc31c; } .tile[data-sec=bien] { color: #1f2a00; }
+:is(.tile, nav.tabbar button)[data-sec=admin] { --sec: #2747c9; }
+nav.tabbar button[data-sec=meals] svg, nav.tabbar button[data-sec=bien] svg { filter: brightness(.85); }
 </style>
 
 <div class="wrap">
