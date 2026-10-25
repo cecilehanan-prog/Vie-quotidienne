@@ -47,7 +47,8 @@ jobs:
                       s = (s if s.tzinfo else s.replace(tzinfo=tz)).astimezone(tz)
                       f = (f if f.tzinfo else f.replace(tzinfo=tz)).astimezone(tz) if isinstance(f, datetime.datetime) else None
                   ev.append({"t": str(e.get("SUMMARY", "Rendez-vous")), "d": s.strftime("%Y-%m-%d"), "h": s.strftime("%H:%M") if timed else "",
-                             "f": f.strftime("%H:%M") if timed and f else "", "p": str(e.get("LOCATION", "")).split("\n")[0]})
+                             "f": f.strftime("%H:%M") if timed and f else "", "p": str(e.get("LOCATION", "")).split("\n")[0],
+                             "z": (f - datetime.timedelta(days=1)).strftime("%Y-%m-%d") if not timed and f and f - s > datetime.timedelta(days=1) else ""})
               ev.sort(key=lambda x: (x["d"], x["h"]))
               if link in PUBLIC:
                   pub.append({"n": str(cal.get("X-WR-CALNAME", "")), "e": ev}); print(len(ev), "fêtes"); continue

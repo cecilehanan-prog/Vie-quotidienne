@@ -1514,6 +1514,16 @@ function gardeChip(e) {
     el("span", { class: "g-ico", text: withMe ? "🏡" : "🚗" }),
     el("span", { class: "g-txt" }, el("small", { text: "Week-end " + days }), el("b", { text: withMe ? "Charlie et Gabriel avec toi" : "Chez leur papa" })));
 }
+/* Vacances scolaires (CéHa, 26/10) : une pastille du début à la fin, au lieu d'un pavé par jour */
+const isVac = e => e.cal === "Vacances scolaires";
+const vacName = t => (t || "Vacances").replace(/\s*[-–(].*zone.*$/i, "").replace(/^🌙\s*/, "").trim();
+const dShort = d => d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }).replace(/\./g, "");
+function vacChip(e) {
+  const a = new Date(e.date + "T12:00"), z = new Date((e.end || e.date) + "T12:00"), back = new Date(z.getTime() + DAY), now0 = startOfDay(new Date());
+  const on = a <= new Date() && z >= now0;
+  return el("div", { class: "garde vac", style: `--cal:${CAL_COLOR[e.cal] || "#888"}` }, el("span", { class: "g-ico", text: "🏖️" }),
+    el("span", { class: "g-txt" }, el("small", { text: on ? `En cours · reprise ${dShort(back)}` : `Du ${dShort(a)} au ${dShort(z)}` }), el("b", { text: vacName(e.title) })));
+}
 const MONTH_EMO = ["❄️", "💝", "🌱", "🌷", "🌸", "☀️", "🏖️", "🌻", "🍎", "🍂", "🍁", "🎄"];
 /* Liste lisible d'un coup d'œil : grand bandeau à chaque nouvelle année et à chaque nouveau mois, jour affiché une seule fois */
 function agendaList(list, withDelete) {
@@ -1523,18 +1533,20 @@ function agendaList(list, withDelete) {
     if (String(d.getFullYear()) !== y) { if (y) out.push(el("div", { class: "ev-year", text: `🎆 ${d.getFullYear()}` })); y = String(d.getFullYear()); }
     const k = e.date.slice(0, 7);
     if (k !== ym) { ym = k; out.push(el("div", { class: "ev-month" }, el("span", { text: MONTH_EMO[d.getMonth()] }), d.toLocaleDateString("fr-FR", { month: "long" }), el("small", { text: d.getFullYear() }))); day = ""; }
+    if (isVac(e)) { const k = "v" + e.date + vacName(e.title); if (!seenWe.has(k)) { seenWe.add(k); out.push(vacChip(e)); } continue; }
     if (isGarde(e)) { const k = gardeSat(e.date).toDateString(); if (!seenWe.has(k)) { seenWe.add(k); out.push(gardeChip(e)); } continue; }
     out.push(evItem(e, withDelete, e.date === day)); day = e.date;
   }
   return out;
 }
 function renderAgenda() {
-  const upcoming = events.filter(e => evDate(e) >= startOfDay(new Date())).sort((a, b) => evDate(a) - evDate(b));
+  const upcoming = events.filter(e => evDate(e) >= startOfDay(new Date()) || (isVac(e) && new Date((e.end || e.date) + "T23:59") >= startOfDay(new Date()))).sort((a, b) => evDate(a) - evDate(b));
   $("#agenda-list").replaceChildren(...(upcoming.length ? agendaList(upcoming, true) : [el("p", { class: "muted", text: "Aucun rendez-vous à venir." })]));
-  const today = startOfDay(new Date()).getTime(), todays = upcoming.filter(e => !isGarde(e) && startOfDay(evDate(e)).getTime() === today);
+  const today = startOfDay(new Date()).getTime(), todays = upcoming.filter(e => !isGarde(e) && !isVac(e) && startOfDay(evDate(e)).getTime() === today);
   // Pastille du prochain week-end de garde (dans les 7 jours)
+  const vac = upcoming.find(e => isVac(e) && new Date(e.date + "T00:00") - today < 7 * DAY);
   const we = upcoming.find(e => isGarde(e) && gardeSat(e.date) - today < 7 * DAY);
-  $("#home-agenda").replaceChildren(...(todays.length ? todays.map(e => evItem(e, false)) : [el("p", { class: "muted", text: "🌿 Rien de prévu aujourd'hui." })]), ...(we ? [gardeChip(we)] : []));
+  $("#home-agenda").replaceChildren(...(todays.length ? todays.map(e => evItem(e, false)) : [el("p", { class: "muted", text: "🌿 Rien de prévu aujourd'hui." })]), ...(vac ? [vacChip(vac)] : []), ...(we ? [gardeChip(we)] : []));
 }
 $("#ev-form").addEventListener("submit", e => {
   e.preventDefault();
@@ -1601,7 +1613,7 @@ async function syncAgenda(manual) {
     store.set("rappels", rap); renderRappels();
     for (const cal of [...got.filter(c => !/rappel/i.test(c.n)), ...(pack.pub || []).map(c => ({ ...c, pub: true }))]) {
       const [rank, label] = calInfo(cal.n);
-      for (const e of cal.e) fresh.push({ id: "g:" + e.d + e.h + e.t, title: (cal.pub ? "🌙 " : "") + e.t, date: e.d, time: e.h, place: e.p, remind: cal.pub || !e.h ? 0 : 30, gcal: true, cal: label, rank });
+      for (const e of cal.e) fresh.push({ id: "g:" + e.d + e.h + e.t, title: (cal.pub ? "🌙 " : "") + e.t, date: e.d, time: e.h, place: e.p, end: e.z || "", remind: cal.pub || !e.h ? 0 : 30, gcal: true, cal: label, rank });
     }
     fresh.sort((a, b) => a.rank - b.rank);
     events = events.filter(x => !x.sample && !x.gcal && !x.imported).concat(fresh);
