@@ -1145,7 +1145,7 @@ const lb = (href, e, title) => el("a", { class: "linkbox", href, target: "_blank
 const PLACES = {
   tarare: { name: "Tarare", lat: 45.8961, lon: 4.4331 },
   lyon: { name: "Lyon", lat: 45.7640, lon: 4.8357 },
-  ici: { name: "📍 Où je suis", here: true },
+  ici: { name: "Géoloc'", here: true },
 };
 const WMO = c =>
   c === 0 ? ["Ciel dégagé", "sun"] : c <= 2 ? ["Éclaircies", "partly"] : c === 3 ? ["Couvert", "cloud"] :
@@ -1176,7 +1176,7 @@ async function loadWeather() {
   for (const b of $("#wx-places").children) b.setAttribute("aria-pressed", String(b.dataset.place === wxPlace));
   let p = PLACES[wxPlace];
   const body = $("#wx-body");
-  // « Où je suis » : la météo de la ville où je me trouve, partout dans le monde (géolocalisation)
+  // « Géoloc' » : la météo de la ville où je me trouve, partout dans le monde (géolocalisation)
   if (p.here) {
     const pos = await hereOnce();
     if (!pos) { body.innerHTML = `<p class="muted">📍 Autorise la localisation pour voir la météo de l'endroit où tu es.</p>`; return; }
