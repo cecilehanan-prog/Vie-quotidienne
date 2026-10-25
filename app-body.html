@@ -479,6 +479,10 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 [data-sec=rappel] { --sec: #f08c00; }
 #rap-list .item.late { border-left-color: #d33; }
 #rap-list .item.done .what { text-decoration: line-through; opacity: .55; }
+.habits-top .shop-item.off { opacity: .6; }
+.habits-top .shop-item.off .icon-btn.add { color: var(--sec); font-weight: 700; }
+.habits-top .emo.star { font-size: .95em; }
+#habit-manage { margin-top: 8px; }
 </style>
 <div class="wrap">
   <header class="top">
@@ -624,8 +628,21 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
       <div class="list" id="shop-list"></div>
       <div class="row">
         <button class="btn primary" type="button" id="shop-done">✅ Courses finies</button>
-        <button class="btn" type="button" id="shop-habits-add">⭐ + Mes produits habituels</button>
+        <button class="btn" type="button" id="shop-habits-add">⭐ Ajouter les habituels à racheter</button>
       </div>
+      <details id="habit-manage">
+        <summary>⭐ Gérer mes produits habituels</summary>
+        <p class="small muted" id="habit-spend"></p>
+      <div class="list" id="habit-list"></div>
+      <form class="inline" id="habit-form">
+        <input type="text" id="habit-name" placeholder="Produit (ex. yaourts)" required aria-label="Produit habituel">
+        <select id="habit-every" aria-label="Fréquence">
+          <option value="7">Chaque semaine</option><option value="14">Toutes les 2 semaines</option><option value="30">Chaque mois</option><option value="3">Tous les 3 jours</option>
+        </select>
+        <input type="text" id="habit-price" placeholder="Prix €" inputmode="decimal" aria-label="Prix habituel" class="num">
+        <button class="btn primary" type="submit">Ajouter</button>
+      </form>
+      </details>
       <details>
         <summary id="aisle-title">🗺️ Ordre des rayons</summary>
         <p class="small muted">Range les rayons dans l'ordre où tu passes avec ⬆️ ⬇️</p>
@@ -669,18 +686,6 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
     </article>
     <button class="linkbox" type="button" data-goto="recettes" style="width:100%;margin-bottom:12px"><i class="emo">🍽️</i><strong>Mes recettes</strong><span>Choisis tes repas, les ingrédients arrivent ici</span></button>
 
-    <article class="card" data-sec="habits">
-      <div class="card-head"><h2>Mes produits habituels</h2><span class="small muted" id="habit-spend"></span></div>
-      <div class="list" id="habit-list"></div>
-      <form class="inline" id="habit-form">
-        <input type="text" id="habit-name" placeholder="Produit (ex. yaourts)" required aria-label="Produit habituel">
-        <select id="habit-every" aria-label="Fréquence">
-          <option value="7">Chaque semaine</option><option value="14">Toutes les 2 semaines</option><option value="30">Chaque mois</option><option value="3">Tous les 3 jours</option>
-        </select>
-        <input type="text" id="habit-price" placeholder="Prix €" inputmode="decimal" aria-label="Prix habituel" class="num">
-        <button class="btn primary" type="submit">Ajouter</button>
-      </form>
-    </article>
 
     <article class="card" data-sec="energy">
       <div class="card-head"><h2>Électricité et eau</h2>
@@ -2504,14 +2509,27 @@ const onList = name => shop.some(i => i.name.toLowerCase() === name.toLowerCase(
 function renderShop() {
   const left = shop.filter(i => !i.done).length;
   $("#shop-count").textContent = shop.length ? `${left} à prendre` : "vide";
-  const groups = {};
-  for (const i of shop) (groups[i.aisle || rayonOf(i.name)] ||= []).push(i);
+  const groups = {}, isHabit = name => habits.some(h => h.name.toLowerCase() === name.toLowerCase());
+  for (const i of shop) if (!isHabit(i.name)) (groups[i.aisle || rayonOf(i.name)] ||= []).push(i);
   const order = getAisleOrder();
-  const kids = order.filter(c => groups[c]).map((c, n) => el("div", { class: "shop-group" }, el("div", { class: "label", text: `${n + 1}. ${AISLE_EMO[c]} ${c}` }),
+  // ⭐ Mes produits habituels, toujours en tête : cochables s'ils sont sur la liste, sinon un « + » pour les ajouter
+  const star = habits.length ? [el("div", { class: "shop-group habits-top" }, el("div", { class: "label", text: "⭐ Mes produits habituels" }),
+    ...[...habits].sort((a, b) => (onList(b.name) - onList(a.name)) || (habitDue(b) - habitDue(a))).map(h => {
+      const i = shop.find(x => x.name.toLowerCase() === h.name.toLowerCase());
+      if (i) return el("label", { class: "shop-item" + (i.done ? " done" : "") },
+        el("input", { type: "checkbox", checked: !!i.done, onchange: e => { i.done = e.target.checked; saveShop(); } }),
+        el("span", { class: "what" }, el("i", { class: "emo star", "aria-hidden": "true", text: "⭐" }), i.name, i.qty ? el("span", { class: "muted", text: " × " + i.qty }) : null),
+        el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + i.name, text: "✕", onclick: e => { e.preventDefault(); shop = shop.filter(x => x !== i); saveShop(); } }));
+      const due = habitDue(h);
+      return el("div", { class: "shop-item off" },
+        el("button", { class: "icon-btn add", type: "button", "aria-label": "Ajouter " + h.name + " à la liste", text: "＋", onclick: () => { addToList(h.name); saveShop(); } }),
+        el("span", { class: "what" }, el("i", { class: "emo star", "aria-hidden": "true", text: "⭐" }), h.name, due ? el("span", { class: "pill soon", style: "margin-left:6px", text: "à racheter" }) : null));
+    }))] : [];
+  const kids = [...star, ...order.filter(c => groups[c]).map((c, n) => el("div", { class: "shop-group" }, el("div", { class: "label", text: `${n + 1}. ${AISLE_EMO[c]} ${c}` }),
     ...groups[c].sort((a, b) => a.done - b.done).map(i => el("label", { class: "shop-item" + (i.done ? " done" : "") },
       el("input", { type: "checkbox", checked: !!i.done, onchange: e => { i.done = e.target.checked; saveShop(); } }),
       el("span", { class: "what" }, emoSpan(i.name, "🛒"), i.name, i.qty ? el("span", { class: "muted", text: " × " + i.qty }) : null),
-      el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + i.name, text: "✕", onclick: e => { e.preventDefault(); shop = shop.filter(x => x !== i); saveShop(); } })))));
+      el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + i.name, text: "✕", onclick: e => { e.preventDefault(); shop = shop.filter(x => x !== i); saveShop(); } }))))) ];
   $("#shop-list").replaceChildren(...(kids.length ? kids : [el("p", { class: "muted", text: "Ta liste est vide. Ajoute un article ou tes habituels." })]));
   $("#shop-suggest").replaceChildren(...[...new Set([...habits.map(h => h.name), ...purchases.map(p => p.name)])].map(n => el("option", { value: n })));
 }
