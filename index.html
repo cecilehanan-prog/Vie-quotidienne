@@ -1194,7 +1194,7 @@ function show(id) {
   for (const b of $("#tabbar").children) b.setAttribute("aria-current", b.dataset.view === id ? "page" : "false");
   store.set("view", id);
   if (id === "news" && !newsLoaded) loadNews(currentFeed);
-  if (id === "move" && !moveLoaded) { moveLoaded = true; setTimeout(() => { loadFuel(); loadStops(); loadDepartures(); }); }
+  if (id === "move") setTimeout(refreshMove);
   if (id === "rdv") renderRdv();
   if (id === "bien") renderBien();
   if (id === "serenite") setTimeout(() => { renderRamadan(); prayLocate(); if (!gmlLoaded) { gmlLoaded = true; loadGmlNews(); } openQuran(); openDhikr(); });
@@ -1789,7 +1789,7 @@ async function loadStops() {
       return el("div", { class: "route", style: `--mc:${off ? "#d33" : "#d32f2f"};padding:8px 12px;margin-top:6px` },
         el("div", { class: "top" }, el("span", { class: "hours", text: day ? day + " " + hm(d) : mins <= 0 ? "maintenant" : mins < 60 ? `dans ${mins} min` : hm(d) }),
           el("span", { style: "font-weight:700", text: `${LEG_EMO(t.mode)} ${t.routeShortName || ""}` }),
-          el("span", { class: "muted", text: "➜ " + (t.headsign || "") }),
+          (dest => dest ? el("span", { class: "muted", text: "➜ " + dest }) : null)(t.headsign || t.tripTo?.name || t.routeLongName || ""),
           off ? el("span", { class: "pill warn", text: "❌ supprimé" }) : late >= 2 ? el("span", { class: "pill soon", text: `⏱️ +${late} min` }) : null));
     }));
   } catch { msg.textContent = "😕 Les horaires ne répondent pas pour l'instant."; res.replaceChildren(); }
@@ -1841,6 +1841,15 @@ $("#around-btn").addEventListener("click", () => {
     $("#around-msg").textContent = "✅ C'est bon, les boutons montrent ce qui est près de toi.";
   }, () => { $("#around-msg").textContent = "Localisation refusée. Les boutons cherchent quand même « près de moi »."; }, { maximumAge: 300000, timeout: 10000 });
 });
+/* Trajets suit sa position : à chaque ouverture, si elle a bougé (plus de 1 km) ou après 5 min, tout se met à jour (trains, bus, carburant, trafic, autour de moi) */
+let movePos = null, moveAt = 0;
+async function refreshMove(force) {
+  const me = await hereOnce();
+  if (!force && moveAt && Date.now() - moveAt < 300000 && (!me || (movePos && distKm(me, movePos) < 1))) return;
+  movePos = me; moveAt = Date.now();
+  loadFuel(); loadStops(); loadDepartures();
+  if (me) { renderAround(me); $("#around-msg").textContent = "📍 Les boutons montrent ce qui est près de toi."; alertsHere(true); }
+}
 /* ---------- voyage ---------- */
 /* ----- trajet calculé par l'appli ----- */
 const QUICK = ["Lyon Part-Dieu", "Lyon Perrache", "Tarare", "Roanne", "Villefranche-sur-Saône", "Paris"];
@@ -1880,7 +1889,8 @@ function hereOnce() {
 const TARARE = [45.8961, 4.4331];
 const isRail = m => /RAIL|TRAIN|HIGHSPEED|LONG_DISTANCE|NIGHT/.test(m || "");
 /* Aller à… : itinéraires combinés (bus, train, car, voiture + transports), comme l'appli Transit, avec Transitous (monde entier) */
-const TR_FAV = ["Lyon Part-Dieu", "Lyon Perrache", "Roanne", "Tarare", "Paris"];
+const TR_FAV = ["Lyon Part-Dieu", "Lyon Perrache", "Tarare"];
+store.set("trRecent", store.get("trRecent", []).filter(x => !/^(roanne|paris)$/i.test(x)));
 function trChips() {
   const rec = store.get("trRecent", []);
   $("#tr-quick").replaceChildren(...[...new Set([...rec, ...TR_FAV])].slice(0, 6).map(q => el("button", { class: "btn", type: "button", text: q, onclick: () => { $("#tr-to").value = q; findTrains(); } })));
@@ -1956,15 +1966,25 @@ $("#tr-go").addEventListener("click", findTrains);
 $("#tr-to").addEventListener("keydown", e => { if (e.key === "Enter") findTrains(); });
 /* Prochains trains depuis la gare la plus proche (OpenStreetMap + Transitous) : seulement des trains, jamais de bus */
 async function nearStations(me) {
-  const q = `[out:json][timeout:10];node(around:40000,${me[0]},${me[1]})[railway~"^(station|halt)$"];out 60;`;
-  const fromOverpass = async u => ((await getJSON(u + "?data=" + encodeURIComponent(q), 12000)).elements || [])
+  // Plusieurs sources en même temps (OpenStreetMap, Photon) : on garde toutes les gares trouvées, rangées de la plus proche à la plus loin
+  const q = `[out:json][timeout:15];node(around:40000,${me[0]},${me[1]})[railway~"^(station|halt)$"];out 80;`;
+  const fromOverpass = async u => ((await getJSON(u + "?data=" + encodeURIComponent(q), 15000)).elements || [])
     .filter(e => !/subway|light_rail|monorail|funicular|tram/.test(e.tags?.station || "") && e.tags?.subway !== "yes" && e.tags?.tram !== "yes" && e.tags?.name)
     .map(e => ({ name: e.tags.name, pos: [e.lat, e.lon] }));
-  const fromPhoton = async () => ((await getJSON(`https://photon.komoot.io/api/?q=gare&lat=${me[0]}&lon=${me[1]}&osm_tag=railway:station&osm_tag=railway:halt&limit=15&lang=fr`, 10000)).features || [])
-    .map(f => ({ name: f.properties?.name, pos: [f.geometry.coordinates[1], f.geometry.coordinates[0]] })).filter(x => x.name);
-  let list = [];
-  try { list = await Promise.any([fromOverpass("https://overpass-api.de/api/interpreter"), fromOverpass("https://overpass.kumi.systems/api/interpreter")].map(p => p.then(l => l.length ? l : Promise.reject()))); } catch {}
-  if (!list.length) try { list = await fromPhoton(); } catch {}
+  const photonList = j => (j.features || []).filter(f => /station|halt/.test(f.properties?.osm_value || "") && !/subway|tram|light_rail/.test(f.properties?.osm_value || ""))
+    .map(f => ({ name: f.properties.name, pos: [f.geometry.coordinates[1], f.geometry.coordinates[0]] })).filter(x => x.name);
+  const ph = "https://photon.komoot.io";
+  const city = getJSON(`${ph}/reverse?lat=${me[0]}&lon=${me[1]}&lang=fr`, 8000).then(j => { const p = j.features?.[0]?.properties || {}; return p.city || p.town || p.village || ""; }).catch(() => "");
+  const srcs = [
+    Promise.any(["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"].map(u => fromOverpass(u).then(l => l.length ? l : Promise.reject()))),
+    getJSON(`${ph}/reverse?lat=${me[0]}&lon=${me[1]}&osm_tag=railway:station&osm_tag=railway:halt&radius=40&limit=15&lang=fr`, 10000).then(photonList),
+    getJSON(`${ph}/api/?q=gare&lat=${me[0]}&lon=${me[1]}&zoom=12&location_bias_scale=0.1&osm_tag=railway:station&osm_tag=railway:halt&limit=20&lang=fr`, 10000).then(photonList),
+    city.then(c => c ? getJSON(`${ph}/api/?q=${encodeURIComponent("gare " + c)}&lat=${me[0]}&lon=${me[1]}&osm_tag=railway:station&osm_tag=railway:halt&limit=5&lang=fr`, 10000).then(photonList) : [])];
+  const seen = new Set(), list = [];
+  for (const r of await Promise.allSettled(srcs)) if (r.status === "fulfilled") for (const x of r.value) {
+    const k = x.pos.map(v => v.toFixed(3)).join();
+    if (!seen.has(k) && !list.some(y => distKm(x.pos, y.pos) < 0.3)) { seen.add(k); list.push(x); }
+  }
   return list.filter(x => distKm(me, x.pos) <= 40).sort((a, b) => distKm(me, a.pos) - distKm(me, b.pos));
 }
 function dayWord(d) {
@@ -1978,7 +1998,7 @@ async function loadDepartures() {
   const me = (await hereOnce()) || TARARE;
   const noTrain = text => { msg.textContent = text; res.replaceChildren(); };
   try {
-    const stations = (await nearStations(me)).slice(0, 2);
+    const stations = (await nearStations(me)).slice(0, 4);
     if (!stations.length) return noTrain("🚉 Je ne trouve pas de gare près de toi.");
     for (const st of stations) {
       const stops = await getJSON(`https://api.transitous.org/api/v1/reverse-geocode?place=${st.pos[0].toFixed(5)},${st.pos[1].toFixed(5)}&type=STOP`, 12000);
@@ -1999,7 +2019,7 @@ async function loadDepartures() {
         return el("div", { class: "route", style: `--mc:${off ? "#d33" : "#0e7fc0"};padding:8px 12px;margin-top:6px` },
           el("div", { class: "top" }, el("span", { class: "hours", text: (day ? day + " " : "") + hm(d) }),
             el("span", { style: "font-weight:700", text: `🚆 ${/TER/i.test(t.routeShortName || "") || !t.routeShortName ? "TER" : t.routeShortName}` }),
-            el("span", { class: "muted", text: "➜ " + (t.headsign || "") }),
+            (dest => dest ? el("span", { class: "muted", text: "➜ " + dest }) : null)(t.headsign || t.tripTo?.name || t.routeLongName || ""),
             p.track ? el("span", { class: "leg", text: "voie " + p.track }) : null,
             off ? el("span", { class: "pill warn", text: "❌ supprimé" }) : late >= 2 ? el("span", { class: "pill soon", text: `⏱️ +${late} min` }) : t.realTime ? el("span", { class: "pill", text: "✅ à l'heure" }) : null));
       }), el("button", { class: "btn", type: "button", style: "margin-top:8px", text: "🧭 Partir de cette gare", onclick: () => { $("#tr-from").value = st.name; $("#tr-to").focus(); } }));
