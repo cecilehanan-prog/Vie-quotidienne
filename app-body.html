@@ -441,6 +441,8 @@ details summary { cursor: pointer; font-weight: 700; }
 :is(.tile, nav.tabbar button)[data-sec=bien] { --sec: #9cc31c; } .tile[data-sec=bien] { color: #1f2a00; }
 :is(.tile, nav.tabbar button)[data-sec=admin] { --sec: #56687a; } :is(.tile, nav.tabbar button)[data-sec=auto] { --sec: #2747c9; }
 nav.tabbar button[data-sec=meals] svg, nav.tabbar button[data-sec=bien] svg { filter: brightness(.85); }
+nav.tabbar button[data-view=home] { --sec: #ffcc00; } nav.tabbar button[data-view=home][aria-current="page"] svg { color: #2a1f00; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) nav.tabbar button[data-sec=news] { --sec: #b4bac4; } } :root[data-theme="dark"] nav.tabbar button[data-sec=news] { --sec: #b4bac4; }
 </style>
 
 <div class="wrap">
