@@ -476,6 +476,9 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 #trip-mode { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; overflow: visible; }
 #trip-mode .btn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; white-space: nowrap; font-size: .85rem; }
 #trip-mode .btn span { font-size: 1.2rem; }
+[data-sec=rappel] { --sec: #f08c00; }
+#rap-list .item.late { border-left-color: #d33; }
+#rap-list .item.done .what { text-decoration: line-through; opacity: .55; }
 </style>
 <div class="wrap">
   <header class="top">
@@ -524,6 +527,11 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
     </article>
 
 
+
+    <article class="card" data-sec="rappel">
+      <div class="card-head"><h2>Rappels</h2><button class="btn" type="button" id="rap-all">Voir tout</button></div>
+      <div class="list" id="rap-list"></div>
+    </article>
 
     <article class="card" data-sec="admin">
       <div class="card-head"><h2>Démarches administratives à faire</h2><button class="btn" data-goto="admin">Voir tout</button></div>
@@ -1206,6 +1214,7 @@ document.addEventListener("click", e => {
 
 /* ---------- pictos et couleurs ---------- */
 const SEC_ICON = {
+  rappel: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
   wx: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   news: ICONS.news, agenda: ICONS.agenda, admin: ICONS.admin, shop: ICONS.home2, car: ICONS.move,
   house: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -1544,8 +1553,10 @@ async function syncAgenda(manual) {
       got.push(JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: all.slice(0, 12) }, key, all.slice(12)))));
     }
     if (!got.length) { st.textContent = "en attente"; msg.textContent = "⏳ Le robot n'a pas encore lu ces agendas. Réessaie dans 10 minutes."; return; }
-    const fresh = [];
-    for (const cal of [...got, ...(pack.pub || []).map(c => ({ ...c, pub: true }))]) {
+    const fresh = [], rap = [];
+    for (const cal of got.filter(c => /rappel/i.test(c.n))) for (const e of cal.e) rap.push({ id: e.d + "|" + e.t, title: e.t, date: e.d, time: e.h });
+    store.set("rappels", rap); renderRappels();
+    for (const cal of [...got.filter(c => !/rappel/i.test(c.n)), ...(pack.pub || []).map(c => ({ ...c, pub: true }))]) {
       const [rank, label] = calInfo(cal.n);
       for (const e of cal.e) fresh.push({ id: "g:" + e.d + e.h + e.t, title: (cal.pub ? "🌙 " : "") + e.t, date: e.d, time: e.h, place: e.p, remind: cal.pub || !e.h ? 0 : 30, gcal: true, cal: label, rank });
     }
@@ -1556,6 +1567,24 @@ async function syncAgenda(manual) {
     st.textContent = "✅ en direct"; msg.textContent = `${got.length} agenda${got.length > 1 ? "s" : ""} · mis à jour il y a ${ago} min`;
   } catch (e) { st.textContent = "hors ligne"; if (manual) msg.textContent = "😕 Pas de connexion au robot pour le moment."; }
 }
+/* Rappels (payer, prendre RDV, rendre des livres…) : agenda Google « Rappels », caché dans Google Agenda, montré seulement ici */
+let rapAll = false;
+function renderRappels() {
+  const done = store.get("rappelsDone", []), today = new Date().toISOString().slice(0, 10);
+  const lim = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
+  const list = store.get("rappels", []).filter(r => !done.includes(r.id) || rapAll).filter(r => rapAll || r.date <= lim).sort((a, b) => a.date < b.date ? -1 : 1);
+  const box = $("#rap-list");
+  if (!list.length) { box.replaceChildren(el("p", { class: "muted", text: store.get("rappels", null) ? "✨ Rien à penser pour l'instant." : "🔔 Tes rappels arrivent ici dès que l'agenda « Rappels » est branché." })); return; }
+  box.replaceChildren(...list.map(r => {
+    const dd = daysUntil(r.date), ok = done.includes(r.id);
+    return el("div", { class: "item " + (ok ? "done" : dd < 0 ? "late" : dd <= 2 ? "soon" : "") },
+      el("input", { type: "checkbox", checked: ok, "aria-label": "Fait : " + r.title, onchange: e => { const d = store.get("rappelsDone", []).filter(x => x !== r.id); if (e.target.checked) d.push(r.id); store.set("rappelsDone", d); renderRappels(); } }),
+      el("div", { class: "what" }, (m => el("div", {}, m ? el("i", { class: "emo", "aria-hidden": "true", text: m[1] }) : emoSpan(r.title, "🔔"), m ? r.title.slice(m[0].length) : r.title))(/^(\p{Extended_Pictographic}\uFE0F?)\s*/u.exec(r.title)), el("div", { class: "small muted", text: fmtDay(r.date) + (r.time ? " · " + r.time : "") })),
+      el("span", { class: "pill " + (dd < 0 ? "warn" : dd <= 2 ? "soon" : ""), text: ok ? "✓ fait" : dd < 0 ? "en retard" : dd === 0 ? "aujourd'hui" : dd === 1 ? "demain" : `J-${dd}` }));
+  }));
+}
+$("#rap-all").addEventListener("click", () => { rapAll = !rapAll; $("#rap-all").textContent = rapAll ? "Moins" : "Voir tout"; renderRappels(); });
+renderRappels();
 $("#gsync-links").value = store.get("icsLinks", "");
 $("#gsync-save").addEventListener("click", () => { store.set("icsLinks", $("#gsync-links").value.trim()); $("#gsync-msg").textContent = `🔗 ${icsLinks().length} lien(s) gardé(s) sur ce téléphone.`; syncAgenda(true); });
 $("#gsync-now").addEventListener("click", () => syncAgenda(true));
