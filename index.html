@@ -1076,7 +1076,7 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
 
     <article class="card" data-sec="admin">
       <div class="card-head"><h2>Démarches</h2></div>
-      <p class="small muted">ⓘ Dates à vérifier chaque année</p>
+      <p class="small muted">✔ Dates vérifiées pour toi sur les sites officiels (26/10/2026)</p>
       <div class="list" id="admin-list"></div>
       <form class="inline" id="adm-form">
         <input type="text" id="adm-title" placeholder="Nouveau rappel" required aria-label="Rappel">
@@ -1095,11 +1095,11 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
 
     <article class="card" data-sec="papers">
       <h2>Mes papiers</h2>
-      <p class="small muted">🔒 Seules les dates sont gardées</p>
+      <p class="small muted">🔒 Seules les dates sont gardées · mets la date d'expiration une fois, je te préviens 3 mois, 1 mois et 1 semaine avant</p>
       <div class="list" id="papers-list"></div>
       <form class="inline" id="pap-form">
         <input type="text" id="pap-title" placeholder="Document (ex. passeport)" required aria-label="Document">
-        <input type="date" id="pap-date" aria-label="Expire le">
+        <input type="date" id="pap-date" aria-label="Expire le" title="Date d'expiration">
         <button class="btn primary" type="submit">Ajouter</button>
       </form>
     </article>
@@ -1653,23 +1653,49 @@ function scheduleReminders() {
 /* ---------- démarches ---------- */
 const Y = now.getFullYear();
 const nextDate = (m, d) => { const x = new Date(Y, m - 1, d); return (x < startOfDay(now) ? new Date(Y + 1, m - 1, d) : x).toISOString().slice(0, 10); };
-let admin = store.get("admin", null) || [
-  { id: uid(), title: "Ouverture de la déclaration de revenus (impots.gouv.fr)", date: nextDate(4, 10), note: "Vers mi-avril" },
-  { id: uid(), title: "Date limite déclaration en ligne, Rhône (zone 3)", date: nextDate(6, 5), note: "Début juin pour les départements 55 à 976" },
-  { id: uid(), title: "Taxe foncière : date limite de paiement", date: nextDate(10, 15), note: "Mi-octobre, +5 jours en ligne" },
-  { id: uid(), title: "CAF : déclaration trimestrielle de ressources", date: nextDate(now.getMonth() + 2 > 12 ? 1 : now.getMonth() + 2, 1), note: "Si tu touches la prime d'activité ou le RSA" },
-  { id: uid(), title: "Tarare, espace famille : inscriptions cantine et périscolaire", date: nextDate(6, 15), note: "Avant la rentrée, à vérifier en mairie" },
-  { id: uid(), title: "Contrôle technique de la voiture", date: "", note: "Ajoute la date de ton prochain contrôle" },
+// Dates vérifiées sur internet par Claude (dernière vérification : 26/10/2026, sources dans "src").
+// Quand la date officielle n'est pas encore publiée, on met la date probable (même jour que l'année passée) et on le dit.
+const ADMIN_REF = [
+  { key: "ir-open", title: "Ouverture de la déclaration de revenus (impots.gouv.fr)", date: "2027-04-08", note: "Date probable · en 2026 c'était le jeudi 9 avril", src: "https://www.economie.gouv.fr/particuliers/impots-et-fiscalite/gerer-mon-impot-sur-le-revenu/impot-sur-le-revenu-le-calendrier-de-la-declaration-en-2026", old: /ouverture de la déclaration/i },
+  { key: "ir-end", title: "Date limite déclaration en ligne, Rhône (zone 3)", date: "2027-06-03", note: "Date probable · en 2026 c'était le jeudi 4 juin à 23h59", src: "https://www.economie.gouv.fr/particuliers/impots-et-fiscalite/gerer-mon-impot-sur-le-revenu/impot-sur-le-revenu-le-calendrier-de-la-declaration-en-2026", old: /date limite déclaration/i },
+  { key: "tf", title: "Taxe foncière : date limite de paiement", date: "2027-10-15", note: "Date probable · en 2026 : 15 octobre (20 octobre en ligne)", src: "https://www.moneyvox.fr/impot/actualites/110477/taxe-fonciere-2026-qui-est-concerne-par-la-date-limite-dgfip-du-20-octobre", old: /taxe foncière/i },
+  { key: "caf-dtr", title: "CAF : déclaration trimestrielle de ressources", date: "2027-01-04", note: "Préremplie : tu vérifies et tu valides · dernière demande de la CAF reçue le 3 avril 2026", src: "https://caf.fr/allocataires/actualites/actualites-nationales/rsa-prime-d-activite-gagnez-du-temps-avec-les-demandes-preremplies", old: /CAF/ },
+  { key: "tarare-peri", title: "Tarare, portail famille : pré-inscriptions périscolaire et cantine", date: "2027-06-01", note: "Date probable · ouverture début juin (2 juin en 2025)", src: "https://ville-tarare.fr/app/uploads/2025/02/Procedure_inscription.pdf", old: /tarare/i },
+  { key: "ct", title: "Contrôle technique de la voiture", date: "", note: "Ajoute la date de ton prochain contrôle", old: /contrôle technique/i },
 ];
+const ADMIN_REF_V = "2026-10-26";
+let admin = store.get("admin", null) || [];
+if (store.get("adminRefV", "") !== ADMIN_REF_V) {
+  for (const r of ADMIN_REF) {
+    const x = admin.find(a => a.key === r.key) || admin.find(a => !a.key && r.old.test(a.title || ""));
+    const fresh = { key: r.key, title: r.title, note: r.note, src: r.src || "" };
+    if (!x) admin.push({ id: uid(), ...fresh, date: r.date, done: false });
+    else { if (r.date && x.date !== r.date) { x.date = r.date; x.done = false; } Object.assign(x, fresh); }
+  }
+  store.set("admin", admin); store.set("adminRefV", ADMIN_REF_V);
+}
 const saveAdmin = () => { store.set("admin", admin); renderAdmin(); };
+// Ce que dure chaque papier (service-public.fr), pour savoir quoi demander et quand prévenir
+const PAPER_INFO = [
+  [/vitale|livret de famille|carte grise|certificat d.immatriculation/i, { never: true, note: "N'expire pas : pas de date à mettre" }],
+  [/identit|cni/i, { note: "Date « valable jusqu'au » au dos · 15 ans pour un adulte", renew: "prends rendez-vous en mairie, les délais sont longs" }],
+  [/passeport/i, { note: "Date d'expiration en page photo · 10 ans pour un adulte", renew: "prends rendez-vous en mairie, les délais sont longs" }],
+  [/permis/i, { note: "Date en case 4b au recto · 15 ans", renew: "fais la demande sur ants.gouv.fr" }],
+  [/assurance/i, { note: "Une nouvelle attestation chaque année", renew: "demande la nouvelle attestation à ton assureur" }],
+];
+const paperInfo = t => (PAPER_INFO.find(([r]) => r.test(t || "")) || [0, {}])[1];
 function dueItem(x, list, save, kind) {
+  const info = kind === "paper" ? paperInfo(x.title) : {};
+  if (info.never) return el("div", { class: "item" }, el("span", { class: "emo", text: "✅" }),
+    el("div", { class: "what" }, el("div", {}, emoSpan(x.title, "📁"), x.title), el("div", { class: "small muted", text: info.note })),
+    el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer " + x.title, text: "✕", onclick: () => { list.splice(list.indexOf(x), 1); save(); } }));
   const dd = x.date ? daysUntil(x.date) : null;
   const state = x.done ? "done" : dd == null ? "" : dd < 0 ? "late" : dd <= 30 ? "soon" : "";
   const pill = x.done ? "fait" : dd == null ? "date ?" : kind === "paper" ? (dd < 0 ? "expiré" : dd <= 90 ? `expire dans ${dd} j` : "valide") : dd < 0 ? "dépassé" : dd === 0 ? "aujourd'hui" : `J-${dd}`;
   const date = el("input", { type: "date", value: x.date || "", "aria-label": "Date pour " + x.title, onchange: e => { x.date = e.target.value; save(); } });
   return el("div", { class: "item " + state },
     el("input", { type: "checkbox", checked: !!x.done, "aria-label": "Marquer comme fait : " + x.title, onchange: e => { x.done = e.target.checked; save(); } }),
-    el("div", { class: "what" }, el("div", {}, emoSpan(x.title, kind === "paper" ? "📁" : "📌"), x.title), x.note ? el("div", { class: "small muted", text: x.note }) : null, el("div", { class: "row small" }, date, el("span", { class: "pill " + (state === "late" ? "warn" : state === "soon" ? "soon" : ""), text: pill }))),
+    el("div", { class: "what" }, el("div", {}, emoSpan(x.title, kind === "paper" ? "📁" : "📌"), x.title), (x.note || info.note) ? el("div", { class: "small muted" }, x.note || info.note, x.src ? el("a", { href: x.src, target: "_blank", rel: "noopener", text: " · source" }) : null) : null, el("div", { class: "row small" }, date, el("span", { class: "pill " + (state === "late" ? "warn" : state === "soon" ? "soon" : ""), text: pill }))),
     el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer " + x.title, text: "✕", onclick: () => { list.splice(list.indexOf(x), 1); save(); } }));
 }
 const byDate = (a, b) => (a.done - b.done) || ((a.date || "9999") < (b.date || "9999") ? -1 : 1);
@@ -1714,6 +1740,21 @@ $("#todo-form").addEventListener("submit", e => { e.preventDefault(); const t = 
 let papers = store.get("papers", null) || ["Carte d'identité", "Passeport", "Permis de conduire", "Carte grise", "Attestation d'assurance auto", "Carte Vitale", "Livret de famille"].map(t => ({ id: uid(), title: t, date: "" }));
 const savePapers = () => { store.set("papers", papers); renderPapers(); renderAdmin(); };
 function renderPapers() { papers.sort(byDate); $("#papers-list").replaceChildren(...papers.map(x => dueItem(x, papers, savePapers, "paper"))); }
+// Alertes papiers : 3 mois, 1 mois, 1 semaine avant, le jour même, puis une fois expiré (notification + carte « À ne pas rater » de l'accueil)
+function paperAlerts() {
+  const done = store.get("paperAlerted", {});
+  for (const x of papers) {
+    if (!x.date || paperInfo(x.title).never) continue;
+    const dd = daysUntil(x.date), step = dd < 0 ? -1 : [0, 7, 30, 90].find(n => dd <= n);
+    if (step == null || done[x.id + x.date] === step) continue;
+    if (done[x.id + x.date] != null && done[x.id + x.date] <= step) continue;
+    const r = paperInfo(x.title).renew;
+    notify(dd < 0 ? `⚠️ ${x.title} : expiré` : `📁 ${x.title} : expire ${dd === 0 ? "aujourd'hui" : `dans ${dd} jours`}`, r ? "Pense à le renouveler : " + r + "." : "Pense à le renouveler.");
+    done[x.id + x.date] = step;
+  }
+  store.set("paperAlerted", done);
+}
+paperAlerts();
 $("#pap-form").addEventListener("submit", e => { e.preventDefault(); papers.push({ id: uid(), title: $("#pap-title").value.trim(), date: $("#pap-date").value }); e.target.reset(); savePapers(); });
 
 /* ---------- voiture / GPS ---------- */
