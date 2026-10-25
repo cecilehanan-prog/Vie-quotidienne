@@ -1317,7 +1317,7 @@ const AGENDA_URL = "https://raw.githubusercontent.com/cecilehanan-prog/Vie-quoti
 // Ordre et noms voulus par CéHa : Cé Perso, Cé Santé, Job, Gabriel, Jasmin, Maison (puis les fêtes)
 const CALS = [[/perso/i, "Cé Perso"], [/sant/i, "Cé Santé"], [/job|famil/i, "Job"], [/gabriel/i, "Gabriel"], [/jasmin/i, "Jasmin"], [/bastion|maison/i, "Maison"], [/musulman|islam/i, "Fêtes"]];
 // Une couleur par agenda (choisies par CéHa)
-const CAL_COLOR = { "Cé Perso": "#e8559a", "Cé Santé": "#5fae3c", "Job": "#3e63dd", "Gabriel": "#e0663a", "Jasmin": "#8e4ec6", "Maison": "#b8780b", "Fêtes": "#c9a227" };
+const CAL_COLOR = { "Cé Perso": "#e8559a", "Cé Santé": "#9cc31c", "Job": "#7b4fd0", "Gabriel": "#f07c1a", "Jasmin": "#d4a017", "Maison": "#17b3c1", "Fêtes": "#5fae3c" };
 const calInfo = n => { const i = CALS.findIndex(([r]) => r.test(n || "")); return i < 0 ? [CALS.length, n || "Agenda"] : [i, CALS[i][1]]; };
 const icsLinks = () => (store.get("icsLinks", "").match(/https:\/\/\S+/g) || []).map(l => l.trim());
 const b64bytes = b => Uint8Array.from(atob(b), c => c.charCodeAt(0));
