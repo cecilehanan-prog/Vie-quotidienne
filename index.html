@@ -434,6 +434,11 @@ details summary { cursor: pointer; font-weight: 700; }
 .item.ev.same .when { align-self: center; } .item.ev .ev-title { font-weight: 600; }
 .pill.soon { background: #e9c46a; color: #2a1f00; border-color: #e9c46a; font-weight: 700; }
 .card[data-sec=films] .badge { background: none; color: var(--sec); width: 34px; height: 34px; } .card[data-sec=films] .badge svg { width: 30px; height: 30px; }
+/* Shopping : couleurs choisies par CéHa */
+[data-sec=loyal] { --sec: #c9a227; --on-sec: #2a1f00; } [data-sec=shop] { --sec: #9b1b30; } [data-sec=pharma] { --sec: #5fae3c; }
+[data-sec=habits] { --sec: #f07c1a; } [data-sec=energy] { --sec: #12a8c9; } [data-sec=chores] { --sec: #6b7280; }
+:is(.tile, nav.tabbar button)[data-sec=shop] { --sec: #9b1b30; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is([data-sec=shop]) { --sec: #e06a7c; } :root:not([data-theme="light"]) [data-sec=chores] { --sec: #9aa1ac; } :root:not([data-theme="light"]) .tile[data-sec=shop] { --sec: #9b1b30; } }
 </style>
 
 <div class="wrap">
