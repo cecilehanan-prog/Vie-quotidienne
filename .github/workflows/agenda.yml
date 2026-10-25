@@ -1,5 +1,5 @@
 # Relais Agenda (demandé par CéHa le 25/10) : lit ses agendas Google privés (liens iCal rangés dans le secret AGENDA_ICS,
-# un par ligne) toutes les 10 minutes, chiffre chaque agenda (AES-GCM, clé tirée de son propre lien) et dépose le tout
+# un par ligne ; agendas ajoutés ensuite dans AGENDA_ICS_PLUS, car un secret GitHub ne se relit pas) toutes les 10 minutes, chiffre chaque agenda (AES-GCM, clé tirée de son propre lien) et dépose le tout
 # dans la branche "agenda" (agenda.enc). Les liens ne sont jamais écrits dans le dépôt ; le téléphone les garde et déchiffre.
 name: Relais Agenda
 on:
@@ -17,6 +17,7 @@ jobs:
       - name: Lire et chiffrer les agendas
         env:
           AGENDA_ICS: ${{ secrets.AGENDA_ICS }}
+          AGENDA_ICS_PLUS: ${{ secrets.AGENDA_ICS_PLUS }}
         run: |
           [ -n "$AGENDA_ICS" ] || { echo "Secret AGENDA_ICS absent"; exit 1; }
           pip install -q icalendar recurring_ical_events cryptography
@@ -32,7 +33,7 @@ jobs:
           # Agendas publics (pas besoin de secret) : fêtes musulmanes de Google
           PUBLIC = ["https://calendar.google.com/calendar/ical/fr.islamic%23holiday%40group.v.calendar.google.com/public/basic.ics"]
           blobs, pub = [], []
-          for link in PUBLIC + re.findall(r"https://\S+", os.environ["AGENDA_ICS"]):
+          for link in PUBLIC + re.findall(r"https://\S+", os.environ["AGENDA_ICS"] + "\n" + os.environ.get("AGENDA_ICS_PLUS", "")):
               try:
                   cal = icalendar.Calendar.from_ical(urllib.request.urlopen(urllib.request.Request(link, headers={"User-Agent": "Mozilla/5.0"}), timeout=60).read())
               except Exception as e:
