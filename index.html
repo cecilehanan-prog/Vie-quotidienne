@@ -1152,7 +1152,7 @@ const lb = (href, e, title) => el("a", { class: "linkbox", href, target: "_blank
 const PLACES = {
   tarare: { name: "Tarare", lat: 45.8961, lon: 4.4331 },
   lyon: { name: "Lyon", lat: 45.7640, lon: 4.8357 },
-  paris: { name: "Paris", lat: 48.8566, lon: 2.3522 },
+  ici: { name: "📍 Où je suis", here: true },
 };
 const WMO = c =>
   c === 0 ? ["Ciel dégagé", "sun"] : c <= 2 ? ["Éclaircies", "partly"] : c === 3 ? ["Couvert", "cloud"] :
@@ -1175,15 +1175,23 @@ const WX_ICON = {
 };
 const night = (k, isDay) => isDay === 0 ? (k === "sun" ? "moon" : k === "partly" ? "moonpartly" : k) : k;
 const wxSvg = (k, cls = "") => `<svg class="wx-pic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${WX_ICON[k]}</svg>`;
-let wxPlace = store.get("wxPlace", "tarare");
+let wxPlace = store.get("wxPlace", "tarare"); if (!PLACES[wxPlace]) wxPlace = "ici";
 for (const [k, p] of Object.entries(PLACES)) {
   $("#wx-places").append(el("button", { class: "btn", type: "button", "data-place": k, "aria-pressed": String(k === wxPlace), text: p.name, onclick: () => { wxPlace = k; store.set("wxPlace", k); loadWeather(); } }));
 }
 async function loadWeather() {
   for (const b of $("#wx-places").children) b.setAttribute("aria-pressed", String(b.dataset.place === wxPlace));
-  const p = PLACES[wxPlace];
+  let p = PLACES[wxPlace];
   const body = $("#wx-body");
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current=temperature_2m,apparent_temperature,weather_code,is_day,wind_speed_10m,precipitation&hourly=temperature_2m,weather_code,precipitation_probability,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FParis&forecast_days=5`;
+  // « Où je suis » : la météo de la ville où je me trouve, partout dans le monde (géolocalisation)
+  if (p.here) {
+    const pos = await hereOnce();
+    if (!pos) { body.innerHTML = `<p class="muted">📍 Autorise la localisation pour voir la météo de l'endroit où tu es.</p>`; return; }
+    let name = store.get("hereCity", "");
+    try { const pr = (await (await fetch(`https://photon.komoot.io/reverse?lat=${pos[0]}&lon=${pos[1]}&lang=fr`)).json()).features?.[0]?.properties || {}; name = pr.city || pr.town || pr.village || pr.county || name; store.set("hereCity", name); } catch {}
+    p = { name: name || "ta position", lat: pos[0].toFixed(3), lon: pos[1].toFixed(3) };
+  }
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current=temperature_2m,apparent_temperature,weather_code,is_day,wind_speed_10m,precipitation&hourly=temperature_2m,weather_code,precipitation_probability,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=5`;
   try {
     const d = await getJSON(url);
     store.set("wx:" + wxPlace, d);
@@ -1214,7 +1222,7 @@ function renderWeather(d, p, stale) {
 async function loadAir(p) {
   const box = $("#air-body"); box.innerHTML = "";
   try {
-    const a = await getJSON(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.lat}&longitude=${p.lon}&current=european_aqi,grass_pollen,birch_pollen,ragweed_pollen&timezone=Europe%2FParis`);
+    const a = await getJSON(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.lat}&longitude=${p.lon}&current=european_aqi,grass_pollen,birch_pollen,ragweed_pollen&timezone=auto`);
     const q = a.current.european_aqi;
     const lvl = q == null ? ["inconnue", ""] : q <= 40 ? ["bonne", "ok"] : q <= 60 ? ["moyenne", "mid"] : ["dégradée", "bad"];
     box.append(el("span", { class: "chip" }, el("span", { class: "dot " + lvl[1] }), `Qualité de l'air ${lvl[0]}`));
