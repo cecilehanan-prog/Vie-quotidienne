@@ -490,9 +490,13 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 .habits-top .shop-item.off .icon-btn.add { color: var(--sec); font-weight: 700; }
 .habits-top .emo.star { font-size: .95em; }
 #habit-manage { margin-top: 8px; }
-/* Date alignée sous le début du mot (après le dessin), plus près du salut */
-header.top h1#greet { margin-bottom: 0; }
-header.top #today-date { flex: 1 1 100%; margin: -22px 0 8px 84px; }
+/* Date sur la ligne du salut, tout à droite, alignée au bord des cartes */
+header.top { flex-wrap: nowrap; align-items: flex-end; }
+header.top h1#greet { flex: 1 1 auto; min-width: 0; margin-bottom: 6px; }
+header.top #today-date { flex: none; margin: 0 0 26px auto; text-align: right; line-height: 1.15; display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; }
+#greet .gt { white-space: nowrap; } #greet .gt.long { font-size: 1.9rem; }
+header.top #today-date .dw { font-size: .78rem; text-transform: capitalize; letter-spacing: .02em; }
+header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg); }
 </style>
 <div class="wrap">
   <header class="top">
@@ -1141,7 +1145,7 @@ async function getJSON(url, ms = 9000) {
 
 /* ---------- en-tête ---------- */
 const now = new Date();
-$("#today-date").textContent = now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+$("#today-date").replaceChildren(el("span", { class: "dw", text: now.toLocaleDateString("fr-FR", { weekday: "long" }) }), el("span", { class: "dm", text: now.toLocaleDateString("fr-FR", { day: "numeric", month: "long" }) }));
 const h = now.getHours();
 /* Salutation en or, écriture calligraphiée + dessin du moment (soleil levant, plein soleil, soleil couchant, lune et étoiles).
    La ligne d'horizon (ou un fin trait) file sous le mot et s'efface. viewBox 64x64, horizon à y=46. */
@@ -1181,7 +1185,7 @@ function greet() {
   const d = new Date(), hh = d.getHours() + d.getMinutes() / 60;
   greetArtNow = greetArt(hh);
   const gi = el("span", { class: "gi", "aria-hidden": "true" }); gi.innerHTML = `<svg viewBox="0 0 64 64">${greetArtNow.svg}</svg>`;
-  $("#greet").replaceChildren(gi, el("span", { class: "gt", text: hh < 5 ? "Bonne nuit" : hh < 12 ? "Bonjour" : hh < 18 ? "Bon après-midi" : "Bonsoir" }));
+  $("#greet").replaceChildren(gi, el("span", { class: "gt" + (hh < 5 || (hh >= 12 && hh < 18) ? " long" : ""), text: hh < 5 ? "Bonne nuit" : hh < 12 ? "Bonjour" : hh < 18 ? "Bon après-midi" : "Bonsoir" }));
   greetLine();
 }
 document.fonts?.ready.then(greetLine); addEventListener("resize", greetLine);
