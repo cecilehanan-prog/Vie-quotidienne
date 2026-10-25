@@ -473,6 +473,9 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 #greet .gi { width: 76px; height: 76px; flex: none; margin: 0 6px 0 0; } #greet .gi svg { width: 100%; height: 100%; overflow: visible; fill: none; stroke: none; }
 #greet .gt { font-family: 'Dancing Script', cursive; font-weight: 700; font-size: 2.5rem; line-height: 1; padding: 0 4px 0 0; margin-bottom: 22px; position: relative; z-index: 1; }
 #greet .sw { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+#trip-mode { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; overflow: visible; }
+#trip-mode .btn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; white-space: nowrap; font-size: .85rem; }
+#trip-mode .btn span { font-size: 1.2rem; }
 </style>
 <div class="wrap">
   <header class="top">
@@ -782,6 +785,7 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
         <input type="time" id="trip-time" aria-label="Heure">
       </div>
       <div class="go-row"><span class="go-ic">📅</span><input type="date" id="trip-date" aria-label="Jour"></div>
+      <div class="tabs" role="group" id="trip-mode" aria-label="Mode de transport"><button class="btn" type="button" data-m="best"><span>✨</span>Le mieux</button><button class="btn" type="button" data-m="car"><span>🚗</span>Voiture</button><button class="btn" type="button" data-m="rail"><span>🚆</span>Train</button><button class="btn" type="button" data-m="air"><span>✈️</span>Avion</button></div>
       <button class="btn primary go-btn" type="button" id="trip-go">🔎 Trouver le meilleur trajet</button>
       <p class="small muted" id="trip-msg"></p>
       <div id="trip-res"></div>
@@ -1519,7 +1523,7 @@ const CALS = [[/perso/i, "Cé Perso"], [/sant/i, "Cé Santé"], [/job|famil/i, "
 // Une couleur par agenda (choisies par CéHa)
 // Texte blanc sur les couleurs foncées, foncé sur les claires (vert citron, jaune d'or)
 const calFg = hex => { const n = parseInt(hex.slice(1), 16), r = n >> 16, g = n >> 8 & 255, b = n & 255; return g > 185 ? "#1d2400" : "#fff"; };
-const CAL_COLOR = { "Cé Perso": "#f07cb4", "Cé Santé": "#9cc31c", "Job": "#7b4fd0", "Gabriel": "#f07c1a", "Jasmin": "#d4a017", "Maison": "#17b3c1", "Fêtes": "#5fae3c" };
+const CAL_COLOR = { "Cé Perso": "#f07cb4", "Cé Santé": "#b9cc12", "Job": "#7b4fd0", "Gabriel": "#f07c1a", "Jasmin": "#d4a017", "Maison": "#17b3c1", "Fêtes": "#5fae3c" };
 const calInfo = n => { const i = CALS.findIndex(([r]) => r.test(n || "")); return i < 0 ? [CALS.length, n || "Agenda"] : [i, CALS[i][1]]; };
 const icsLinks = () => (store.get("icsLinks", "").match(/https:\/\/\S+/g) || []).map(l => l.trim());
 const b64bytes = b => Uint8Array.from(atob(b), c => c.charCodeAt(0));
@@ -1845,12 +1849,17 @@ async function refreshMove(force) {
 }
 /* ---------- voyage ---------- */
 /* ----- trajet calculé par l'appli ----- */
-const QUICK = ["Lyon Part-Dieu", "Lyon Perrache", "Tarare", "Roanne", "Villefranche-sur-Saône", "Paris"];
+const QUICK = ["Lyon Part-Dieu", "Lyon Perrache", "Tarare", "Paris"];
 $("#trip-quick").replaceChildren(...QUICK.map(c => el("button", { class: "btn", type: "button", text: c, onclick: () => { $("#trip-to").value = c; findTrip(); } })));
 let tripHere = null, arriveBy = false;
 const pad = n => String(n).padStart(2, "0");
 const hm = d => `${pad(d.getHours())}h${pad(d.getMinutes())}`;
 (() => { const d = new Date(Date.now() + 10 * 60000); $("#trip-time").value = `${pad(d.getHours())}:${pad(d.getMinutes())}`; $("#trip-date").value = d.toISOString().slice(0, 10); })();
+/* Mode de transport choisi par CéHa (par défaut : le mieux, tout est comparé) */
+let tripMode = store.get("tripMode", "best");
+const paintMode = () => { for (const x of $("#trip-mode").children) x.setAttribute("aria-pressed", String(x.dataset.m === tripMode)); };
+for (const b of $("#trip-mode").children) b.addEventListener("click", () => { tripMode = b.dataset.m; store.set("tripMode", tripMode); paintMode(); if ($("#trip-to").value.trim()) findTrip(); });
+paintMode();
 for (const b of $("#trip-when").children) b.addEventListener("click", () => { arriveBy = b.dataset.arr === "1"; for (const x of $("#trip-when").children) x.setAttribute("aria-pressed", String(x === b)); });
 $("#trip-here").addEventListener("click", () => {
   if (!navigator.geolocation) return;
@@ -2067,7 +2076,7 @@ async function findTrip() {
       });
       const first = it.legs.find(l => l.mode !== "WALK");
       cards.push({ emo: LEG_EMO(first?.mode || "BUS"), title: `${it.transfers ? it.transfers + " correspondance" + (it.transfers > 1 ? "s" : "") : "Direct"}${first?.from?.name ? " · départ " + first.from.name : ""}`,
-        start: new Date(it.startTime), end: new Date(it.endTime), dur: it.duration, legs, warns: [...new Set(warns)], color: "#0e7fc0",
+        start: new Date(it.startTime), end: new Date(it.endTime), dur: it.duration, legs, warns: [...new Set(warns)], color: "#0e7fc0", rail: it.legs.some(l => isRail(l.mode)),
         acts: [[/RAIL|TRAIN/.test(it.legs.map(l => l.mode).join()) ? "https://www.sncf-connect.com/" : gmT, "🎟️ Billet"], [gmT, "🗺️ Détails"]] });
     });
   }
@@ -2082,16 +2091,16 @@ async function findTrip() {
   best.best = true;
   msg.textContent = `${A.name} → ${B.name}`;
   // Ordre fixe : voiture, puis train et transports, puis avion
-  const carC = cards.filter(c => c.emo === "🚗"), ptC = cards.filter(c => c.emo !== "🚗");
+  const carC = cards.filter(c => c.emo === "🚗"), ptAll = cards.filter(c => c.emo !== "🚗");
+  const railC = ptAll.filter(c => c.rail), ptC = tripMode === "rail" && railC.length ? railC : ptAll;
   const D = encodeURIComponent($("#trip-date").value || "");
-  res.replaceChildren(
-    ...(carC.length ? [el("div", { class: "label", text: "🚗 En voiture" }), ...carC.map(routeCard)] : []),
-    el("div", { class: "label", text: "🚆 En train, car ou bus" }),
-    ...(ptC.length ? ptC.map(routeCard) : [el("div", { class: "grid2" }, lb("https://www.sncf-connect.com/", "🚄", "SNCF Connect"), lb(gmT, "🚌", "Bus et train"))]),
-    el("div", { class: "label", text: "✈️ En avion" }),
-    el("div", { class: "grid2" },
-      lb(`https://www.google.com/travel/flights?q=${encodeURIComponent(`Vols de Lyon à ${to}${D ? " le " + decodeURIComponent(D) : ""}`)}`, "✈️", "Trouver un vol"),
-      lb("https://www.easyjet.com/fr", "🟧", "easyJet")));
+  const secCar = carC.length ? [el("div", { class: "label", text: "🚗 En voiture" }), ...carC.map(routeCard)] : [el("div", { class: "label", text: "🚗 En voiture" }), el("div", { class: "grid2" }, lb(`https://waze.com/ul?ll=${ll(B.pos)}&navigate=yes`, "🚙", "Waze"), lb(`https://www.google.com/maps/dir/?api=1&origin=${ll(A.pos)}&destination=${ll(B.pos)}&travelmode=driving`, "🗺️", "Google Maps"))];
+  const secPt = [el("div", { class: "label", text: tripMode === "rail" ? "🚆 En train" : "🚆 En train, car ou bus" }),
+    ...(ptC.length ? ptC.map(routeCard) : [el("div", { class: "grid2" }, lb("https://www.sncf-connect.com/", "🚄", "SNCF Connect"), lb(gmT, "🚌", "Bus et train"))])];
+  const secAir = [el("div", { class: "label", text: "✈️ En avion" }), el("div", { class: "grid2" },
+    lb(`https://www.google.com/travel/flights?q=${encodeURIComponent(`Vols de Lyon à ${to}${D ? " le " + decodeURIComponent(D) : ""}`)}`, "✈️", "Trouver un vol"),
+    lb("https://www.easyjet.com/fr", "🟧", "easyJet"))];
+  res.replaceChildren(...(tripMode === "car" ? secCar : tripMode === "rail" ? secPt : tripMode === "air" ? secAir : [...(carC.length ? secCar : []), ...secPt, ...secAir]));
   tripWeather(to);
 }
 /* Mes envies de voyage : lieux + date facultative ; un appui prépare la recherche */
