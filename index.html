@@ -1611,15 +1611,15 @@ async function syncAgenda(manual) {
       got.push(JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: all.slice(0, 12) }, key, all.slice(12)))));
     }
     if (!got.length) { st.textContent = "en attente"; msg.textContent = "⏳ Le robot n'a pas encore lu ces agendas. Réessaie dans 10 minutes."; return; }
-    const fresh = [], rap = [];
+    const fresh = [], rap = [], seenEv = new Set(); // un même rendez-vous présent dans deux agendas (ou deux fois dans la liste) n'apparaît qu'une fois
     for (const cal of got.filter(c => /rappel/i.test(c.n))) for (const e of cal.e) rap.push({ id: e.d + "|" + e.t, title: e.t, date: e.d, time: e.h });
     store.set("rappels", rap); renderRappels();
     for (const cal of [...got.filter(c => !/rappel/i.test(c.n)), ...(pack.pub || []).map(c => ({ ...c, pub: true }))]) {
       const [rank, label] = calInfo(cal.n);
-      for (const e of cal.e) fresh.push({ id: "g:" + e.d + e.h + e.t, title: (cal.pub ? "🌙 " : "") + e.t, date: e.d, time: e.h, place: e.p, end: e.z || "", remind: cal.pub || !e.h ? 0 : 30, gcal: true, cal: label, rank });
+      for (const e of cal.e) if (!seenEv.has(e.d + e.h + e.t.trim().toLowerCase()) && seenEv.add(e.d + e.h + e.t.trim().toLowerCase())) fresh.push({ id: "g:" + e.d + e.h + e.t, title: (cal.pub ? "🌙 " : "") + e.t, date: e.d, time: e.h, place: e.p, end: e.z || "", remind: cal.pub || !e.h ? 0 : 30, gcal: true, cal: label, rank });
     }
     fresh.sort((a, b) => a.rank - b.rank);
-    events = events.filter(x => !x.sample && !x.gcal && !x.imported).concat(fresh);
+    events = events.filter(x => !x.sample && !x.gcal && !x.imported && !seenEv.has(x.date + (x.time || "") + (x.title || "").trim().toLowerCase())).concat(fresh);
     saveEvents(); renderTiles();
     const ago = Math.max(0, Math.round((Date.now() - new Date(pack.u)) / 6e4));
     st.textContent = "✅ en direct"; msg.textContent = `${got.length} agenda${got.length > 1 ? "s" : ""} · mis à jour il y a ${ago} min`;
