@@ -442,9 +442,7 @@ details summary { cursor: pointer; font-weight: 700; }
 :is(.tile, nav.tabbar button)[data-sec=bien] { --sec: #9cc31c; } .tile[data-sec=bien] { color: #1f2a00; }
 :is(.tile, nav.tabbar button)[data-sec=admin] { --sec: #56687a; } :is(.tile, nav.tabbar button)[data-sec=auto] { --sec: #2747c9; }
 nav.tabbar button[data-sec=meals] svg, nav.tabbar button[data-sec=bien] svg { filter: brightness(.85); }
-nav.tabbar button[data-view=home] { background: linear-gradient(135deg, #b8860b, #e2b04a 55%, #c9961a); border-radius: 14px; margin: 5px 3px; padding: 4px 0 6px; }
-nav.tabbar button[data-view=home] svg, nav.tabbar button[data-view=home][aria-current="page"] svg { color: #fff; background: none; padding: 0; width: 24px; height: 24px; }
-nav.tabbar button[data-view=home] span, nav.tabbar button[data-view=home][aria-current="page"] span { color: #fff; font-weight: 700; }
+nav.tabbar button[data-view=home] svg, nav.tabbar button[data-view=home][aria-current="page"] svg { color: #fff; background: linear-gradient(135deg, #b8860b, #e2b04a 55%, #c9961a); border-radius: 10px; padding: 3px; width: 32px; height: 28px; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) nav.tabbar button[data-sec=news] { --sec: #b4bac4; } } :root[data-theme="dark"] nav.tabbar button[data-sec=news] { --sec: #b4bac4; }
 </style>
 
