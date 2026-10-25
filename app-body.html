@@ -1540,11 +1540,16 @@ $("#ics-file").addEventListener("change", async ev => {
    chaque agenda se déchiffre avec la clé tirée de son propre lien privé, gardé seulement sur ce téléphone. */
 const AGENDA_URL = "https://raw.githubusercontent.com/cecilehanan-prog/Vie-quotidienne/agenda/agenda.enc";
 // Ordre et noms voulus par CéHa : Cé Perso, Cé Santé, Job, Gabriel, Jasmin, Maison (puis les fêtes)
-const CALS = [[/perso/i, "Cé Perso"], [/sant/i, "Cé Santé"], [/job|famil/i, "Job"], [/gabriel/i, "Gabriel"], [/jasmin/i, "Jasmin"], [/bastion|maison/i, "Maison"], [/musulman|islam/i, "Fêtes"]];
-// Une couleur par agenda (choisies par CéHa)
+const CALS = [[/perso|cecilehanan/i, "Cé Perso"], [/^c[ée] sant/i, "Cé Santé"], [/aesh|cit[ée] scol/i, "Job AESH"], [/actual|job/i, "Job Actual Médical"],
+  [/chez c[ée]cile|famille\.juchat/i, "Charlie & Gabriel chez Cécile"], [/chez luc/i, "Charlie & Gabriel chez Luc"],
+  [/gabriel.*sant/i, "Gabriel santé"], [/gabriel/i, "Gabriel activités"], [/jasmin.*sant/i, "Jasmin santé"], [/jasmin/i, "Jasmin activités"],
+  [/bastion|maison/i, "Maison"], [/vacances/i, "Vacances scolaires"], [/musulman|islam/i, "Fêtes"]];
+// Une couleur par agenda, les mêmes que dans son Google Agenda (capture du 26/10)
 // Texte blanc sur les couleurs foncées, foncé sur les claires (vert citron, jaune d'or)
-const calFg = hex => { const n = parseInt(hex.slice(1), 16), r = n >> 16, g = n >> 8 & 255, b = n & 255; return g > 185 ? "#1d2400" : "#fff"; };
-const CAL_COLOR = { "Cé Perso": "#f07cb4", "Cé Santé": "#b9cc12", "Job": "#7b4fd0", "Gabriel": "#f07c1a", "Jasmin": "#d4a017", "Maison": "#17b3c1", "Fêtes": "#5fae3c" };
+const calFg = hex => { const n = parseInt(hex.slice(1), 16), r = n >> 16, g = n >> 8 & 255, b = n & 255; return .299 * r + .587 * g + .114 * b > 160 ? "#1d2400" : "#fff"; };
+const CAL_COLOR = { "Cé Perso": "#ec4890", "Cé Santé": "#a2ef4a", "Job AESH": "#e4a9a7", "Job Actual Médical": "#163a4c",
+  "Gabriel activités": "#e96248", "Gabriel santé": "#4ba46a", "Jasmin activités": "#f8d586", "Jasmin santé": "#8dcd5c", "Maison": "#9bf8e9",
+  "Charlie & Gabriel chez Cécile": "#8945f5", "Charlie & Gabriel chez Luc": "#3f96f7", "Vacances scolaires": "#c7bdbe", "Fêtes": "#3d8d57" };
 const calInfo = n => { const i = CALS.findIndex(([r]) => r.test(n || "")); return i < 0 ? [CALS.length, n || "Agenda"] : [i, CALS[i][1]]; };
 const icsLinks = () => (store.get("icsLinks", "").match(/https:\/\/\S+/g) || []).map(l => l.trim());
 const b64bytes = b => Uint8Array.from(atob(b), c => c.charCodeAt(0));
