@@ -432,6 +432,9 @@ details summary { cursor: pointer; font-weight: 700; }
 [data-sec=habits] { --sec: #f07c1a; } [data-sec=energy] { --sec: #12a8c9; } [data-sec=chores] { --sec: #6b7280; }
 :is(.tile, nav.tabbar button)[data-sec=shop] { --sec: #9b1b30; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is([data-sec=shop]) { --sec: #e06a7c; } :root:not([data-theme="light"]) [data-sec=chores] { --sec: #9aa1ac; } :root:not([data-theme="light"]) .tile[data-sec=shop] { --sec: #9b1b30; } }
+/* Trajets : couleurs choisies par CéHa */
+[data-sec=traf] { --sec: #6b7280; } [data-sec=drive] { --sec: #2747c9; } [data-sec=metro] { --sec: #d32f2f; } [data-sec=rail] { --sec: #0e9fc0; } [data-sec=near] { --sec: #d4a017; --on-sec: #2a1f00; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) [data-sec=traf] { --sec: #9aa1ac; } :root:not([data-theme="light"]) [data-sec=drive] { --sec: #6f8af0; } :root:not([data-theme="light"]) [data-sec=metro] { --sec: #ef6b6b; } }
 </style>
 
 <div class="wrap">
@@ -661,11 +664,11 @@ details summary { cursor: pointer; font-weight: 700; }
 
   <!-- ===== TRAJETS ===== -->
   <section class="view" id="view-move" hidden>
-    <article class="card" data-sec="car">
+    <article class="card" data-sec="traf">
       <h2>🚦 Info trafic</h2>
       <div class="alerts" id="trip-alerts"></div>
     </article>
-    <article class="card" data-sec="car">
+    <article class="card" data-sec="drive">
       <h2>⛽ En voiture</h2>
       <div class="grid2">
         <a class="linkbox" href="https://www.bison-fute.gouv.fr/" target="_blank" rel="noopener"><i class="emo">🚦</i><strong>Bison Futé</strong><span>Trafic national, prévisions</span></a>
@@ -674,7 +677,7 @@ details summary { cursor: pointer; font-weight: 700; }
       </div>
       <div id="fuel-body" class="small"></div>
     </article>
-    <article class="card" data-sec="transit">
+    <article class="card" data-sec="metro">
       <div class="card-head"><h2>Bus, tram, métro</h2><button class="btn" id="locate-btn" type="button">📍 Où suis-je ?</button></div>
       <p class="small muted" id="locate-msg">📍 Près de Lyon ou Paris, le bon réseau s'affiche tout seul</p>
       <div class="row" role="group" aria-label="Choisir le réseau" id="net-tabs"></div>
@@ -693,12 +696,12 @@ details summary { cursor: pointer; font-weight: 700; }
       <div class="label" style="margin-top:12px">🚌 Cars longue distance</div>
       <div class="grid2" id="tr-coach"></div>
     </article>
-    <article class="card" data-sec="car">
+    <article class="card" data-sec="rail">
       <div class="card-head"><h2>🚉 Prochains trains</h2><button class="btn" type="button" id="dep-go">🔄</button></div>
       <p class="small muted" id="dep-msg">📍 Je cherche la gare la plus proche de toi…</p>
       <div id="dep-res"></div>
     </article>
-    <article class="card" data-sec="transit">
+    <article class="card" data-sec="near">
       <h2>📍 Autour de moi</h2>
       <button class="btn primary" type="button" id="around-btn">📍 Me localiser</button>
       <p class="small muted" id="around-msg"></p>
@@ -1102,6 +1105,11 @@ const SEC_ICON = {
   trip: '<path d="M2 16l20-6-2-3-7 2-5-5-2 1 3 5-5 2-2-2-1 1z"/>',
   links: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   keep: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/>',
+  traf: '<rect x="8" y="2.5" width="8" height="19" rx="3"/><circle cx="12" cy="7" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="17" r="1.6"/>',
+  drive: '<path d="M5 17h14l-1.5-6.5A2 2 0 0 0 15.6 9H8.4a2 2 0 0 0-1.9 1.5z"/><circle cx="8" cy="17" r="2"/><circle cx="16" cy="17" r="2"/>',
+  metro: '<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M9 21l-2-4M15 21l2-4"/><circle cx="9" cy="14" r=".8"/><circle cx="15" cy="14" r=".8"/>',
+  rail: '<rect x="6" y="3" width="12" height="14" rx="4"/><path d="M6 10h12M9 21l1.5-4M15 21l-1.5-4"/><circle cx="9.5" cy="13.5" r=".8"/><circle cx="14.5" cy="13.5" r=".8"/>',
+  near: '<path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
   papers: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   bienwarn: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
   ionic: '<path d="M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z"/>',
@@ -1219,13 +1227,13 @@ for (const [k, f] of Object.entries(FEEDS)) {
 }
 /* Flux RSS : plusieurs relais gratuits essayés en même temps, le premier qui répond gagne (l'un d'eux tombe souvent en panne) */
 const parseRss = txt => { const xml = new DOMParser().parseFromString(txt, "text/xml"), src = xml.querySelector("channel > title")?.textContent, items = [...xml.querySelectorAll("item")];
-  if (!items.length) throw new Error("vide");
+  if (!items.length && !xml.querySelector("channel")) throw new Error("pas un flux");
   return items.map(i => ({ title: i.querySelector("title")?.textContent, link: i.querySelector("link")?.textContent, date: i.querySelector("pubDate")?.textContent, src })); };
 const withTimeout = (p, ms = 12000) => Promise.race([p, new Promise((_, ko) => setTimeout(() => ko(new Error("lent")), ms))]);
 async function fetchFeed(url) {
   const u = encodeURIComponent(url), text = async x => { const r = await fetch(x); if (!r.ok) throw new Error(r.status); return r.text(); };
   return Promise.any([
-    withTimeout(getJSON("https://api.rss2json.com/v1/api.json?rss_url=" + u).then(j => { if (j.status !== "ok" || !j.items?.length) throw new Error("rss2json"); return j.items.map(i => ({ title: i.title, link: i.link, date: i.pubDate, src: j.feed?.title })); })),
+    withTimeout(getJSON("https://api.rss2json.com/v1/api.json?rss_url=" + u).then(j => { if (j.status !== "ok" || !Array.isArray(j.items)) throw new Error("rss2json"); return j.items.map(i => ({ title: i.title, link: i.link, date: i.pubDate, src: j.feed?.title })); })),
     withTimeout(text("https://api.allorigins.win/raw?url=" + u).then(parseRss)),
     withTimeout(text("https://corsproxy.io/?url=" + u).then(parseRss)),
     withTimeout(text("https://api.codetabs.com/v1/proxy?quest=" + u).then(parseRss)),
