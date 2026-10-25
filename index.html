@@ -1668,11 +1668,11 @@ $("#pap-form").addEventListener("submit", e => { e.preventDefault(); papers.push
 
 /* ---------- voiture / GPS ---------- */
 /* Carburant le moins cher autour de moi : prix officiels du jour en France (data.economie.gouv.fr) ; ailleurs, stations proches (OpenStreetMap) */
-const FUELS = [["sp95", "SP95"], ["e10", "E10"], ["sp98", "SP98"], ["gazole", "Gazole"], ["e85", "Éthanol"], ["gplc", "GPL"]];
-let fuelKind = store.get("fuelKind", "sp95"), fuelCache = null;
+const FUELS = [["e10", "E10"], ["sp95", "SP95"], ["sp98", "SP98"], ["gazole", "Gazole"], ["e85", "Éthanol"], ["gplc", "GPL"]];
+let fuelKind = store.get("fuelKind2", "e10"), fuelCache = null;
 function renderFuelKinds() {
   $("#fuel-kind").replaceChildren(...FUELS.map(([k, t]) => el("button", { class: "btn", type: "button", "aria-pressed": String(k === fuelKind), text: t,
-    onclick: () => { fuelKind = k; store.set("fuelKind", k); renderFuelKinds(); fuelCache ? showFuel() : loadFuel(); } })));
+    onclick: () => { fuelKind = k; store.set("fuelKind2", k); renderFuelKinds(); fuelCache ? showFuel() : loadFuel(); } })));
 }
 renderFuelKinds();
 const fuelKm = d => d < 1 ? Math.round(d * 1000) + " m" : d.toFixed(1).replace(".", ",") + " km";
@@ -1687,23 +1687,35 @@ function showFuel() {
   const best = Math.min(...list.map(r => r[fuelKind]));
   box.replaceChildren(el("div", { class: "label", text: `⛽ ${label} · de la plus proche à la plus loin ${geo ? "" : "(depuis Tarare)"}` }),
     ...list.map(r => { const top = r[fuelKind] === best; return el("div", { class: "row", style: `flex-wrap:nowrap;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding:9px 0` },
-      el("span", { style: "min-width:0" }, el("strong", { text: r.brand ? `${r.brand} · ${r.name}` : r.name }), el("div", { class: "muted", text: `📍 ${fuelKm(r.km)} · ${r.addr}` })),
+      el("span", { style: "min-width:0" }, el("strong", { text: `${r.brand || "Station-service"} · ${r.name}` }), el("div", { class: "muted", text: `📍 ${fuelKm(r.km)} · ${r.addr}` })),
       el("span", { style: "display:flex;align-items:center;gap:8px" },
         el("strong", { style: `font-variant-numeric:tabular-nums;font-size:1.1em;white-space:nowrap${top ? ";color:#1f9d55" : ""}`, text: (top ? "🏆 " : "") + r[fuelKind].toFixed(3).replace(".", ",") + " €" }), goLinks(r.pos))); }));
 }
-// Enseignes (Total, Auchan…) : prises dans OpenStreetMap, rattachées à la station la plus proche (moins de 250 m)
+// Enseignes (Total, Auchan…) : OpenStreetMap autour de la station (moins de 400 m), sinon Photon ; gardées en mémoire par station
+const fuelBrandMem = store.get("fuelBrands", {});
+const cleanBrand = b => (b || "").replace(/^(station[- ]service|station)\s+/i, "").trim();
 async function fuelBrands(me, rows) {
-  const q = `[out:json][timeout:10];nwr(around:15000,${me[0]},${me[1]})[amenity=fuel];out center 120;`, u = "?data=" + encodeURIComponent(q);
+  const redraw = () => { store.set("fuelBrands", fuelBrandMem); if (fuelCache?.rows === rows) showFuel(); };
+  for (const r of rows) if (fuelBrandMem[r.id]) r.brand = fuelBrandMem[r.id];
+  const q = `[out:json][timeout:15];nwr(around:15000,${me[0]},${me[1]})[amenity=fuel];out center 150;`, u = "?data=" + encodeURIComponent(q);
   try {
-    const els = (await Promise.any(["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"].map(h => getJSON(h + u, 15000)))).elements || [];
-    const osm = els.map(e => ({ brand: (e.tags || {}).brand || (e.tags || {}).name, pos: [e.lat ?? e.center?.lat, e.lon ?? e.center?.lon] })).filter(x => x.brand && x.pos[0] != null);
-    let changed = false;
+    const els = (await Promise.any(["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"].map(h => getJSON(h + u, 15000)))).elements || [];
+    const osm = els.map(e => { const t = e.tags || {}; return { brand: cleanBrand(t.brand || t.name || t.operator), pos: [e.lat ?? e.center?.lat, e.lon ?? e.center?.lon] }; }).filter(x => x.brand && x.pos[0] != null);
     for (const r of rows) {
       const m = osm.map(o => [o, distKm(r.pos, o.pos)]).sort((a, b) => a[1] - b[1])[0];
-      if (m && m[1] < 0.25) { r.brand = m[0].brand; changed = true; }
+      if (m && m[1] < 0.4) { r.brand = m[0].brand; fuelBrandMem[r.id] = r.brand; }
     }
-    if (changed && fuelCache?.rows === rows) showFuel();
+    redraw();
   } catch {}
+  // Celles qui restent sans nom (les plus proches d'abord) : Photon
+  const left = rows.filter(r => !r.brand).sort((a, b) => a.km - b.km).slice(0, 10);
+  await Promise.all(left.map(async r => {
+    try {
+      const f = ((await getJSON(`https://photon.komoot.io/reverse?lat=${r.pos[0]}&lon=${r.pos[1]}&radius=0.4&limit=1&osm_tag=amenity:fuel`, 10000)).features || [])[0];
+      const b = cleanBrand(f?.properties?.name); if (b) { r.brand = b; fuelBrandMem[r.id] = b; }
+    } catch {}
+  }));
+  if (left.some(r => r.brand)) redraw();
 }
 async function loadFuel() {
   const box = $("#fuel-body");
@@ -1715,7 +1727,7 @@ async function loadFuel() {
     const res = (await getJSON(`https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records?where=${w}&limit=100`, 12000)).results || [];
     const rows = res.map(r => {
       const g = r.geom || {}, pos = [g.lat ?? (r.latitude ? r.latitude / 1e5 : null), g.lon ?? (r.longitude ? r.longitude / 1e5 : null)];
-      const o = { pos, km: pos[0] != null ? distKm(me, pos) : 99, name: (r.ville || "Station").toLowerCase().replace(/(^|[\s-])(\S)/g, (m, x, c) => x + c.toUpperCase()).replace(/-(Sur|Sous|Les|La|Le|De|Du|Des|En)-/g, m => m.toLowerCase()), addr: r.adresse || "" };
+      const o = { id: r.id, pos, km: pos[0] != null ? distKm(me, pos) : 99, name: (r.ville || "Station").toLowerCase().replace(/(^|[\s-])(\S)/g, (m, x, c) => x + c.toUpperCase()).replace(/-(Sur|Sous|Les|La|Le|De|Du|Des|En)-/g, m => m.toLowerCase()), addr: r.adresse || "" };
       for (const [k] of FUELS) o[k] = r[k + "_prix"] ? Number(r[k + "_prix"]) : null;
       return o;
     }).filter(o => o.pos[0] != null);
