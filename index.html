@@ -463,6 +463,9 @@ nav.tabbar button[data-view=home] svg, nav.tabbar button[data-view=home][aria-cu
 #fuel-kind { display: flex; flex-wrap: nowrap; overflow-x: auto; max-width: 100%; } #fuel-kind .btn { flex: none; padding: 6px 12px; }
 [data-sec=loved] { --sec: #f4a7c3; --on-sec: #5a1233; }
 .card[data-sec=loved] .badge { background: #f4a7c3; color: #5a1233; }
+.wx-places { display: flex; gap: 6px; overflow-x: auto; flex-wrap: nowrap; margin: 2px 0 10px; padding-bottom: 2px; } .wx-places .btn { flex: none; white-space: nowrap; }
+.wx-places .wx-t { font-weight: 700; } .wx-search { margin-bottom: 12px; } .wx-search input { width: 100%; }
+.wx-search .shop-item, .wx-search .shop-item .what { color: var(--fg); background: var(--surface); } .wx-search .shop-item .muted { color: var(--muted); } .wx-search .label { color: #fff !important; margin-top: 10px; } .wx-search .shop-item .what { flex: 1; } .wx-search .icon-btn:disabled { visibility: hidden; } .wx-search > p { color: #fff; }
 header.top { --g1: #8a5a00; --g2: #b8860b; --g3: #7a4e00; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) header.top { --g1: #f6dc8c; --g2: #e2b04a; --g3: #fbe7a8; } }
 :root[data-theme="dark"] header.top { --g1: #f6dc8c; --g2: #e2b04a; --g3: #fbe7a8; }
@@ -487,7 +490,12 @@ header.top { --g1: #8a5a00; --g2: #b8860b; --g3: #7a4e00; }
     <article class="card" data-sec="wx" aria-labelledby="wx-title">
       <div class="card-head">
         <h2 id="wx-title">Météo</h2>
-        <div class="row" role="group" aria-label="Choisir la ville" id="wx-places"></div>
+      </div>
+      <div class="wx-places" role="group" aria-label="Choisir la ville" id="wx-places"></div>
+      <div class="wx-search" id="wx-search" hidden>
+        <input type="search" id="wx-q" placeholder="🔎 Chercher une ville (ex. Marrakech)" aria-label="Chercher une ville" autocomplete="off">
+        <div class="list" id="wx-results"></div>
+        <div class="list" id="wx-edit"></div>
       </div>
       <div id="wx-body"><p class="muted">Chargement de la météo…</p></div>
       <div class="row small" id="air-body"></div>
@@ -1218,11 +1226,10 @@ const emoSpan = (text, fb) => el("i", { class: "emo", "aria-hidden": "true", tex
 const lb = (href, e, title) => el("a", { class: "linkbox", href, target: "_blank", rel: "noopener" }, el("i", { class: "emo", text: e }), el("strong", { text: title }));
 
 /* ---------- météo (Open-Meteo, gratuit, sans clé) ---------- */
-const PLACES = {
-  tarare: { name: "Tarare", lat: 45.8961, lon: 4.4331 },
-  lyon: { name: "Lyon", lat: 45.7640, lon: 4.8357 },
-  ici: { name: "Géoloc'", here: true },
-};
+/* Mes villes : Géoloc' en premier, puis les villes enregistrées (comme l'appli La Chaîne Météo), gardées sur ce téléphone */
+let wxFavs = store.get("wxFavs", [{ k: "tarare", name: "Tarare", lat: 45.8961, lon: 4.4331 }, { k: "lyon", name: "Lyon", lat: 45.7640, lon: 4.8357 }]);
+const placeList = () => [{ k: "ici", name: "Géoloc'", here: true }, ...wxFavs];
+const placeOf = k => placeList().find(p => p.k === k);
 const WMO = c =>
   c === 0 ? ["Ciel dégagé", "sun"] : c <= 2 ? ["Éclaircies", "partly"] : c === 3 ? ["Couvert", "cloud"] :
   c <= 48 ? ["Brouillard", "fog"] : c <= 57 ? ["Bruine", "rain"] : c <= 67 ? ["Pluie", "rain"] :
@@ -1244,13 +1251,50 @@ const WX_ICON = {
 };
 const night = (k, isDay) => isDay === 0 ? (k === "sun" ? "moon" : k === "partly" ? "moonpartly" : k) : k;
 const wxSvg = (k, cls = "") => `<svg class="wx-pic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${WX_ICON[k]}</svg>`;
-let wxPlace = store.get("wxPlace", "tarare"); if (!PLACES[wxPlace]) wxPlace = "ici";
-for (const [k, p] of Object.entries(PLACES)) {
-  $("#wx-places").append(el("button", { class: "btn", type: "button", "data-place": k, "aria-pressed": String(k === wxPlace), text: p.name, onclick: () => { wxPlace = k; store.set("wxPlace", k); loadWeather(); } }));
+let wxPlace = store.get("wxPlace", "tarare"); if (!placeOf(wxPlace)) wxPlace = "ici";
+let wxTemps = {};
+function renderPlaces() {
+  $("#wx-places").replaceChildren(...placeList().map(p => el("button", { class: "btn", type: "button", "data-place": p.k, "aria-pressed": String(p.k === wxPlace),
+    onclick: () => { wxPlace = p.k; store.set("wxPlace", p.k); renderPlaces(); loadWeather(); } }, (p.here ? "📍 " : "") + p.name, wxTemps[p.k] != null ? el("span", { class: "wx-t", text: " " + wxTemps[p.k] + "°" }) : null)),
+    el("button", { class: "btn", type: "button", "aria-label": "Ajouter ou ranger mes villes", text: "＋", onclick: () => { const b = $("#wx-search"); b.hidden = !b.hidden; if (!b.hidden) { renderWxEdit(); $("#wx-q").focus(); } } }));
 }
+// Températures de toutes mes villes en un seul appel
+async function loadFavTemps() {
+  if (!wxFavs.length) return;
+  try {
+    const j = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${wxFavs.map(f => f.lat).join(",")}&longitude=${wxFavs.map(f => f.lon).join(",")}&current=temperature_2m`);
+    (Array.isArray(j) ? j : [j]).forEach((r, i) => { if (wxFavs[i]) wxTemps[wxFavs[i].k] = Math.round(r.current.temperature_2m); });
+    renderPlaces();
+  } catch {}
+}
+function saveFavs() { store.set("wxFavs", wxFavs); renderPlaces(); renderWxEdit(); }
+function renderWxEdit() {
+  $("#wx-edit").replaceChildren(el("div", { class: "label", text: "⭐ Mes villes" }), ...wxFavs.map((f, i) => el("div", { class: "shop-item" },
+    el("span", { class: "what", text: f.name + (f.sub ? " · " + f.sub : "") }),
+    el("button", { class: "icon-btn", type: "button", "aria-label": "Monter", text: "⬆️", disabled: i === 0, onclick: () => { wxFavs.splice(i - 1, 0, wxFavs.splice(i, 1)[0]); saveFavs(); } }),
+    el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + f.name, text: "✕", onclick: () => { wxFavs.splice(i, 1); if (wxPlace === f.k) { wxPlace = "ici"; store.set("wxPlace", "ici"); loadWeather(); } saveFavs(); } }))));
+}
+let wxQT;
+$("#wx-q").addEventListener("input", e => {
+  clearTimeout(wxQT); const q = e.target.value.trim();
+  if (q.length < 2) { $("#wx-results").replaceChildren(); return; }
+  wxQT = setTimeout(async () => {
+    try {
+      const j = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=fr`, 8000);
+      $("#wx-results").replaceChildren(...(j.results || []).map(r => {
+        const sub = [r.admin1, r.country].filter(Boolean).join(", ");
+        return el("button", { class: "shop-item", type: "button", style: "width:100%;text-align:left;cursor:pointer", onclick: () => {
+          const k = "c" + r.id; if (!wxFavs.some(f => f.k === k)) wxFavs.push({ k, name: r.name, sub: r.country, lat: +r.latitude.toFixed(4), lon: +r.longitude.toFixed(4) });
+          wxPlace = k; store.set("wxPlace", k); saveFavs(); $("#wx-q").value = ""; $("#wx-results").replaceChildren(); $("#wx-search").hidden = true; loadWeather(); loadFavTemps();
+        } }, el("span", { class: "what" }, el("strong", { text: "＋ " + r.name }), el("span", { class: "muted", text: sub ? " · " + sub : "" })));
+      }), ...((j.results || []).length ? [] : [el("p", { class: "muted", text: "Aucune ville trouvée." })]));
+    } catch { $("#wx-results").replaceChildren(el("p", { class: "muted", text: "😕 Recherche indisponible pour l'instant." })); }
+  }, 350);
+});
+renderPlaces(); loadFavTemps();
 async function loadWeather() {
-  for (const b of $("#wx-places").children) b.setAttribute("aria-pressed", String(b.dataset.place === wxPlace));
-  let p = PLACES[wxPlace];
+  for (const b of $("#wx-places").children) if (b.dataset.place) b.setAttribute("aria-pressed", String(b.dataset.place === wxPlace));
+  let p = placeOf(wxPlace) || placeList()[0];
   const body = $("#wx-body");
   // « Géoloc' » : la météo de la ville où je me trouve, partout dans le monde (géolocalisation)
   if (p.here) {
