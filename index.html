@@ -164,8 +164,8 @@ form.inline > input { flex: 1 1 140px; }
 .item { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; min-width: 0; }
 .item .when { font-variant-numeric: tabular-nums; font-weight: 700; font-size: .9rem; text-align: center; min-width: 52px; line-height: 1.2; }
 .item .what { min-width: 0; overflow-wrap: anywhere; }
-.item.late { box-shadow: inset 4px 0 0 var(--warn); }
-.item.soon { box-shadow: inset 4px 0 0 var(--sun); }
+.item.late { box-shadow: inset 4px 0 0 #8a9099; }
+.item.soon { box-shadow: inset 4px 0 0 #8a9099; }
 .item.done { opacity: .55; }
 .icon-btn { border: 0; background: transparent; cursor: pointer; padding: 6px; border-radius: 8px; color: var(--muted); }
 .icon-btn:hover { background: var(--surface); color: var(--fg); }
@@ -433,12 +433,13 @@ details summary { cursor: pointer; font-weight: 700; }
 .item.ev .ev-time { font-size: .82rem; font-weight: 600; color: var(--muted); }
 .item.ev.same .when { align-self: center; } .item.ev .ev-title { font-weight: 600; }
 .pill.soon { background: #e9c46a; color: #2a1f00; border-color: #e9c46a; font-weight: 700; }
+:is([data-sec=chores], [data-sec=todo]) .pill:is(.soon, .warn) { background: #8a9099; color: #fff; border-color: #8a9099; font-weight: 700; }
 .card[data-sec=films] .badge { background: #111114; color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.16); }
 /* Shopping : couleurs choisies par CéHa */
-[data-sec=loyal] { --sec: #c9a227; --on-sec: #2a1f00; } [data-sec=shop] { --sec: #dc2a3f; } [data-sec=pharma] { --sec: #5fae3c; }
+[data-sec=loyal] { --sec: #c9a227; --on-sec: #2a1f00; } [data-sec=shop] { --sec: #d32f2f; } [data-sec=pharma] { --sec: #5fae3c; }
 [data-sec=habits] { --sec: #f07c1a; } [data-sec=energy] { --sec: #12a8c9; } [data-sec=chores] { --sec: #6b7280; }
-:is(.tile, nav.tabbar button)[data-sec=shop] { --sec: #dc2a3f; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is([data-sec=shop]) { --sec: #ff5a6a; } :root:not([data-theme="light"]) [data-sec=chores] { --sec: #9aa1ac; } :root:not([data-theme="light"]) .tile[data-sec=shop] { --sec: #dc2a3f; } }
+:is(.tile, nav.tabbar button)[data-sec=shop] { --sec: #d32f2f; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is([data-sec=shop]) { --sec: #ef6b6b; } :root:not([data-theme="light"]) [data-sec=chores] { --sec: #9aa1ac; } :root:not([data-theme="light"]) .tile[data-sec=shop] { --sec: #d32f2f; } }
 /* Trajets : couleurs choisies par CéHa */
 [data-sec=traf] { --sec: #6b7280; } [data-sec=drive] { --sec: #1a2f8a; } [data-sec=metro] { --sec: #d32f2f; } [data-sec=rail] { --sec: #0e9fc0; } [data-sec=near] { --sec: #ffcc00; --on-sec: #2a1f00; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) [data-sec=traf] { --sec: #9aa1ac; } :root:not([data-theme="light"]) [data-sec=drive] { --sec: #5470d6; } :root:not([data-theme="light"]) [data-sec=metro] { --sec: #ef6b6b; } }
@@ -702,9 +703,14 @@ nav.tabbar button[data-view=home] { --sec: #ffcc00; } nav.tabbar button[data-vie
     </article>
     <article class="card" data-sec="metro">
       <div class="card-head"><h2>Bus, tram, métro</h2><button class="btn" id="locate-btn" type="button">📍 Où suis-je ?</button></div>
-      <p class="small muted" id="locate-msg">📍 Près de Lyon ou Paris, le bon réseau s'affiche tout seul</p>
+      <p class="small muted" id="locate-msg">📍 Près de Lyon, le bon réseau s'affiche tout seul</p>
       <div class="row" role="group" aria-label="Choisir le réseau" id="net-tabs"></div>
       <div class="grid2" id="net-body"></div>
+    </article>
+    <article class="card" data-sec="rail">
+      <div class="card-head"><h2>🚉 Prochains trains</h2><button class="btn" type="button" id="dep-go">🔄</button></div>
+      <p class="small muted" id="dep-msg">📍 Je cherche la gare la plus proche de toi…</p>
+      <div id="dep-res"></div>
     </article>
     <article class="card" data-sec="car">
       <h2>🧭 Aller à…</h2>
@@ -718,11 +724,6 @@ nav.tabbar button[data-view=home] { --sec: #ffcc00; } nav.tabbar button[data-vie
       <div id="tr-res"></div>
       <div class="label" style="margin-top:12px">🚌 Cars longue distance</div>
       <div class="grid2" id="tr-coach"></div>
-    </article>
-    <article class="card" data-sec="rail">
-      <div class="card-head"><h2>🚉 Prochains trains</h2><button class="btn" type="button" id="dep-go">🔄</button></div>
-      <p class="small muted" id="dep-msg">📍 Je cherche la gare la plus proche de toi…</p>
-      <div id="dep-res"></div>
     </article>
     <article class="card" data-sec="near">
       <h2>📍 Autour de moi</h2>
@@ -1589,12 +1590,6 @@ const NETS = {
     ["https://www.tcl.fr/titres-et-tarifs", "Tickets et tarifs", "Ticket, Pass, appli TCL"],
     ["https://www.ter.sncf.com/auvergne-rhone-alpes/se-deplacer/info-trafic", "TER Auvergne-Rhône-Alpes", "Ligne Tarare–Lyon, info trafic"],
   ] },
-  paris: { name: "Paris (RATP)", center: [48.8566, 2.3522], radius: 25, links: [
-    ["https://www.ratp.fr/infos-trafic", "Info trafic RATP", "Métro, RER, bus en direct"],
-    ["https://www.iledefrance-mobilites.fr/", "Île-de-France Mobilités", "Itinéraires, tous réseaux"],
-    ["https://www.iledefrance-mobilites.fr/titres-et-tarifs", "Tickets et tarifs", "Navigo, tickets"],
-    ["https://www.transilien.com/", "Transilien", "Trains de banlieue"],
-  ] },
 };
 let net = "lyon";
 for (const [k, n] of Object.entries(NETS)) $("#net-tabs").append(el("button", { class: "btn", type: "button", "data-net": k, text: n.name, onclick: () => showNet(k) }));
@@ -1614,13 +1609,13 @@ function locate(silent) {
     const near = Object.entries(NETS).map(([k, n]) => [k, distKm(me, n.center)]).sort((a, b) => a[1] - b[1])[0];
     if (near[1] <= NETS[near[0]].radius) {
       showNet(near[0]);
-      $("#locate-msg").textContent = `Tu es à ${Math.round(near[1])} km du centre de ${near[0] === "lyon" ? "Lyon" : "Paris"} : voici le réseau local.`;
+      $("#locate-msg").textContent = `Tu es à ${Math.round(near[1])} km du centre de Lyon : voici le réseau local.`;
       const n = NETS[near[0]];
       const b = $("#near-banner");
-      b.replaceChildren(el("div", { class: "banner" }, el("strong", { text: `Tu es près de ${near[0] === "lyon" ? "Lyon" : "Paris"}` }),
+      b.replaceChildren(el("div", { class: "banner" }, el("strong", { text: "Tu es près de Lyon" }),
         el("span", {}, "Pense à vérifier le trafic : ", el("a", { href: n.links[0][0], target: "_blank", rel: "noopener", text: n.links[0][1] }))));
       b.hidden = false;
-    } else if (!silent) $("#locate-msg").textContent = "Tu n'es ni à Lyon ni à Paris. Choisis un réseau ci-dessous.";
+    } else if (!silent) $("#locate-msg").textContent = "Tu n'es pas près de Lyon. L'info trafic plus haut suit l'endroit où tu es.";
   }, () => { if (!silent) $("#locate-msg").textContent = "Localisation refusée ou indisponible. Choisis le réseau à la main."; }, { maximumAge: 600000, timeout: 10000 });
 }
 $("#locate-btn").addEventListener("click", () => locate(false));
