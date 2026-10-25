@@ -1266,7 +1266,7 @@ function evItem(e, withDelete) {
   const dd = daysUntil(e.date);
   const it = el("div", { class: "item" + (dd <= 1 ? " soon" : "") },
     el("div", { class: "when" }, d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }), el("br"), el("span", { class: "muted small", text: e.time || "" })),
-    el("div", { class: "what" }, el("div", {}, emoSpan(e.title, "📅"), e.title), el("div", { class: "small muted", text: [e.place, e.remind ? "rappel " + ({ 30: "30 min avant", 60: "1 h avant", 1440: "la veille", 2880: "2 jours avant" }[e.remind] || "") : ""].filter(Boolean).join(" · ") })),
+    el("div", { class: "what" }, el("div", {}, emoSpan(e.title, "📅"), e.title), el("div", { class: "small muted", text: [e.cal ? "🗂️ " + e.cal : "", e.place, e.remind ? "rappel " + ({ 30: "30 min avant", 60: "1 h avant", 1440: "la veille", 2880: "2 jours avant" }[e.remind] || "") : ""].filter(Boolean).join(" · ") })),
     withDelete && !e.gcal ? el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer " + e.title, text: "✕", onclick: () => { events = events.filter(x => x.id !== e.id); saveEvents(); } }) : el("span", { class: "pill", text: dd === 0 ? "aujourd'hui" : dd === 1 ? "demain" : `J-${dd}` }));
   return it;
 }
@@ -1305,6 +1305,9 @@ $("#ics-file").addEventListener("change", async ev => {
 /* Google Agenda en direct : le robot « Relais Agenda » dépose les agendas chiffrés (branche agenda) ;
    chaque agenda se déchiffre avec la clé tirée de son propre lien privé, gardé seulement sur ce téléphone. */
 const AGENDA_URL = "https://raw.githubusercontent.com/cecilehanan-prog/Vie-quotidienne/agenda/agenda.enc";
+// Ordre et noms voulus par CéHa : Cé Perso, Cé Santé, Job, Gabriel, Jasmin, Maison (puis les fêtes)
+const CALS = [[/perso/i, "Cé Perso"], [/sant/i, "Cé Santé"], [/job|famil/i, "Job"], [/gabriel/i, "Gabriel"], [/jasmin/i, "Jasmin"], [/bastion|maison/i, "Maison"], [/musulman|islam/i, "Fêtes"]];
+const calInfo = n => { const i = CALS.findIndex(([r]) => r.test(n || "")); return i < 0 ? [CALS.length, n || "Agenda"] : [i, CALS[i][1]]; };
 const icsLinks = () => (store.get("icsLinks", "").match(/https:\/\/\S+/g) || []).map(l => l.trim());
 const b64bytes = b => Uint8Array.from(atob(b), c => c.charCodeAt(0));
 const hex = buf => [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2, "0")).join("");
@@ -1323,8 +1326,11 @@ async function syncAgenda(manual) {
     }
     if (!got.length) { st.textContent = "en attente"; msg.textContent = "⏳ Le robot n'a pas encore lu ces agendas. Réessaie dans 10 minutes."; return; }
     const fresh = [];
-    for (const cal of [...got, ...(pack.pub || []).map(c => ({ ...c, pub: true }))]) for (const e of cal.e)
-      fresh.push({ id: "g:" + e.d + e.h + e.t, title: (cal.pub ? "🌙 " : "") + e.t, date: e.d, time: e.h, place: e.p, remind: cal.pub || !e.h ? 0 : 30, gcal: true });
+    for (const cal of [...got, ...(pack.pub || []).map(c => ({ ...c, pub: true }))]) {
+      const [rank, label] = calInfo(cal.n);
+      for (const e of cal.e) fresh.push({ id: "g:" + e.d + e.h + e.t, title: (cal.pub ? "🌙 " : "") + e.t, date: e.d, time: e.h, place: e.p, remind: cal.pub || !e.h ? 0 : 30, gcal: true, cal: label, rank });
+    }
+    fresh.sort((a, b) => a.rank - b.rank);
     events = events.filter(x => !x.sample && !x.gcal && !x.imported).concat(fresh);
     saveEvents(); renderTiles();
     const ago = Math.max(0, Math.round((Date.now() - new Date(pack.u)) / 6e4));
