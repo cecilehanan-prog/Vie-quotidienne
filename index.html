@@ -415,6 +415,8 @@ details summary { cursor: pointer; font-weight: 700; }
 .truth { background: color-mix(in srgb, #3f88b5 14%, var(--surface)); border-radius: 12px; padding: 10px 12px; margin-top: 8px; }
 #view-bien .warn { background: none; border: 0; padding: 0; border-radius: 0; font-size: .82rem; color: #b06a00; margin-top: 6px; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #view-bien .warn { color: #f0b860; } }
+.gsync { margin-top: 12px; background: var(--surface-2); border-radius: 12px; padding: 10px 12px; } .gsync summary { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; cursor: pointer; }
+.gsync textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: .8rem; }
 </style>
 
 <div class="wrap">
@@ -509,7 +511,13 @@ details summary { cursor: pointer; font-weight: 700; }
         <label class="btn" for="ics-file">📥 Importer Google (.ics)</label>
         <input type="file" id="ics-file" hidden>
       </div>
-      <div class="notice small">🔜 Google Agenda en direct, bientôt. En attendant, importe le fichier .ics de Google.</div>
+      <details class="gsync" id="gsync">
+        <summary><span>🔄 Mes agendas Google en direct</span><span class="pill" id="gsync-state">à brancher</span></summary>
+        <p class="small muted">Colle ici tes liens privés Google Agenda (adresse secrète au format iCal), un par ligne. Ils restent seulement sur ce téléphone.</p>
+        <textarea id="gsync-links" rows="3" autocomplete="off" spellcheck="false" aria-label="Liens iCal privés"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn primary" type="button" id="gsync-save">💾 Brancher</button><button class="btn" type="button" id="gsync-now">🔄 Actualiser</button></div>
+        <p class="small muted" id="gsync-msg"></p>
+      </details>
     </article>
   </section>
 
@@ -1265,8 +1273,8 @@ function evItem(e, withDelete) {
   const dd = daysUntil(e.date);
   const it = el("div", { class: "item" + (dd <= 1 ? " soon" : "") },
     el("div", { class: "when" }, d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }), el("br"), el("span", { class: "muted small", text: e.time || "" })),
-    el("div", { class: "what" }, el("div", {}, emoSpan(e.title, "📅"), e.title), el("div", { class: "small muted", text: [e.place, e.remind ? "rappel " + ({ 60: "1 h avant", 1440: "la veille", 2880: "2 jours avant" }[e.remind] || "") : ""].filter(Boolean).join(" · ") })),
-    withDelete ? el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer " + e.title, text: "✕", onclick: () => { events = events.filter(x => x.id !== e.id); saveEvents(); } }) : el("span", { class: "pill", text: dd === 0 ? "aujourd'hui" : dd === 1 ? "demain" : `J-${dd}` }));
+    el("div", { class: "what" }, el("div", {}, emoSpan(e.title, "📅"), e.title), el("div", { class: "small muted", text: [e.place, e.remind ? "rappel " + ({ 30: "30 min avant", 60: "1 h avant", 1440: "la veille", 2880: "2 jours avant" }[e.remind] || "") : ""].filter(Boolean).join(" · ") })),
+    withDelete && !e.gcal ? el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer " + e.title, text: "✕", onclick: () => { events = events.filter(x => x.id !== e.id); saveEvents(); } }) : el("span", { class: "pill", text: dd === 0 ? "aujourd'hui" : dd === 1 ? "demain" : `J-${dd}` }));
   return it;
 }
 function renderAgenda() {
@@ -1301,6 +1309,43 @@ $("#ics-file").addEventListener("change", async ev => {
   saveEvents();
   ev.target.value = "";
 });
+/* Google Agenda en direct : le robot « Relais Agenda » dépose les agendas chiffrés (branche agenda) ;
+   chaque agenda se déchiffre avec la clé tirée de son propre lien privé, gardé seulement sur ce téléphone. */
+const AGENDA_URL = "https://raw.githubusercontent.com/cecilehanan-prog/Vie-quotidienne/agenda/agenda.enc";
+const icsLinks = () => (store.get("icsLinks", "").match(/https:\/\/\S+/g) || []).map(l => l.trim());
+const b64bytes = b => Uint8Array.from(atob(b), c => c.charCodeAt(0));
+const hex = buf => [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2, "0")).join("");
+async function syncAgenda(manual) {
+  const links = icsLinks(), st = $("#gsync-state"), msg = $("#gsync-msg");
+  if (!links.length) { st.textContent = "à brancher"; return; }
+  try {
+    const r = await fetch(AGENDA_URL + "?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw new Error("absent");
+    const pack = await r.json(), got = [];
+    for (const link of links) {
+      const raw = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("vie-quotidienne-agenda|" + link));
+      const id = hex(await crypto.subtle.digest("SHA-256", raw)).slice(0, 12), blob = pack.a.find(b => b.id === id);
+      if (!blob) continue;
+      const all = b64bytes(blob.c), key = await crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
+      got.push(JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: all.slice(0, 12) }, key, all.slice(12)))));
+    }
+    if (!got.length) { st.textContent = "en attente"; msg.textContent = "⏳ Le robot n'a pas encore lu ces agendas. Réessaie dans 10 minutes."; return; }
+    const fresh = [];
+    for (const cal of [...got, ...(pack.pub || []).map(c => ({ ...c, pub: true }))]) for (const e of cal.e)
+      fresh.push({ id: "g:" + e.d + e.h + e.t, title: (cal.pub ? "🌙 " : "") + e.t, date: e.d, time: e.h, place: e.p, remind: cal.pub || !e.h ? 0 : 30, gcal: true });
+    events = events.filter(x => !x.sample && !x.gcal && !x.imported).concat(fresh);
+    saveEvents(); renderTiles();
+    const ago = Math.max(0, Math.round((Date.now() - new Date(pack.u)) / 6e4));
+    st.textContent = "✅ en direct"; msg.textContent = `${got.length} agenda${got.length > 1 ? "s" : ""} · mis à jour il y a ${ago} min`;
+  } catch (e) { st.textContent = "hors ligne"; if (manual) msg.textContent = "😕 Pas de connexion au robot pour le moment."; }
+}
+$("#gsync-links").value = store.get("icsLinks", "");
+$("#gsync-save").addEventListener("click", () => { store.set("icsLinks", $("#gsync-links").value.trim()); $("#gsync-msg").textContent = `🔗 ${icsLinks().length} lien(s) gardé(s) sur ce téléphone.`; syncAgenda(true); });
+$("#gsync-now").addEventListener("click", () => syncAgenda(true));
+{ // lien d'installation en un geste : …#agendas=<liens> (reste dans le téléphone, n'est jamais envoyé au site)
+  const m = /[#&]agendas=([^&]+)/.exec(location.hash);
+  if (m) { store.set("icsLinks", decodeURIComponent(m[1]).replace(/\s*\|\s*/g, "\n")); $("#gsync-links").value = store.get("icsLinks", ""); history.replaceState(null, "", location.pathname); }
+}
+if (icsLinks().length) { $("#gsync").open = false; syncAgenda(); setInterval(syncAgenda, 10 * 6e4); document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && syncAgenda()); }
 // Notifications (fonctionnent quand l'appli est ouverte ou installée ; les vraies notifications push viendront avec un petit serveur)
 let timers = [];
 function notifState() {

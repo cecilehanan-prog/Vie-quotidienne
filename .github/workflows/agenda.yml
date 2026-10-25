@@ -1,0 +1,68 @@
+# Relais Agenda (demandé par CéHa le 25/10) : lit ses agendas Google privés (liens iCal rangés dans le secret AGENDA_ICS,
+# un par ligne) toutes les 10 minutes, chiffre chaque agenda (AES-GCM, clé tirée de son propre lien) et dépose le tout
+# dans la branche "agenda" (agenda.enc). Les liens ne sont jamais écrits dans le dépôt ; le téléphone les garde et déchiffre.
+name: Relais Agenda
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: agenda
+jobs:
+  agenda:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Lire et chiffrer les agendas
+        env:
+          AGENDA_ICS: ${{ secrets.AGENDA_ICS }}
+        run: |
+          [ -n "$AGENDA_ICS" ] || { echo "Secret AGENDA_ICS absent"; exit 1; }
+          pip install -q icalendar recurring_ical_events cryptography
+          mkdir out
+          python3 - <<'PY'
+          import os, re, json, base64, hashlib, datetime, urllib.request
+          from zoneinfo import ZoneInfo
+          import icalendar, recurring_ical_events
+          from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+          tz = ZoneInfo("Europe/Paris")
+          now = datetime.datetime.now(tz)
+          start, end = (now - datetime.timedelta(days=2)).date(), (now + datetime.timedelta(days=200)).date()
+          # Agendas publics (pas besoin de secret) : fêtes musulmanes de Google
+          PUBLIC = ["https://calendar.google.com/calendar/ical/fr.islamic%23holiday%40group.v.calendar.google.com/public/basic.ics"]
+          blobs, pub = [], []
+          for link in PUBLIC + re.findall(r"https://\S+", os.environ["AGENDA_ICS"]):
+              try:
+                  cal = icalendar.Calendar.from_ical(urllib.request.urlopen(urllib.request.Request(link, headers={"User-Agent": "Mozilla/5.0"}), timeout=60).read())
+              except Exception as e:
+                  print("Agenda illisible :", type(e).__name__); continue
+              ev = []
+              for e in recurring_ical_events.of(cal).between(start, end):
+                  if str(e.get("STATUS", "")).upper() == "CANCELLED": continue
+                  s = e.get("DTSTART").dt; f = e.get("DTEND").dt if e.get("DTEND") else None
+                  timed = isinstance(s, datetime.datetime)
+                  if timed:
+                      s = (s if s.tzinfo else s.replace(tzinfo=tz)).astimezone(tz)
+                      f = (f if f.tzinfo else f.replace(tzinfo=tz)).astimezone(tz) if isinstance(f, datetime.datetime) else None
+                  ev.append({"t": str(e.get("SUMMARY", "Rendez-vous")), "d": s.strftime("%Y-%m-%d"), "h": s.strftime("%H:%M") if timed else "",
+                             "f": f.strftime("%H:%M") if timed and f else "", "p": str(e.get("LOCATION", "")).split("\n")[0]})
+              ev.sort(key=lambda x: (x["d"], x["h"]))
+              if link in PUBLIC:
+                  pub.append({"n": str(cal.get("X-WR-CALNAME", "")), "e": ev}); print(len(ev), "fêtes"); continue
+              data = json.dumps({"n": str(cal.get("X-WR-CALNAME", "")), "e": ev}, ensure_ascii=False).encode()
+              key = hashlib.sha256(("vie-quotidienne-agenda|" + link).encode()).digest()
+              iv = os.urandom(12)
+              blobs.append({"id": hashlib.sha256(key).hexdigest()[:12], "c": base64.b64encode(iv + AESGCM(key).encrypt(iv, data, None)).decode()})
+              print(len(ev), "événements")
+          json.dump({"u": now.isoformat(timespec="minutes"), "a": blobs, "pub": pub}, open("out/agenda.enc", "w"))
+          PY
+      - name: Publier dans la branche agenda
+        run: |
+          cd out
+          git init -q -b agenda
+          git config user.name "Relais Agenda"
+          git config user.email "actions@users.noreply.github.com"
+          git add agenda.enc
+          git commit -qm "Agenda chiffré"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" agenda
