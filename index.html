@@ -712,10 +712,10 @@ nav.tabbar button[data-view=home] { --sec: #ffcc00; } nav.tabbar button[data-vie
       <div id="fuel-body" class="small"></div>
     </article>
     <article class="card" data-sec="metro">
-      <div class="card-head"><h2>Bus, tram, métro</h2><button class="btn" id="locate-btn" type="button">📍 Où suis-je ?</button></div>
-      <p class="small muted" id="locate-msg">📍 Près de Lyon, le bon réseau s'affiche tout seul</p>
-      <div class="row" role="group" aria-label="Choisir le réseau" id="net-tabs"></div>
-      <div class="grid2" id="net-body"></div>
+      <div class="card-head"><h2>Bus, tram, métro</h2><button class="btn" id="locate-btn" type="button">📍 Géoloc'</button></div>
+      <p class="small muted" id="locate-msg">📍 Je cherche les arrêts autour de toi…</p>
+      <div id="stop-res"></div>
+      <div class="grid2" id="net-body" style="margin-top:10px"></div>
     </article>
     <article class="card" data-sec="rail">
       <div class="card-head"><h2>🚉 Prochains trains</h2><button class="btn" type="button" id="dep-go">🔄</button></div>
@@ -1128,7 +1128,7 @@ function show(id) {
   for (const b of $("#tabbar").children) b.setAttribute("aria-current", b.dataset.view === id ? "page" : "false");
   store.set("view", id);
   if (id === "news" && !newsLoaded) loadNews(currentFeed);
-  if (id === "move" && !moveLoaded) { moveLoaded = true; setTimeout(() => { loadFuel(); loadDepartures(); }); }
+  if (id === "move" && !moveLoaded) { moveLoaded = true; setTimeout(() => { loadFuel(); loadStops(); loadDepartures(); }); }
   if (id === "rdv") renderRdv();
   if (id === "bien") renderBien();
   if (id === "serenite") setTimeout(() => { renderRamadan(); prayLocate(); if (!gmlLoaded) { gmlLoaded = true; loadGmlNews(); } openQuran(); openDhikr(); });
@@ -1564,8 +1564,8 @@ $("#pap-form").addEventListener("submit", e => { e.preventDefault(); papers.push
 
 /* ---------- voiture / GPS ---------- */
 /* Carburant le moins cher autour de moi : prix officiels du jour en France (data.economie.gouv.fr) ; ailleurs, stations proches (OpenStreetMap) */
-const FUELS = [["gazole", "Gazole"], ["e10", "E10"], ["sp95", "SP95"], ["sp98", "SP98"], ["e85", "E85"], ["gplc", "GPL"]];
-let fuelKind = store.get("fuelKind", "gazole"), fuelCache = null;
+const FUELS = [["sp95", "SP95"], ["e10", "E10"], ["sp98", "SP98"], ["gazole", "Gazole"], ["e85", "Éthanol"], ["gplc", "GPL"]];
+let fuelKind = store.get("fuelKind", "sp95"), fuelCache = null;
 function renderFuelKinds() {
   $("#fuel-kind").replaceChildren(...FUELS.map(([k, t]) => el("button", { class: "btn", type: "button", "aria-pressed": String(k === fuelKind), text: t,
     onclick: () => { fuelKind = k; store.set("fuelKind", k); renderFuelKinds(); fuelCache ? showFuel() : loadFuel(); } })));
@@ -1576,15 +1576,30 @@ const goLinks = pos => el("span", { class: "row", style: "gap:6px;flex:none" },
   el("a", { class: "icon-btn", href: `https://waze.com/ul?ll=${pos[0]},${pos[1]}&navigate=yes`, target: "_blank", rel: "noopener", "aria-label": "Y aller avec Waze", text: "🚙" }),
   el("a", { class: "icon-btn", href: `https://www.google.com/maps/dir/?api=1&destination=${pos[0]},${pos[1]}`, target: "_blank", rel: "noopener", "aria-label": "Y aller avec Google Maps", text: "🗺️" }));
 function showFuel() {
-  const { me, geo, rows } = fuelCache, box = $("#fuel-body");
-  const list = rows.filter(r => r[fuelKind]).sort((a, b) => a[fuelKind] - b[fuelKind] || a.km - b.km).slice(0, 6);
+  const { geo, rows } = fuelCache, box = $("#fuel-body");
+  const list = rows.filter(r => r[fuelKind]).sort((a, b) => a.km - b.km).slice(0, 8);
   const label = FUELS.find(f => f[0] === fuelKind)[1];
   if (!list.length) { box.replaceChildren(el("p", { class: "muted", text: `⛽ Pas de ${label} trouvé autour de toi.` })); return; }
-  box.replaceChildren(el("div", { class: "label", text: `⛽ ${label} le moins cher ${geo ? "près de toi" : "près de Tarare"}` }),
-    ...list.map((r, i) => el("div", { class: "row", style: `flex-wrap:nowrap;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding:9px 0${i ? "" : ";font-size:1.05em"}` },
-      el("span", { style: "min-width:0" }, el("strong", { text: (i ? "" : "🏆 ") + r.name }), el("div", { class: "muted", text: `📍 ${fuelKm(r.km)} · ${r.addr}` })),
+  const best = Math.min(...list.map(r => r[fuelKind]));
+  box.replaceChildren(el("div", { class: "label", text: `⛽ ${label} · de la plus proche à la plus loin ${geo ? "" : "(depuis Tarare)"}` }),
+    ...list.map(r => { const top = r[fuelKind] === best; return el("div", { class: "row", style: `flex-wrap:nowrap;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding:9px 0` },
+      el("span", { style: "min-width:0" }, el("strong", { text: r.brand ? `${r.brand} · ${r.name}` : r.name }), el("div", { class: "muted", text: `📍 ${fuelKm(r.km)} · ${r.addr}` })),
       el("span", { style: "display:flex;align-items:center;gap:8px" },
-        el("strong", { style: "font-variant-numeric:tabular-nums;font-size:1.1em;white-space:nowrap", text: r[fuelKind].toFixed(3).replace(".", ",") + " €" }), goLinks(r.pos)))));
+        el("strong", { style: `font-variant-numeric:tabular-nums;font-size:1.1em;white-space:nowrap${top ? ";color:#1f9d55" : ""}`, text: (top ? "🏆 " : "") + r[fuelKind].toFixed(3).replace(".", ",") + " €" }), goLinks(r.pos))); }));
+}
+// Enseignes (Total, Auchan…) : prises dans OpenStreetMap, rattachées à la station la plus proche (moins de 250 m)
+async function fuelBrands(me, rows) {
+  const q = `[out:json][timeout:10];nwr(around:15000,${me[0]},${me[1]})[amenity=fuel];out center 120;`, u = "?data=" + encodeURIComponent(q);
+  try {
+    const els = (await Promise.any(["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"].map(h => getJSON(h + u, 15000)))).elements || [];
+    const osm = els.map(e => ({ brand: (e.tags || {}).brand || (e.tags || {}).name, pos: [e.lat ?? e.center?.lat, e.lon ?? e.center?.lon] })).filter(x => x.brand && x.pos[0] != null);
+    let changed = false;
+    for (const r of rows) {
+      const m = osm.map(o => [o, distKm(r.pos, o.pos)]).sort((a, b) => a[1] - b[1])[0];
+      if (m && m[1] < 0.25) { r.brand = m[0].brand; changed = true; }
+    }
+    if (changed && fuelCache?.rows === rows) showFuel();
+  } catch {}
 }
 async function loadFuel() {
   const box = $("#fuel-body");
@@ -1600,7 +1615,7 @@ async function loadFuel() {
       for (const [k] of FUELS) o[k] = r[k + "_prix"] ? Number(r[k + "_prix"]) : null;
       return o;
     }).filter(o => o.pos[0] != null);
-    if (rows.length) { fuelCache = { me, geo, rows }; showFuel(); return; }
+    if (rows.length) { fuelCache = { me, geo, rows }; showFuel(); fuelBrands(me, rows); return; }
   } catch {}
   // Hors de France : les stations les plus proches, sans prix
   try {
@@ -1624,33 +1639,46 @@ const NETS = {
     ["https://www.tcl.fr/titres-et-tarifs", "Tickets et tarifs", "Ticket, Pass, appli TCL"],
   ] },
 };
-let net = "lyon";
-for (const [k, n] of Object.entries(NETS)) $("#net-tabs").append(el("button", { class: "btn", type: "button", "data-net": k, text: n.name, onclick: () => showNet(k) }));
-function showNet(k) {
-  net = k;
-  for (const b of $("#net-tabs").children) b.setAttribute("aria-pressed", String(b.dataset.net === k));
-  $("#net-body").replaceChildren(...NETS[k].links.map(([href, t, s], i) => lb(href, ["⚠️", "🧭", "🎟️", "🚆"][i], t)));
-}
 const distKm = (a, b) => {
   const R = 6371, r = x => x * Math.PI / 180, dLat = r(b[0] - a[0]), dLon = r(b[1] - a[1]);
   return 2 * R * Math.asin(Math.sqrt(Math.sin(dLat / 2) ** 2 + Math.cos(r(a[0])) * Math.cos(r(b[0])) * Math.sin(dLon / 2) ** 2));
 };
-function locate(silent) {
-  if (!navigator.geolocation) { if (!silent) $("#locate-msg").textContent = "La localisation n'est pas disponible ici. Choisis le réseau à la main."; return; }
-  navigator.geolocation.getCurrentPosition(pos => {
-    const me = [pos.coords.latitude, pos.coords.longitude];
-    const near = Object.entries(NETS).map(([k, n]) => [k, distKm(me, n.center)]).sort((a, b) => a[1] - b[1])[0];
-    if (near[1] <= NETS[near[0]].radius) {
-      showNet(near[0]);
-      $("#locate-msg").textContent = `Tu es à ${Math.round(near[1])} km du centre de Lyon : voici le réseau local.`;
-      const n = NETS[near[0]];
-      const b = $("#near-banner");
-      b.replaceChildren(el("div", { class: "banner" }, el("strong", { text: "Tu es près de Lyon" }),
-        el("span", {}, "Pense à vérifier le trafic : ", el("a", { href: n.links[0][0], target: "_blank", rel: "noopener", text: n.links[0][1] }))));
-      b.hidden = false;
-    } else if (!silent) $("#locate-msg").textContent = "Tu n'es pas près de Lyon. L'info trafic plus haut suit l'endroit où tu es.";
-  }, () => { if (!silent) $("#locate-msg").textContent = "Localisation refusée ou indisponible. Choisis le réseau à la main."; }, { maximumAge: 600000, timeout: 10000 });
+/* Géoloc' : les prochains bus, trams et métros aux arrêts autour de moi, partout dans le monde (Transitous) */
+function showNet(near) {
+  $("#net-body").replaceChildren(...(near === "lyon" ? NETS.lyon.links.map(([href, t], i) => lb(href, ["⚠️", "🧭", "🎟️"][i], t))
+    : [lb("https://www.google.com/maps/@?api=1&map_action=map&layer=transit", "🗺️", "Plan des transports"), lb("https://transitapp.com/", "🚌", "Appli Transit")]));
 }
+async function loadStops() {
+  const msg = $("#locate-msg"), res = $("#stop-res");
+  msg.textContent = "📍 Je cherche les arrêts autour de toi…";
+  const geo = await hereOnce(), me = geo || TARARE;
+  showNet(distKm(me, NETS.lyon.center) <= 60 ? "lyon" : "autre");
+  try {
+    const stops = await getJSON(`https://api.transitous.org/api/v1/reverse-geocode?place=${me[0].toFixed(5)},${me[1].toFixed(5)}&type=STOP`, 12000);
+    const near = (Array.isArray(stops) ? stops : []).filter(s => s.id).map(s => ({ ...s, km: distKm(me, [s.lat, s.lon]) })).sort((a, b) => a.km - b.km);
+    if (!near.length || near[0].km > 3) { msg.textContent = "🚏 Pas d'arrêt de bus, tram ou métro tout près de toi."; res.replaceChildren(); return; }
+    const st = near[0];
+    const j = await getJSON(`https://api.transitous.org/api/v1/stoptimes?stopId=${encodeURIComponent(st.id)}&n=60&radius=400&time=${new Date().toISOString()}`, 15000);
+    const seen = new Set(), perLine = {};
+    const rows = (j.stopTimes || []).filter(t => !isRail(t.mode)).filter(t => {
+      const p = t.place || {}, k = t.tripId || `${p.scheduledDeparture}|${t.routeShortName}|${t.headsign}`, line = (t.routeShortName || "") + "|" + (t.headsign || "");
+      if (seen.has(k) || (perLine[line] || 0) >= 2) return false; seen.add(k); perLine[line] = (perLine[line] || 0) + 1; return true;
+    }).sort((a, b) => new Date(a.place?.departure || a.place?.scheduledDeparture) - new Date(b.place?.departure || b.place?.scheduledDeparture)).slice(0, 8);
+    const where = `${st.name}${st.km > 0.05 ? " · à " + fuelKm(st.km) + " de toi" : ""}`;
+    if (!rows.length) { msg.textContent = `🚏 ${where} : pas de départ annoncé pour l'instant.`; res.replaceChildren(); return; }
+    msg.textContent = `🚏 ${where}${geo ? "" : " (Tarare)"}`;
+    res.replaceChildren(...rows.map(t => {
+      const p = t.place || {}, d = new Date(p.departure || p.scheduledDeparture), s = new Date(p.scheduledDeparture || p.departure), day = dayWord(d);
+      const late = Math.round((d - s) / 60000), off = t.cancelled || p.cancelled, mins = Math.round((d - Date.now()) / 60000);
+      return el("div", { class: "route", style: `--mc:${off ? "#d33" : "#d32f2f"};padding:8px 12px;margin-top:6px` },
+        el("div", { class: "top" }, el("span", { class: "hours", text: day ? day + " " + hm(d) : mins <= 0 ? "maintenant" : mins < 60 ? `dans ${mins} min` : hm(d) }),
+          el("span", { style: "font-weight:700", text: `${LEG_EMO(t.mode)} ${t.routeShortName || ""}` }),
+          el("span", { class: "muted", text: "➜ " + (t.headsign || "") }),
+          off ? el("span", { class: "pill warn", text: "❌ supprimé" }) : late >= 2 ? el("span", { class: "pill soon", text: `⏱️ +${late} min` }) : null));
+    }));
+  } catch { msg.textContent = "😕 Les horaires ne répondent pas pour l'instant."; res.replaceChildren(); }
+}
+const locate = () => loadStops();
 $("#locate-btn").addEventListener("click", () => locate(false));
 
 
@@ -2850,7 +2878,7 @@ $("#keep-q").addEventListener("input", renderKeep);
 
 /* ---------- démarrage ---------- */
 setInterval(renderAgenda, 30 * 60000);
-renderAgenda(); renderPapers(); renderAdmin(); renderTodos(); renderPack(); showNet("lyon");
+renderAgenda(); renderPapers(); renderAdmin(); renderTodos(); renderPack();
 /* ---------- Sérénité : prières du jour calées sur la Grande Mosquée de Lyon ---------- */
 // Réglages déduits du calendrier publié par la Grande Mosquée de Lyon (octobre 2026, écart ≤ 2 min) :
 // Fajr 14,4°, Icha 13,5°, Dhohr = midi solaire + 5 min, Asr standard, Maghreb = coucher + 3 min (arrondis du côté prudent pour le jeûne).
@@ -3205,7 +3233,7 @@ renderPrayers(); renderRamadan(); setInterval(renderPrayers, 60000);
 renderKeep(); renderMeals(); renderStores(); renderAisles(); renderShop(); renderLeclerc(); renderHabits(); renderMeter(); renderChores(); renderHouseHome();
 show(store.get("view", "home"));
 loadWeather(); loadGoodNews(); scheduleReminders();
-try { if (navigator.permissions) navigator.permissions.query({ name: "geolocation" }).then(s => { if (s.state === "granted") { locate(true); detectStore(false); alertsHere(true); } }).catch(() => {}); } catch {}
+try { if (navigator.permissions) navigator.permissions.query({ name: "geolocation" }).then(s => { if (s.state === "granted") { detectStore(false); alertsHere(true); } }).catch(() => {}); } catch {}
 $("#store-detect").addEventListener("click", () => detectStore(true));
 try { if ("serviceWorker" in navigator && location.protocol === "https:" && document.querySelector('link[rel="manifest"]')) navigator.serviceWorker.register("sw.js").catch(() => {}); } catch {}
 try {
