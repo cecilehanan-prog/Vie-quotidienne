@@ -692,6 +692,15 @@ nav.tabbar button[data-view=home] { --sec: #ffcc00; } nav.tabbar button[data-vie
     <article class="card" data-sec="traf">
       <h2>🚦 Info trafic</h2>
       <div class="alerts" id="trip-alerts"></div>
+      <details class="trip-plan" style="margin-top:10px"><summary>🧳 Je pars hors de chez moi…</summary>
+        <p class="small muted">Tes rendez-vous loin de Tarare et Lyon (dans ton agenda) sont surveillés tout seuls. Tu peux aussi noter un déplacement ici.</p>
+        <form class="inline" id="trip-form">
+          <input type="text" id="trip-city" placeholder="Ville (ex. Paris)" required aria-label="Ville" autocomplete="off">
+          <input type="date" id="trip-date" required aria-label="Date">
+          <button class="btn primary" type="submit">Surveiller</button>
+        </form>
+        <div class="list" id="trip-list"></div>
+      </details>
     </article>
     <article class="card" data-sec="drive">
       <h2>⛽ En voiture</h2>
@@ -1970,37 +1979,90 @@ async function tripWeather(to) {
   } catch { wxFor = ""; }
 }
 /* ----- info trafic : grèves, lignes coupées, routes ----- */
-/* Zone de transport selon la position : réseau TCL autour de Lyon (Tarare compris), RATP/IDFM autour de Paris, sinon la ville où l'on est */
-const zoneOf = pos => !pos ? "lyon" : distKm(pos, NETS.lyon.center) <= 60 ? "lyon" : distKm(pos, NETS.paris.center) <= 50 ? "paris" : "autre";
+/* Info trafic au quotidien : seulement chez moi (Tarare, ouest lyonnais, Lyon). Ailleurs : la ville où je suis.
+   Déplacements hors du périmètre (agenda ou notés à la main) : alerte sur le trajet et à l'arrivée. */
+const zoneOf = pos => !pos || distKm(pos, NETS.lyon.center) <= 60 ? "lyon" : "autre";
 const BAD = "(interrompu OR perturbé OR perturbation OR grève OR arrêté OR panne OR \"mouvement social\" OR suspendu OR \"trafic perturbé\")";
-const alertQueries = (city, zone = "lyon") => [
-  ["🚆", "Trains, TER et grèves SNCF", gnews('(grève OR préavis OR perturbation OR "trafic interrompu" OR suspendu OR supprimés) (SNCF OR TER) when:2d')],
-  ...(zone === "lyon" ? [
-    ["🚇", "Métro, tram et bus TCL (Lyon)", gnews(`(TCL OR "métro A" OR "métro B" OR "métro C" OR "métro D" OR tramway OR funiculaire) Lyon ${BAD} when:2d`)],
-    ["🚌", "Cars de la région", gnews('(cars OR autocar OR "lignes de car" OR Cars du Rhône) (grève OR perturbation OR suspendu) (Rhône OR Tarare OR "Ouest rhodanien") when:2d')],
-  ] : zone === "paris" ? [
-    ["🚇", "Métro, RER, tram et bus (Paris)", gnews(`(RATP OR métro OR RER OR Transilien OR tramway OR bus) (Paris OR "Île-de-France") ${BAD} when:2d`)],
-  ] : [
-    ["🚇", `Bus, tram et métro à ${city}`, gnews(`(bus OR tram OR tramway OR métro OR "transports en commun") "${city}" ${BAD} when:2d`)],
-  ]),
-  ["🚗", `Routes autour de ${city}`, gnews(`(accident OR bouchon OR bouchons OR fermée OR fermeture OR coupée OR travaux OR déviation) (route OR autoroute OR A89 OR A6 OR A7 OR N7 OR RN7 OR circulation) "${city}" when:1d`)],
+const LOCAL_RE = /lyon|tarare|rh[ôo]ne|roanne|villefranche|arbresle|amplepuis|pontcharra|part-dieu|perrache|saint-paul|vaise|beaujolais|auvergne-rh[ôo]ne-alpes|\bA89\b|\bA6\b|\bA7\b|\bA46\b|\bA47\b|\bN7\b|\bRN7\b|\bTCL\b|sytral/i;
+const STRIKE_RE = /gr[èe]ve|pr[ée]avis|mouvement social|intersyndicale/i;
+const esc = t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const alertQueries = (city, zone = "lyon") => zone === "lyon" ? [
+  ["🚆", "Trains et TER autour de chez toi", gnews('(grève OR préavis OR perturbation OR "trafic interrompu" OR suspendu OR supprimés OR retards) (SNCF OR TER) (Lyon OR Tarare OR Roanne OR Rhône OR "Auvergne-Rhône-Alpes") when:2d'), t => LOCAL_RE.test(t) || STRIKE_RE.test(t) && /sncf|ter\b|cheminot|transports/i.test(t) && !/r[ée]gion parisienne|ile-de-france|île-de-france|ratp/i.test(t)],
+  ["🚇", "Métro, tram et bus TCL (Lyon)", gnews(`(TCL OR "métro A" OR "métro B" OR "métro C" OR "métro D" OR tramway OR funiculaire) Lyon ${BAD} when:2d`), t => LOCAL_RE.test(t)],
+  ["🚌", "Cars de la région", gnews('("Cars du Rhône" OR autocar OR autocars OR "lignes de cars" OR "car scolaire" OR "cars région") (grève OR perturbation OR suspendu OR supprimé) (Rhône OR Tarare OR Lyon OR "Ouest lyonnais") when:2d'), t => LOCAL_RE.test(t) && /\bcars?\b|autocar/i.test(t)],
+  ["🚗", "Routes autour de Tarare et Lyon", gnews('(accident OR bouchon OR bouchons OR fermée OR fermeture OR coupée OR travaux OR déviation) (A89 OR A6 OR A7 OR A46 OR N7 OR RN7 OR route OR autoroute OR périphérique) (Tarare OR Lyon OR Rhône OR "L\'Arbresle") when:1d'), t => LOCAL_RE.test(t)],
+] : [
+  ["🚇", `Bus, tram et métro à ${city}`, gnews(`(bus OR tram OR tramway OR métro OR RER OR "transports en commun") "${city}" ${BAD} when:2d`), t => new RegExp(esc(city), "i").test(t)],
+  ["🚗", `Routes autour de ${city}`, gnews(`(accident OR bouchon OR fermée OR coupée OR travaux OR déviation) (route OR autoroute OR circulation) "${city}" when:1d`), t => new RegExp(esc(city), "i").test(t)],
 ];
-async function loadAlerts(city = "Tarare", zone = "lyon") {
-  $("#tcl-live").hidden = zone !== "lyon";
-  const rows = await Promise.all(alertQueries(city, zone).map(async ([e, t, url]) => {
+// Déplacements : rendez-vous de l'agenda loin de chez moi (3 jours à venir) + ceux notés à la main
+let tripsPlanned = store.get("tripsPlanned", []);
+const placeGeo = store.get("placeGeo", {});
+async function geoPlace(place) {
+  if (place in placeGeo) return placeGeo[place];
+  let r = null;
+  try {
+    const f = (await getJSON(`https://photon.komoot.io/api/?q=${encodeURIComponent(place)}&limit=1&lang=fr&lat=45.9&lon=4.43`, 8000)).features?.[0];
+    if (f) { const pr = f.properties || {}; r = { pos: [f.geometry.coordinates[1], f.geometry.coordinates[0]], city: pr.city || pr.town || pr.village || pr.name || place }; }
+  } catch { return null; }
+  placeGeo[place] = r; store.set("placeGeo", placeGeo); return r;
+}
+async function tripsAhead() {
+  const today = new Date().toISOString().slice(0, 10), until = new Date(Date.now() + 3 * DAY).toISOString().slice(0, 10);
+  tripsPlanned = tripsPlanned.filter(t => t.date >= today); store.set("tripsPlanned", tripsPlanned);
+  const out = tripsPlanned.filter(t => t.date <= until).map(t => ({ city: t.city, date: t.date, why: "déplacement noté" }));
+  for (const e of (events || []).filter(e => e.place && !e.sample && e.date >= today && e.date <= until).slice(0, 15)) {
+    const g = await geoPlace(e.place);
+    if (g && distKm(TARARE, g.pos) > 60 && distKm(NETS.lyon.center, g.pos) > 60) out.push({ city: g.city, date: e.date, why: e.title });
+  }
+  const seen = new Set();
+  return out.filter(t => !seen.has(t.city + t.date) && seen.add(t.city + t.date)).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 2);
+}
+const tripQueries = t => [["🧳", `Ton trajet vers ${t.city} · ${new Date(t.date + "T12:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}`,
+  gnews(`(SNCF OR TGV OR TER OR OUIGO OR train OR autoroute OR A6 OR A89 OR bouchons OR "trafic" OR aéroport OR vols) (grève OR perturbation OR perturbé OR retards OR supprimés OR interrompu OR fermée OR accident OR annulés) ("${t.city}") when:2d`),
+  x => new RegExp(esc(t.city), "i").test(x) || STRIKE_RE.test(x) && /sncf|cheminot|transports|aérien|contrôleurs/i.test(x)]];
+async function alertRows(list) {
+  return Promise.all(list.map(async ([e, t, url, keep]) => {
     try {
       const seen = new Set();
       const items = (await fetchFeed(url)).filter(i => i.title && Date.now() - new Date(i.date) < 48 * 3600e3)
-        .map(i => ({ ...i, title: splitSource(i).title, src: splitSource(i).src })).filter(i => !seen.has(i.title) && seen.add(i.title)).slice(0, 3);
+        .map(i => ({ ...i, title: splitSource(i).title, src: splitSource(i).src })).filter(i => (!keep || keep(i.title)) && !seen.has(i.title) && seen.add(i.title)).slice(0, 3);
       return { e, t, items, ok: true };
     } catch { return { e, t, items: [], ok: false }; }
   }));
-  const render = () => rows.map(r => el("div", { class: "alert" + (!r.ok ? " off" : r.items.length ? " bad" : "") }, el("i", { text: r.e }),
+}
+async function loadAlerts(city = "Tarare", zone = "lyon") {
+  $("#tcl-live").hidden = zone !== "lyon";
+  renderTrips();
+  const trips = await tripsAhead();
+  const [rows, tripRows] = await Promise.all([alertRows(alertQueries(city, zone)), alertRows(trips.flatMap(tripQueries))]);
+  const one = r => el("div", { class: "alert" + (!r.ok ? " off" : r.items.length ? " bad" : "") }, el("i", { text: r.e }),
     el("strong", { text: `${r.t} : ${!r.ok ? "pas de connexion" : r.items.length ? "⚠️" : "✅ rien de signalé"}` }),
-    el("div", { class: "alert-news" }, ...r.items.map(i => el("a", { href: i.link, target: "_blank", rel: "noopener" }, "• " + i.title, i.src ? el("span", { class: "muted", text: " · " + i.src }) : null)))));
+    el("div", { class: "alert-news" }, ...r.items.map(i => el("a", { href: i.link, target: "_blank", rel: "noopener" }, "• " + i.title, i.src ? el("span", { class: "muted", text: " · " + i.src }) : null))));
+  const render = () => [...tripRows, ...rows].map(one);
   $("#home-alerts").replaceChildren(...render());
   $("#trip-alerts").replaceChildren(...render(), el("p", { class: "small muted", text: "D'après les infos des dernières 48 h." }));
+  // Alerte sur le téléphone : une fois par jour et par déplacement, s'il y a un souci sur le chemin
+  const ok = "Notification" in window && Notification.permission === "granted";
+  tripRows.forEach((r, i) => {
+    const key = "tripAlert:" + trips[i].city + trips[i].date + ":" + new Date().toISOString().slice(0, 10);
+    if (ok && r.items.length && !store.get(key, false) && navigator.serviceWorker?.controller) {
+      store.set(key, true);
+      navigator.serviceWorker.ready.then(reg => reg.showNotification(`🧳 Attention pour ${trips[i].city}`, { body: r.items[0].title, icon: "icon.svg" }));
+    }
+  });
 }
+function renderTrips() {
+  $("#trip-list").replaceChildren(...tripsPlanned.map(t => el("div", { class: "shop-item" },
+    el("span", { class: "what", text: `🧳 ${t.city} · ${new Date(t.date + "T12:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}` }),
+    el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer", text: "✕", onclick: () => { tripsPlanned = tripsPlanned.filter(x => x !== t); store.set("tripsPlanned", tripsPlanned); loadAlerts(); } }))));
+}
+$("#trip-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const city = $("#trip-city").value.trim(); if (!city) return;
+  tripsPlanned.push({ city: city[0].toUpperCase() + city.slice(1), date: $("#trip-date").value }); store.set("tripsPlanned", tripsPlanned);
+  e.target.reset(); loadAlerts();
+});
 function alertsHere(silent) {
   if (!navigator.geolocation) return;
   if (!silent) $("#alerts-where").textContent = "⏳ Je regarde où tu es…";
@@ -2008,7 +2070,7 @@ function alertsHere(silent) {
     let city = "Tarare";
     try { const j = await getJSON(`https://photon.komoot.io/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&lang=fr`); const pr = j.features?.[0]?.properties; city = pr?.city || pr?.town || pr?.village || pr?.name || city; } catch {}
     const zone = zoneOf([pos.coords.latitude, pos.coords.longitude]);
-    $("#alerts-where").textContent = `📍 Autour de ${city}` + (zone === "paris" ? " · réseau RATP" : zone === "lyon" ? " · réseau TCL" : "");
+    $("#alerts-where").textContent = `📍 Autour de ${city}` + (zone === "lyon" ? " · réseau TCL" : "");
     loadAlerts(city, zone);
   }, () => { if (!silent) $("#alerts-where").textContent = "Localisation refusée : je montre Tarare."; }, { maximumAge: 600000, timeout: 10000 });
 }
