@@ -493,6 +493,7 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 .garde { display: flex; align-items: center; gap: 10px; margin: 8px 0; padding: 8px 14px 8px 8px; border-radius: 999px; width: fit-content; max-width: 100%;
   background: color-mix(in srgb, var(--cal) 16%, transparent); border: 1.5px solid color-mix(in srgb, var(--cal) 55%, transparent); }
 .garde .g-ico { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--cal); font-size: 1.05rem; box-shadow: 0 2px 6px color-mix(in srgb, var(--cal) 45%, transparent); }
+.garde .g-ico.duo { width: auto; min-width: 34px; padding: 0 8px; border-radius: 999px; font-size: .95rem; letter-spacing: -2px; }
 .garde .g-txt { display: flex; flex-direction: column; line-height: 1.2; }
 .garde small { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .garde b { font-size: .95rem; font-weight: 600; color: var(--fg); }
@@ -1518,10 +1519,11 @@ function gardeChip(e) {
 const isVac = e => e.cal === "Vacances scolaires";
 const vacName = t => (t || "Vacances").replace(/\s*[-–(].*zone.*$/i, "").replace(/^🌙\s*/, "").trim();
 const dShort = d => d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }).replace(/\./g, "");
+const vacIcon = t => /toussaint/i.test(t) ? "👻🎃" : /no[eë]l/i.test(t) ? "🎄🎅" : /hiver|f[ée]vrier/i.test(t) ? "⛷️❄️" : /printemps|p[âa]ques/i.test(t) ? "🐣🌷" : /[ée]t[ée]|grandes/i.test(t) ? "☀️🏖️" : /ascension|pont/i.test(t) ? "🌿☀️" : "🎒✨";
 function vacChip(e) {
   const a = new Date(e.date + "T12:00"), z = new Date((e.end || e.date) + "T12:00"), back = new Date(z.getTime() + DAY), now0 = startOfDay(new Date());
   const on = a <= new Date() && z >= now0;
-  return el("div", { class: "garde vac", style: `--cal:${CAL_COLOR[e.cal] || "#888"}` }, el("span", { class: "g-ico", text: "🏖️" }),
+  return el("div", { class: "garde vac", style: `--cal:${CAL_COLOR[e.cal] || "#888"}` }, el("span", { class: "g-ico duo", text: vacIcon(e.title) }),
     el("span", { class: "g-txt" }, el("small", { text: on ? `En cours · reprise ${dShort(back)}` : `Du ${dShort(a)} au ${dShort(z)}` }), el("b", { text: vacName(e.title) })));
 }
 const MONTH_EMO = ["❄️", "💝", "🌱", "🌷", "🌸", "☀️", "🏖️", "🌻", "🍎", "🍂", "🍁", "🎄"];
