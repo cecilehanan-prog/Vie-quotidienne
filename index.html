@@ -1124,15 +1124,17 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
 
 /* ---------- utilitaires ---------- */
 const $ = (s, r = document) => r.querySelector(s);
+// Typographie française (CéHa, 26/10) : « ; : ! ? » et « » restent collés à leur mot (espace fine insécable), jamais seuls en début de ligne
+const frTypo = t => typeof t === "string" ? t.replace(/[ \u00a0]+([;:!?»])/g, "\u202f$1").replace(/«[ \u00a0]+/g, "«\u202f") : t;
 const el = (tag, attrs = {}, ...kids) => {
   const n = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
     if (k === "class") n.className = v;
-    else if (k === "text") n.textContent = v;
+    else if (k === "text") n.textContent = frTypo(v);
     else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
     else if (v !== false && v != null) n.setAttribute(k, v === true ? "" : v);
   }
-  for (const c of kids.flat()) if (c != null) n.append(c.nodeType ? c : document.createTextNode(c));
+  for (const c of kids.flat()) if (c != null) n.append(c.nodeType ? c : document.createTextNode(frTypo(c)));
   return n;
 };
 const store = {
