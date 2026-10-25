@@ -20,7 +20,7 @@
   --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
   --radius: 18px;
   /* une couleur par rubrique */
-  --c-wx: #2b8ce6; --c-news: #3e63dd; --c-good: #f5a300; --c-agenda: #e8476a; --c-house: #2fa65a;
+  --c-wx: #2b8ce6; --c-news: #33383f; --c-good: #f5a300; --c-agenda: #e8476a; --c-house: #2fa65a;
   --c-energy: #ef8a00; --c-chores: #0f9f8a; --c-car: #f26b1d; --c-transit: #0e9fc0; --c-trip: #d23fa8;
   --c-admin: #4a5fd6; --c-papers: #a0602c;
   --on-sec: #ffffff;
@@ -29,14 +29,14 @@
   :root:not([data-theme="light"]) {
     --bg: #121a1b; --surface: #1b2526; --surface-2: #243032; --fg: #e6eeec; --muted: #9db0ae;
     --line: #2e3b3c; --accent: #7cc49e; --accent-fg: #0f1c16; --sun: #e3b155; --warn: #f0905a; --ok: #7cc49e;
-    --c-wx: #5aa9f5; --c-news: #7d98f5; --c-good: #ffc23d; --c-agenda: #ff6f8c; --c-house: #4cc778; --c-energy: #ffa53d; --c-chores: #2cc4ac; --c-car: #ff8a4a; --c-transit: #33c0de; --c-trip: #ee66c4; --c-admin: #7d8ef0; --c-papers: #d08a52; --on-sec: #10151a;
+    --c-wx: #5aa9f5; --c-news: #b4bac4; --c-good: #ffc23d; --c-agenda: #ff6f8c; --c-house: #4cc778; --c-energy: #ffa53d; --c-chores: #2cc4ac; --c-car: #ff8a4a; --c-transit: #33c0de; --c-trip: #ee66c4; --c-admin: #7d8ef0; --c-papers: #d08a52; --on-sec: #10151a;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #121a1b; --surface: #1b2526; --surface-2: #243032; --fg: #e6eeec; --muted: #9db0ae;
   --line: #2e3b3c; --accent: #7cc49e; --accent-fg: #0f1c16; --sun: #e3b155; --warn: #f0905a; --ok: #7cc49e;
-  --c-wx: #5aa9f5; --c-news: #7d98f5; --c-good: #ffc23d; --c-agenda: #ff6f8c; --c-house: #4cc778; --c-energy: #ffa53d; --c-chores: #2cc4ac; --c-car: #ff8a4a; --c-transit: #33c0de; --c-trip: #ee66c4; --c-admin: #7d8ef0; --c-papers: #d08a52; --on-sec: #10151a;
+  --c-wx: #5aa9f5; --c-news: #b4bac4; --c-good: #ffc23d; --c-agenda: #ff6f8c; --c-house: #4cc778; --c-energy: #ffa53d; --c-chores: #2cc4ac; --c-car: #ff8a4a; --c-transit: #33c0de; --c-trip: #ee66c4; --c-admin: #7d8ef0; --c-papers: #d08a52; --on-sec: #10151a;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -306,7 +306,7 @@ details summary { cursor: pointer; font-weight: 700; }
 .fast.owe { background: color-mix(in srgb, #e9a23b 22%, var(--surface)); border-color: #e9a23b; }
 .fast.today { outline: 3px solid #e9c46a; outline-offset: 1px; }
 /* Tuiles : palette « pierres précieuses », une couleur bien distincte par tuile */
-:is(.tile, nav.tabbar button)[data-sec=news] { --sec: #3e63dd; } :is(.tile, nav.tabbar button)[data-sec=agenda] { --sec: #d9466f; } :is(.tile, nav.tabbar button)[data-sec=shop] { --sec: #2e9b57; }
+:is(.tile, nav.tabbar button)[data-sec=news] { --sec: #33383f; } :is(.tile, nav.tabbar button)[data-sec=agenda] { --sec: #d9466f; } :is(.tile, nav.tabbar button)[data-sec=shop] { --sec: #2e9b57; }
 :is(.tile, nav.tabbar button)[data-sec=meals] { --sec: #e0663a; } :is(.tile, nav.tabbar button)[data-sec=culture] { --sec: #8e4ec6; } :is(.tile, nav.tabbar button)[data-sec=car] { --sec: #b8780b; }
 :is(.tile, nav.tabbar button)[data-sec=trip] { --sec: #0f93a3; } :is(.tile, nav.tabbar button)[data-sec=auto] { --sec: #56687a; } :is(.tile, nav.tabbar button)[data-sec=pray] { --sec: #23305e; }
 :is(.tile, nav.tabbar button)[data-sec=admin] { --sec: #8a5a3c; } :is(.tile, nav.tabbar button)[data-sec=rdv] { --sec: #c2508f; } :is(.tile, nav.tabbar button)[data-sec=bien] { --sec: #5f8a4a; }
