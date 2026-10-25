@@ -417,6 +417,8 @@ details summary { cursor: pointer; font-weight: 700; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #view-bien .warn { color: #f0b860; } }
 .gsync { margin-top: 12px; background: var(--surface-2); border-radius: 12px; padding: 10px 12px; } .gsync summary { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; cursor: pointer; }
 .gsync textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: .8rem; }
+.item.cal { box-shadow: inset 5px 0 0 var(--cal); background: color-mix(in srgb, var(--cal) 10%, var(--surface-2)); }
+.item.cal .what > .small { color: color-mix(in srgb, var(--cal) 70%, var(--fg)); }
 </style>
 
 <div class="wrap">
@@ -1271,9 +1273,9 @@ const evDate = e => new Date(`${e.date}T${e.time || "09:00"}`);
 function evItem(e, withDelete) {
   const d = new Date(e.date + "T12:00");
   const dd = daysUntil(e.date);
-  const it = el("div", { class: "item" + (dd <= 1 ? " soon" : "") },
+  const it = el("div", { class: "item" + (dd <= 1 ? " soon" : "") + (e.cal ? " cal" : ""), style: e.cal ? `--cal:${CAL_COLOR[e.cal] || "#888"}` : false },
     el("div", { class: "when" }, d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }), el("br"), el("span", { class: "muted small", text: e.time || "" })),
-    el("div", { class: "what" }, el("div", {}, emoSpan(e.title, "📅"), e.title), el("div", { class: "small muted", text: [e.cal ? "🗂️ " + e.cal : "", e.place, e.remind ? "rappel " + ({ 30: "30 min avant", 60: "1 h avant", 1440: "la veille", 2880: "2 jours avant" }[e.remind] || "") : ""].filter(Boolean).join(" · ") })),
+    el("div", { class: "what" }, el("div", {}, emoSpan(e.title, "📅"), e.title), el("div", { class: "small muted", text: [e.cal ? "● " + e.cal : "", e.place, e.remind ? "rappel " + ({ 30: "30 min avant", 60: "1 h avant", 1440: "la veille", 2880: "2 jours avant" }[e.remind] || "") : ""].filter(Boolean).join(" · ") })),
     withDelete && !e.gcal ? el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer " + e.title, text: "✕", onclick: () => { events = events.filter(x => x.id !== e.id); saveEvents(); } }) : el("span", { class: "pill", text: dd === 0 ? "aujourd'hui" : dd === 1 ? "demain" : `J-${dd}` }));
   return it;
 }
@@ -1314,6 +1316,8 @@ $("#ics-file").addEventListener("change", async ev => {
 const AGENDA_URL = "https://raw.githubusercontent.com/cecilehanan-prog/Vie-quotidienne/agenda/agenda.enc";
 // Ordre et noms voulus par CéHa : Cé Perso, Cé Santé, Job, Gabriel, Jasmin, Maison (puis les fêtes)
 const CALS = [[/perso/i, "Cé Perso"], [/sant/i, "Cé Santé"], [/job|famil/i, "Job"], [/gabriel/i, "Gabriel"], [/jasmin/i, "Jasmin"], [/bastion|maison/i, "Maison"], [/musulman|islam/i, "Fêtes"]];
+// Une couleur par agenda (choisies par CéHa)
+const CAL_COLOR = { "Cé Perso": "#e8559a", "Cé Santé": "#5fae3c", "Job": "#3e63dd", "Gabriel": "#e0663a", "Jasmin": "#8e4ec6", "Maison": "#b8780b", "Fêtes": "#c9a227" };
 const calInfo = n => { const i = CALS.findIndex(([r]) => r.test(n || "")); return i < 0 ? [CALS.length, n || "Agenda"] : [i, CALS[i][1]]; };
 const icsLinks = () => (store.get("icsLinks", "").match(/https:\/\/\S+/g) || []).map(l => l.trim());
 const b64bytes = b => Uint8Array.from(atob(b), c => c.charCodeAt(0));
