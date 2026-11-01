@@ -526,9 +526,6 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 #talk .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 #talk .chips button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 6px 12px; font-size: .85rem; cursor: pointer; color: var(--fg); }
 #talk-out { margin-top: 12px; font-weight: 600; } #talk-out .row { margin-top: 8px; }
-/* Un 🎤 dans chaque case à remplir (CéHa, 1/11) : dicter OU écrire, au choix */
-#field-mic { position: fixed; z-index: 8; width: 34px; height: 34px; border-radius: 50%; border: 0; cursor: pointer; font-size: 1rem; background: #c2508f; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
-#field-mic.rec { background: #e53935; animation: micpulse 1s infinite; }
 .garde { display: flex; align-items: center; gap: 10px; margin: 8px 0; padding: 8px 14px 8px 8px; border-radius: 999px; width: fit-content; max-width: 100%;
   background: color-mix(in srgb, var(--cal) 16%, transparent); border: 1.5px solid color-mix(in srgb, var(--cal) 55%, transparent); }
 .garde .g-ico { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--cal); font-size: 1.05rem; box-shadow: 0 2px 6px color-mix(in srgb, var(--cal) 45%, transparent); }
@@ -705,7 +702,6 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       <form class="inline" id="shop-form">
         <input type="text" id="shop-name" placeholder="Ajouter un article (ex. lait)" required aria-label="Article" list="shop-suggest" autocomplete="off">
         <input type="text" id="shop-qty" placeholder="Qté" aria-label="Quantité" class="num">
-        <button class="mic" type="button" id="shop-mic" aria-label="Dicter des articles" hidden>🎤</button>
         <button class="btn primary" type="submit">Ajouter</button>
       </form>
       <datalist id="shop-suggest"></datalist>
@@ -2775,8 +2771,7 @@ function grpHead(text, key) {
   if (!open) return [head];
   const inp = el("input", { type: "text", placeholder: key === "⭐" ? "Nouveau favori (ex. yaourts)" : "Ajouter ici (ex. " + ({ "Hygiène et santé": "dentifrice", "Épicerie sucrée": "confiture", "Fruits et légumes": "bananes" }[key] || "un produit") + ")", "aria-label": "Produit à ajouter", autocomplete: "off", list: "shop-suggest" });
   const add = text => { const names = addMany([text], key === "⭐" ? null : key); if (key === "⭐") { names.forEach(n => isFav(n) || habits.push({ id: uid(), name: n, every: 7, price: null })); saveShop(); } inp.value = ""; renderShop(); $(`.grp-form input`)?.focus(); };
-  const mic = el("button", { class: "mic", type: "button", "aria-label": "Dicter", text: "🎤", hidden: !SpeechRec, onclick: () => dictate(mic, add) });
-  const form = el("form", { class: "grp-form", onsubmit: e => { e.preventDefault(); if (inp.value.trim()) add(inp.value); } }, inp, mic, el("button", { class: "btn primary", type: "submit", text: "OK" }));
+  const form = el("form", { class: "grp-form", onsubmit: e => { e.preventDefault(); if (inp.value.trim()) add(inp.value); } }, inp, el("button", { class: "btn primary", type: "submit", text: "OK" }));
   return [head, form];
 }
 function renderShop() {
@@ -2875,7 +2870,6 @@ function addMany(lines, aisle = null) {
   $("#shop-msg").textContent = names.length ? `✅ Ajouté : ${names.join(", ")}` : "";
   return names;
 }
-if (SpeechRec) { const m = $("#shop-mic"); m.hidden = false; m.addEventListener("click", () => dictate(m, t => addMany([t]))); }
 $("#shop-paste-go").addEventListener("click", () => { addMany($("#shop-paste").value.split(/\n|;/)); $("#shop-paste").value = ""; });
 $("#shop-done").addEventListener("click", () => {
   const bought = shop.filter(i => i.done);
@@ -3811,20 +3805,6 @@ function runTalk(raw) {
   if (/train|gare/.test(low)) { talk.hidden = true; show("move"); $('[data-sec="rail"]')?.scrollIntoView({ behavior: "smooth" }); return; }
   const q = t.replace(/^(?:cherche|recherche|demande à claude|claude)\s*/i, "");
   say(`🔎 « ${q} »`, askClaude(q), askGoogle(q));
-}
-/* Dans chaque case texte de l'appli, un petit 🎤 apparaît au bout de la case quand on la touche : la dictée s'ajoute au texte.
-   On peut toujours écrire au clavier (discret quand il faut rester silencieuse). */
-if (SpeechRec) {
-  const fm = el("button", { id: "field-mic", type: "button", "aria-label": "Dicter dans cette case", text: "🎤", hidden: true });
-  document.body.append(fm);
-  let field = null;
-  const place = () => { if (!field) return; const r = field.getBoundingClientRect(); fm.style.top = (r.top + (Math.min(r.height, 44) - 34) / 2) + "px"; fm.style.left = (r.right - 38) + "px"; };
-  const isText = n => n && (n.tagName === "TEXTAREA" || (n.tagName === "INPUT" && /^(text|search|)$/.test(n.type))) && !n.closest("#talk") && !n.closest(".grp-form") && n.id !== "shop-name";
-  document.addEventListener("focusin", e => { if (isText(e.target)) { field = e.target; fm.hidden = false; place(); } });
-  document.addEventListener("focusout", () => setTimeout(() => { if (document.activeElement !== fm && !fm.classList.contains("rec") && !isText(document.activeElement)) fm.hidden = true; }, 150));
-  addEventListener("scroll", place, true); addEventListener("resize", place);
-  fm.addEventListener("pointerdown", e => e.preventDefault());
-  fm.addEventListener("click", () => { const f = field; if (!f) return; dictate(fm, t => { f.value = (f.value ? f.value.trimEnd() + " " : "") + t; f.dispatchEvent(new Event("input", { bubbles: true })); f.focus(); }); });
 }
 const FIREBASE_CONFIG = null;
 const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
