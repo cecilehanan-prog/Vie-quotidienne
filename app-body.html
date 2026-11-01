@@ -1211,7 +1211,7 @@ const el = (tag, attrs = {}, ...kids) => {
   return n;
 };
 /* Synchro iMac ↔ iPhone (CéHa, 26/10) : chaque clé modifiée est datée, puis envoyée dans son espace Firebase privé */
-const SYNC_SKIP = /^(icsLinks|fired|paperAlerted|fuelBrands|view|hereCity|placeGeo|rappels|dhikrData|permitDoc|cycles|adminRefV|_t|wx:|feed:|quran:)/;
+const SYNC_SKIP = /^(icsLinks|fired|paperAlerted|fuelBrands|view|hereCity|placeGeo|rappels|dhikrData|permitDoc|cycles|cycleEnds|adminRefV|_t|wx:|feed:|quran:)/;
 const syncMeta = () => { try { return JSON.parse(localStorage.getItem("mq:_t") || "{}"); } catch { return {}; } };
 let syncPush = null;
 const store = {
@@ -3660,13 +3660,36 @@ let kitOk = store.get("kitOk", {}), boboSel = null, bienMine = store.get("bienMi
 $("#doc-quick").replaceChildren(...[["👩‍⚕️", "Généraliste", "medecin-generaliste"], ["🦷", "Dentiste", "dentiste"], ["🌸", "Gynécologue", "gynecologue"], ["😁", "Orthodontiste", "orthodontiste"], ["👁️", "Ophtalmo", "ophtalmologue"], ["🧒", "Pédiatre", "pediatre"]]
   .map(([e, n, k]) => el("a", { class: "linkbox", href: `https://www.doctolib.fr/${k}/tarare`, target: "_blank", rel: "noopener" }, el("i", { class: "emo", text: e }), el("strong", { text: n }), el("span", { text: "près de Tarare" }))));
 /* Suivi du cycle : 1er jour des règles noté ici ; prochaine date = moyenne des derniers cycles (28 j au départ) */
-let cycles = store.get("cycles", []);
-const saveCycles = () => { cycles = [...new Set(cycles)].sort(); store.set("cycles", cycles); renderCycle(); };
+let cycles = store.get("cycles", []), cycleEnds = store.get("cycleEnds", {});
+const saveCycles = () => { cycles = [...new Set(cycles)].sort(); store.set("cycles", cycles); for (const k in cycleEnds) if (!cycles.includes(k)) delete cycleEnds[k]; store.set("cycleEnds", cycleEnds); renderCycle(); };
+// Dictée (CéHa, 1/11) : « règles du 12 au 17 octobre », « mes règles ont commencé hier », « mes règles sont finies »
+const MOIS = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"];
+function talkDates(t) {
+  const f = fold(t).replace(/\b1er\b|\bpremier\b/g, "1"), out = [], now = new Date();
+  const re = /\b(aujourd hui|avant hier|hier)\b|\b(\d{1,2})(?:\s+(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre))?(?:\s+(20\d\d))?\b/g;
+  let m;
+  while ((m = re.exec(f))) {
+    if (m[1]) { const d = startOfDay(now); d.setDate(d.getDate() - ({ "aujourd hui": 0, hier: 1, "avant hier": 2 }[m[1]])); out.push({ d: d.getDate(), mo: d.getMonth(), y: d.getFullYear() }); continue; }
+    if (+m[2] < 1 || +m[2] > 31) continue;
+    out.push({ d: +m[2], mo: m[3] ? MOIS.indexOf(m[3]) : null, y: m[4] ? +m[4] : null });
+  }
+  for (let i = out.length - 1; i >= 0; i--) if (out[i].mo == null) out[i].mo = out[i + 1]?.mo ?? now.getMonth();
+  return out.map((x, i) => { let y = x.y ?? out[i + 1]?.y ?? now.getFullYear(); let d = new Date(y, x.mo, x.d, 12); if (!x.y && d > now && d - now > 30 * DAY) d = new Date(y - 1, x.mo, x.d, 12); return d; })
+    .map((d, i, a) => (i === 0 && a[1] && d > a[1] ? new Date(d.getFullYear(), d.getMonth() - 1, d.getDate(), 12) : d)).map(ymd);
+}
+function talkCycle(t) {
+  const ds = talkDates(t), endOnly = /\b(fini|finies|termin|arret)/.test(fold(t)) && !/commenc|debut|du \d/.test(fold(t));
+  const fr = d => new Date(d + "T12:00").toLocaleDateString("fr-FR", { day: "numeric", month: "long" }).replace(/^1 /, "1er ");
+  if (endOnly) { const end = ds[0] || todayISO(), st = [...cycles].reverse().find(c => c <= end); if (!st) return "Dis-moi d'abord le 1er jour de tes règles."; cycleEnds[st] = end; saveCycles(); return `🌸 Noté : règles du ${fr(st)} au ${fr(end)}`; }
+  const st = ds[0] || todayISO(); cycles.push(st); if (ds[1] && ds[1] >= st) cycleEnds[st] = ds[1]; saveCycles();
+  return ds[1] ? `🌸 Noté : règles du ${fr(st)} au ${fr(ds[1])}` : `🌸 Noté : règles commencées le ${fr(st)}`;
+}
 function renderCycle() {
   const dd = (a, b) => Math.round((new Date(b + "T12:00") - new Date(a + "T12:00")) / DAY);
   const gaps = cycles.slice(1).map((d, i) => dd(cycles[i], d)).filter(g => g >= 18 && g <= 45).slice(-6);
   const len = gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length) : 28, last = cycles[cycles.length - 1];
-  $("#cyc-list").replaceChildren(...[...cycles].reverse().slice(0, 8).map(d => el("div", { class: "item" }, el("div", { class: "what", text: "🩸 " + new Date(d + "T12:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "long", year: "numeric" }) }),
+  const durs = cycles.filter(c => cycleEnds[c]).map(c => dd(c, cycleEnds[c]) + 1).filter(n => n > 0 && n < 12), rl = durs.length ? Math.round(durs.reduce((a, b) => a + b, 0) / durs.length) : 5;
+  $("#cyc-list").replaceChildren(...[...cycles].reverse().slice(0, 8).map(d => el("div", { class: "item" }, el("div", { class: "what", text: "🩸 " + new Date(d + "T12:00").toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) + (cycleEnds[d] ? " → " + new Date(cycleEnds[d] + "T12:00").toLocaleDateString("fr-FR", { day: "numeric", month: "long" }) : "") }),
     el("button", { class: "icon-btn", type: "button", "aria-label": "Effacer", text: "✕", onclick: () => { cycles = cycles.filter(x => x !== d); saveCycles(); } }))));
   if (!last) { $("#cyc-body").replaceChildren(el("p", { class: "muted", text: "Touche le bouton le 1er jour de tes règles : je calcule les prochaines toute seule." })); return; }
   const day = dd(last, todayISO()) + 1, next = new Date(new Date(last + "T12:00").getTime() + len * DAY), inDays = dd(todayISO(), ymd(next)), ov = len - 14;
@@ -3674,7 +3697,7 @@ function renderCycle() {
     el("div", { class: "cyc-now" }, el("div", { class: "cyc-ring", style: `--p:${Math.min(100, day / len * 100)}` }, el("span", {}, el("div", {}, el("b", { text: day }), "jour"))),
       el("div", {}, el("b", { text: inDays > 0 ? `Prochaines règles vers le ${dShort(next)}` : inDays === 0 ? "Règles attendues aujourd'hui" : `Retard de ${-inDays} jour${inDays < -1 ? "s" : ""}` }),
         el("div", { class: "small muted", text: inDays > 0 ? `dans ${inDays} jour${inDays > 1 ? "s" : ""} · cycle de ${len} jours${gaps.length ? "" : " (par défaut)"}` : `cycle de ${len} jours` }))),
-    el("div", { class: "cyc-bar", "aria-hidden": "true" }, ...Array.from({ length: len }, (_, i) => el("i", { class: [i < 5 ? "r" : "", i >= ov - 5 && i <= ov ? "f" : "", i === day - 1 ? "t" : ""].join(" ") }))),
+    el("div", { class: "cyc-bar", "aria-hidden": "true" }, ...Array.from({ length: len }, (_, i) => el("i", { class: [i < rl ? "r" : "", i >= ov - 5 && i <= ov ? "f" : "", i === day - 1 ? "t" : ""].join(" ") }))),
     el("div", { class: "small muted", text: "🟥 règles · 🟩 période fertile (estimation, pas une contraception)" }));
 }
 $("#cyc-today").addEventListener("click", () => { cycles.push(todayISO()); saveCycles(); });
@@ -3745,7 +3768,7 @@ const talk = el("div", { id: "talk", role: "dialog", "aria-label": "Parle-moi", 
   el("p", { class: "small muted", text: SpeechRec ? "Touche le micro et parle. Ou écris ta demande." : "Écris ta demande (ou touche le 🎤 du clavier pour dicter)." }),
   bigMic,
   el("form", { onsubmit: e => { e.preventDefault(); if (talkIn.value.trim()) runTalk(talkIn.value); } }, talkIn, el("button", { class: "btn primary", type: "submit", text: "OK" })),
-  el("div", { class: "chips" }, ...["Ajoute du lait et des œufs", "Itinéraire vers Lyon Part-Dieu", "Rappelle-moi d'appeler le dentiste", "Quel temps demain ?", "Mon agenda"].map(t => el("button", { type: "button", text: t, onclick: () => runTalk(t) }))),
+  el("div", { class: "chips" }, ...["Ajoute du lait et des œufs", "Itinéraire vers Lyon Part-Dieu", "Rappelle-moi d'appeler le dentiste", "Règles du 12 au 17 octobre", "Quel temps demain ?", "Mon agenda"].map(t => el("button", { type: "button", text: t, onclick: () => runTalk(t) }))),
   talkOut);
 document.body.append(talkFab, talk);
 talkFab.addEventListener("click", () => { talk.hidden = !talk.hidden; talkOut.replaceChildren(); if (!talk.hidden && !SpeechRec) talkIn.focus(); });
@@ -3756,6 +3779,7 @@ const askGoogle = q => el("a", { class: "btn", href: "https://www.google.com/sea
 function runTalk(raw) {
   const t = raw.trim().replace(/[.!]+$/, ""), low = t.toLowerCase();
   let m;
+  if (/r[èe]gles|\bcycle\b/.test(low) && /\d|aujourd|hier|fini|termin/.test(low)) return say(talkCycle(t), el("button", { class: "btn", type: "button", text: "Voir mon cycle", onclick: () => { talk.hidden = true; show("bien"); } }));
   if ((m = /^(?:rappelle[- ]moi|n'oublie pas|il faut que je|je dois)\s+(?:de |d'|qu'il faut |que )?(.+)$/i.exec(t))) {
     const what = m[1][0].toUpperCase() + m[1].slice(1);
     todos.push({ id: uid(), title: what, date: "", done: false }); saveTodos();
