@@ -484,6 +484,32 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 .habits-top .shop-item.off .icon-btn.add { color: var(--sec); font-weight: 700; }
 .habits-top .emo.star { font-size: .95em; }
 #habit-manage { margin-top: 8px; }
+/* Liste de courses (CéHa, 1/11) : « + » par rubrique, dictée 🎤, étoile pour les favoris */
+.shop-item { grid-template-columns: auto 1fr auto auto; }
+.shop-group > .label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.grp-add { flex: none; width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--sec); color: var(--on-sec, #fff); font-size: 1.25rem; font-weight: 700; line-height: 1; cursor: pointer; box-shadow: 0 2px 6px color-mix(in srgb, var(--sec) 40%, transparent); }
+.grp-add[aria-expanded="true"] { transform: rotate(45deg); }
+.grp-form { display: flex; gap: 6px; align-items: center; }
+.grp-form input { flex: 1; min-width: 0; }
+.mic { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--sec); background: transparent; font-size: 1.15rem; cursor: pointer; }
+.mic.rec { background: #e53935; border-color: #e53935; animation: micpulse 1s infinite; }
+@keyframes micpulse { 50% { box-shadow: 0 0 0 8px rgba(229,57,53,.2); } }
+.fav { border: 0; background: transparent; cursor: pointer; font-size: 1.3rem; line-height: 1; padding: 4px; color: #b9bec7; }
+.fav.on { color: inherit; }
+#shop-form .mic { width: 44px; height: 44px; }
+/* « Parle-moi » : un micro toujours là pour demander à l'appli (CéHa, 1/11) */
+#talk-fab { position: fixed; right: 14px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 6; width: 58px; height: 58px; border-radius: 50%; border: 0; cursor: pointer; font-size: 1.6rem;
+  background: linear-gradient(140deg, #d97757, #c2508f); color: #fff; box-shadow: 0 6px 18px rgba(194,80,143,.4); }
+#talk { position: fixed; inset: auto 0 0 0; z-index: 7; background: var(--surface); border-radius: 22px 22px 0 0; box-shadow: 0 -8px 30px rgba(0,0,0,.25);
+  padding: 18px 16px calc(20px + env(safe-area-inset-bottom, 0px)); max-height: 80vh; overflow: auto; }
+#talk[hidden] { display: none; }
+#talk h2 { margin: 0 0 4px; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
+#talk .big-mic { display: block; margin: 12px auto; width: 84px; height: 84px; border-radius: 50%; border: 0; font-size: 2.2rem; cursor: pointer; color: #fff; background: linear-gradient(140deg, #d97757, #c2508f); }
+#talk .big-mic.rec { background: #e53935; animation: micpulse 1s infinite; }
+#talk form { display: flex; gap: 6px; } #talk form input { flex: 1; min-width: 0; }
+#talk .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+#talk .chips button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 6px 12px; font-size: .85rem; cursor: pointer; color: var(--fg); }
+#talk-out { margin-top: 12px; font-weight: 600; } #talk-out .row { margin-top: 8px; }
 .garde { display: flex; align-items: center; gap: 10px; margin: 8px 0; padding: 8px 14px 8px 8px; border-radius: 999px; width: fit-content; max-width: 100%;
   background: color-mix(in srgb, var(--cal) 16%, transparent); border: 1.5px solid color-mix(in srgb, var(--cal) 55%, transparent); }
 .garde .g-ico { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--cal); font-size: 1.05rem; box-shadow: 0 2px 6px color-mix(in srgb, var(--cal) 45%, transparent); }
@@ -660,6 +686,7 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       <form class="inline" id="shop-form">
         <input type="text" id="shop-name" placeholder="Ajouter un article (ex. lait)" required aria-label="Article" list="shop-suggest" autocomplete="off">
         <input type="text" id="shop-qty" placeholder="Qté" aria-label="Quantité" class="num">
+        <button class="mic" type="button" id="shop-mic" aria-label="Dicter des articles" hidden>🎤</button>
         <button class="btn primary" type="submit">Ajouter</button>
       </form>
       <datalist id="shop-suggest"></datalist>
@@ -2678,31 +2705,60 @@ const lastBought = name => purchases.filter(p => p.name.toLowerCase() === name.t
 const habitDue = h => { const l = lastBought(h.name); return !l || -daysUntil(l) >= h.every - 1; };
 const onList = name => shop.some(i => i.name.toLowerCase() === name.toLowerCase());
 
+// Dictée vocale (Chrome, Safari) : « lait, œufs et pain » devient trois articles
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+function dictate(btn, onText) {
+  if (!SpeechRec) return;
+  const r = new SpeechRec(); r.lang = "fr-FR"; r.interimResults = false; r.maxAlternatives = 1;
+  r.onresult = e => onText(e.results[0][0].transcript);
+  r.onend = r.onerror = () => btn.classList.remove("rec");
+  btn.classList.add("rec"); r.start();
+}
+const isFav = name => habits.some(h => h.name.toLowerCase() === name.toLowerCase());
+function toggleFav(name) {
+  if (isFav(name)) habits = habits.filter(h => h.name.toLowerCase() !== name.toLowerCase());
+  else habits.push({ id: uid(), name, every: 7, price: null });
+  saveShop();
+}
+const favBtn = name => el("button", { class: "fav" + (isFav(name) ? " on" : ""), type: "button", "aria-pressed": String(isFav(name)), "aria-label": (isFav(name) ? "Retirer des favoris : " : "Mettre en favori : ") + name, text: isFav(name) ? "⭐" : "☆",
+  onclick: e => { e.preventDefault(); toggleFav(name); } });
+let grpOpen = null;
+function grpHead(text, key) {
+  const open = grpOpen === key;
+  const head = el("div", { class: "label" }, el("span", { text }), el("button", { class: "grp-add", type: "button", "aria-expanded": String(open), "aria-label": "Ajouter un produit dans " + text.replace(/^\d+\.\s*/, ""), text: "+",
+    onclick: () => { grpOpen = open ? null : key; renderShop(); if (!open) $(`.grp-form input`)?.focus(); } }));
+  if (!open) return [head];
+  const inp = el("input", { type: "text", placeholder: key === "⭐" ? "Nouveau favori (ex. yaourts)" : "Ajouter ici (ex. " + ({ "Hygiène et santé": "dentifrice", "Épicerie sucrée": "confiture", "Fruits et légumes": "bananes" }[key] || "un produit") + ")", "aria-label": "Produit à ajouter", autocomplete: "off", list: "shop-suggest" });
+  const add = text => { const names = addMany([text], key === "⭐" ? null : key); if (key === "⭐") { names.forEach(n => isFav(n) || habits.push({ id: uid(), name: n, every: 7, price: null })); saveShop(); } inp.value = ""; renderShop(); $(`.grp-form input`)?.focus(); };
+  const mic = el("button", { class: "mic", type: "button", "aria-label": "Dicter", text: "🎤", hidden: !SpeechRec, onclick: () => dictate(mic, add) });
+  const form = el("form", { class: "grp-form", onsubmit: e => { e.preventDefault(); if (inp.value.trim()) add(inp.value); } }, inp, mic, el("button", { class: "btn primary", type: "submit", text: "OK" }));
+  return [head, form];
+}
 function renderShop() {
   const left = shop.filter(i => !i.done).length;
   $("#shop-count").textContent = shop.length ? `${left} à prendre` : "vide";
-  const groups = {}, isHabit = name => habits.some(h => h.name.toLowerCase() === name.toLowerCase());
-  for (const i of shop) if (!isHabit(i.name)) (groups[i.aisle || rayonOf(i.name)] ||= []).push(i);
+  const groups = {};
+  for (const i of shop) if (!isFav(i.name)) (groups[i.aisle || rayonOf(i.name)] ||= []).push(i);
   const order = getAisleOrder();
-  // ⭐ Mes produits habituels, toujours en tête : cochables s'ils sont sur la liste, sinon un « + » pour les ajouter
-  const star = habits.length ? [el("div", { class: "shop-group habits-top" }, el("div", { class: "label", text: "⭐ Mes produits habituels" }),
-    ...[...habits].sort((a, b) => (onList(b.name) - onList(a.name)) || (habitDue(b) - habitDue(a))).map(h => {
+  const delBtn = i => el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + i.name, text: "✕", onclick: e => { e.preventDefault(); shop = shop.filter(x => x !== i); saveShop(); } });
+  const row = i => el("label", { class: "shop-item" + (i.done ? " done" : "") },
+    el("input", { type: "checkbox", checked: !!i.done, onchange: e => { i.done = e.target.checked; saveShop(); } }),
+    el("span", { class: "what" }, emoSpan(i.name, "🛒"), i.name, i.qty ? el("span", { class: "muted", text: " × " + i.qty }) : null),
+    favBtn(i.name), delBtn(i));
+  // ⭐ Mes favoris, toujours en tête : cochables s'ils sont sur la liste, sinon un « + » pour les ajouter
+  const star = [el("div", { class: "shop-group habits-top" }, ...grpHead("⭐ Mes favoris", "⭐"),
+    ...(habits.length ? [...habits].sort((a, b) => (onList(b.name) - onList(a.name)) || (habitDue(b) - habitDue(a))).map(h => {
       const i = shop.find(x => x.name.toLowerCase() === h.name.toLowerCase());
-      if (i) return el("label", { class: "shop-item" + (i.done ? " done" : "") },
-        el("input", { type: "checkbox", checked: !!i.done, onchange: e => { i.done = e.target.checked; saveShop(); } }),
-        el("span", { class: "what" }, el("i", { class: "emo star", "aria-hidden": "true", text: "⭐" }), i.name, i.qty ? el("span", { class: "muted", text: " × " + i.qty }) : null),
-        el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + i.name, text: "✕", onclick: e => { e.preventDefault(); shop = shop.filter(x => x !== i); saveShop(); } }));
+      if (i) return row(i);
       const due = habitDue(h);
       return el("div", { class: "shop-item off" },
         el("button", { class: "icon-btn add", type: "button", "aria-label": "Ajouter " + h.name + " à la liste", text: "＋", onclick: () => { addToList(h.name); saveShop(); } }),
-        el("span", { class: "what" }, el("i", { class: "emo star", "aria-hidden": "true", text: "⭐" }), h.name, due ? el("span", { class: "pill soon", style: "margin-left:6px", text: "à racheter" }) : null));
-    }))] : [];
-  const kids = [...star, ...order.filter(c => groups[c]).map((c, n) => el("div", { class: "shop-group" }, el("div", { class: "label", text: `${n + 1}. ${AISLE_EMO[c]} ${c}` }),
-    ...groups[c].sort((a, b) => a.done - b.done).map(i => el("label", { class: "shop-item" + (i.done ? " done" : "") },
-      el("input", { type: "checkbox", checked: !!i.done, onchange: e => { i.done = e.target.checked; saveShop(); } }),
-      el("span", { class: "what" }, emoSpan(i.name, "🛒"), i.name, i.qty ? el("span", { class: "muted", text: " × " + i.qty }) : null),
-      el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + i.name, text: "✕", onclick: e => { e.preventDefault(); shop = shop.filter(x => x !== i); saveShop(); } }))))) ];
-  $("#shop-list").replaceChildren(...(kids.length ? kids : [el("p", { class: "muted", text: "Ta liste est vide. Ajoute un article ou tes habituels." })]));
+        el("span", { class: "what" }, emoSpan(h.name, "🛒"), h.name, due ? el("span", { class: "pill soon", style: "margin-left:6px", text: "à racheter" }) : null),
+        favBtn(h.name));
+    }) : [el("p", { class: "small muted", text: "Touche ☆ à côté d'un produit pour le mettre en favori." })]))];
+  const kids = [...star, ...order.filter(c => groups[c] || grpOpen === c).map((c, n) => el("div", { class: "shop-group" }, ...grpHead(`${n + 1}. ${AISLE_EMO[c]} ${c}`, c),
+    ...(groups[c] || []).sort((a, b) => a.done - b.done).map(row)))];
+  $("#shop-list").replaceChildren(...kids);
   $("#shop-suggest").replaceChildren(...[...new Set([...habits.map(h => h.name), ...purchases.map(p => p.name)])].map(n => el("option", { value: n })));
 }
 /* Envies & achats : liste à part pour les achats exceptionnels */
@@ -2734,10 +2790,10 @@ function simpleList(key, emoList, fallback, emptyText) {
 }
 simpleList("wish", WISH_EMO, "🛍️", "Rien pour l'instant. Note ici ce que tu veux acheter un jour.");
 simpleList("pharma", PHARMA_EMO, "💊", "Rien à prendre à la pharmacie pour l'instant.");
-function addToList(name, qty = "") {
+function addToList(name, qty = "", aisle = null) {
   name = name.trim(); if (!name) return;
   const ex = shop.find(i => i.name.toLowerCase() === name.toLowerCase());
-  if (ex) { ex.done = false; if (qty) ex.qty = qty; } else shop.push({ id: uid(), name, qty, cat: rayonOf(name), done: false });
+  if (ex) { ex.done = false; if (qty) ex.qty = qty; if (aisle) ex.aisle = aisle; } else shop.push({ id: uid(), name, qty, cat: rayonOf(name), done: false, ...(aisle ? { aisle } : {}) });
 }
 /* Import unique de l'ancienne liste « COURSES » (captures du 19/10/2026) */
 (function importAncienneListe() {
@@ -2766,14 +2822,15 @@ function addToList(name, qty = "") {
 /* Les tâches ne sont pas des courses : on les retire de la liste (elles sont dans « Mes choses à faire ») */
 { const avant = shop.length; shop = shop.filter(i => !TACHES_IMPORT.some(t => t.toLowerCase() === i.name.toLowerCase())); if (shop.length !== avant) store.set("shop", shop); }
 $("#shop-form").addEventListener("submit", e => { e.preventDefault(); addToList($("#shop-name").value, $("#shop-qty").value.trim()); e.target.reset(); saveShop(); $("#shop-name").focus(); });
-function addMany(lines) {
+function addMany(lines, aisle = null) {
   const names = lines.flatMap(l => l.split(/,| et | puis /i))
     .map(l => l.replace(/^[\s\-•*◦○●☐✓✔\[\]]+/, "").replace(/[.!?]+$/, "").trim().replace(/^(du|de la|de l'|des|un|une|le|la|les|l')\s*/i, "")).filter(l => l && l.length < 60)
     .map(l => l[0].toUpperCase() + l.slice(1));
-  names.forEach(n => addToList(n)); saveShop();
+  names.forEach(n => addToList(n, "", aisle)); saveShop();
   $("#shop-msg").textContent = names.length ? `✅ Ajouté : ${names.join(", ")}` : "";
   return names;
 }
+if (SpeechRec) { const m = $("#shop-mic"); m.hidden = false; m.addEventListener("click", () => dictate(m, t => addMany([t]))); }
 $("#shop-paste-go").addEventListener("click", () => { addMany($("#shop-paste").value.split(/\n|;/)); $("#shop-paste").value = ""; });
 $("#shop-done").addEventListener("click", () => {
   const bought = shop.filter(i => i.done);
@@ -3617,6 +3674,50 @@ try {
 
 /* ---------- synchro Firebase ---------- */
 // Identifiants publics de son projet Firebase (pas secrets : la sécurité vient des règles, seule elle peut lire ses données)
+/* « Parle-moi » (CéHa, 1/11) : elle parle ou écrit, l'appli fait. Gratuit, tout se passe dans le téléphone.
+   Ajoute du lait · itinéraire vers Lyon · rappelle-moi de… · météo · agenda · sinon on ouvre Claude avec la question. */
+const talkFab = el("button", { id: "talk-fab", type: "button", "aria-label": "Parle-moi", text: "🎙️" });
+const talkIn = el("input", { type: "text", placeholder: "Dis-moi ou écris ce que tu veux", "aria-label": "Ta demande", autocomplete: "off" });
+const talkOut = el("div", { id: "talk-out", "aria-live": "polite" });
+const bigMic = el("button", { class: "big-mic", type: "button", "aria-label": "Parler", text: "🎤", hidden: !SpeechRec });
+const talk = el("div", { id: "talk", role: "dialog", "aria-label": "Parle-moi", hidden: true },
+  el("h2", {}, el("span", { text: "🎙️ Parle-moi" }), el("button", { class: "icon-btn", type: "button", "aria-label": "Fermer", text: "✕", onclick: () => { talk.hidden = true; } })),
+  el("p", { class: "small muted", text: SpeechRec ? "Touche le micro et parle. Ou écris ta demande." : "Écris ta demande (ou touche le 🎤 du clavier pour dicter)." }),
+  bigMic,
+  el("form", { onsubmit: e => { e.preventDefault(); if (talkIn.value.trim()) runTalk(talkIn.value); } }, talkIn, el("button", { class: "btn primary", type: "submit", text: "OK" })),
+  el("div", { class: "chips" }, ...["Ajoute du lait et des œufs", "Itinéraire vers Lyon Part-Dieu", "Rappelle-moi d'appeler le dentiste", "Quel temps demain ?", "Mon agenda"].map(t => el("button", { type: "button", text: t, onclick: () => runTalk(t) }))),
+  talkOut);
+document.body.append(talkFab, talk);
+talkFab.addEventListener("click", () => { talk.hidden = !talk.hidden; talkOut.replaceChildren(); if (!talk.hidden && !SpeechRec) talkIn.focus(); });
+bigMic.addEventListener("click", () => dictate(bigMic, t => { talkIn.value = t; runTalk(t); }));
+const say = (text, ...extra) => talkOut.replaceChildren(el("div", { text }), ...(extra.length ? [el("div", { class: "row" }, ...extra)] : []));
+const askClaude = q => el("a", { class: "btn primary", href: "https://claude.ai/new?q=" + encodeURIComponent(q), target: "_blank", rel: "noopener", text: "💬 Demander à Claude" });
+const askGoogle = q => el("a", { class: "btn", href: "https://www.google.com/search?q=" + encodeURIComponent(q), target: "_blank", rel: "noopener", text: "🔎 Google" });
+function runTalk(raw) {
+  const t = raw.trim().replace(/[.!]+$/, ""), low = t.toLowerCase();
+  let m;
+  if ((m = /^(?:rappelle[- ]moi|n'oublie pas|il faut que je|je dois)\s+(?:de |d'|qu'il faut |que )?(.+)$/i.exec(t))) {
+    const what = m[1][0].toUpperCase() + m[1].slice(1);
+    todos.push({ id: uid(), title: what, date: "", done: false }); saveTodos();
+    return say(`✅ Noté dans tes choses à faire : ${what}`);
+  }
+  if ((m = /^(?:ajoute|rajoute|mets|note)\s+(.+?)(?:\s+(?:à|a|dans|sur) (?:la|ma) liste(?: de courses)?| aux courses)?$/i.exec(t)) && !/rappel|agenda|à faire/.test(low)) {
+    const names = addMany([m[1]]);
+    return say(names.length ? `🛒 Ajouté à ta liste de courses : ${names.join(", ")}` : "Je n'ai pas compris quoi ajouter.", el("button", { class: "btn", type: "button", text: "Voir la liste", onclick: () => { talk.hidden = true; show("home2"); } }));
+  }
+  if ((m = /(?:itin[ée]raire|aller|chemin|trajet|route)\s+(?:vers|à|a|jusqu'à|pour aller à|pour)?\s*(.+)$/i.exec(t)) || (m = /^(?:comment )?(?:je vais|on va|aller) (?:à|a|au|aux|en) (.+)$/i.exec(t))) {
+    const dest = m[1].replace(/^(la|le|les|l')\s+/i, "");
+    talk.hidden = true; show("move");
+    setTimeout(() => { $("#tr-to").value = dest; $("#tr-go").click(); $("#tr-to").scrollIntoView({ block: "center" }); }, 300);
+    return say(`🧭 Je cherche comment aller à ${dest}`);
+  }
+  if (/m[ée]t[ée]o|temps (fait|demain|aujourd)|quel temps|pleuvoir|pluie/.test(low)) { talk.hidden = true; show("home"); $('[data-sec="wx"]')?.scrollIntoView({ behavior: "smooth" }); return; }
+  if (/agenda|rendez-vous|rdv/.test(low)) { talk.hidden = true; show("agenda"); return; }
+  if (/courses|liste/.test(low)) { talk.hidden = true; show("home2"); return; }
+  if (/train|gare/.test(low)) { talk.hidden = true; show("move"); $('[data-sec="rail"]')?.scrollIntoView({ behavior: "smooth" }); return; }
+  const q = t.replace(/^(?:cherche|recherche|demande à claude|claude)\s*/i, "");
+  say(`🔎 « ${q} »`, askClaude(q), askGoogle(q));
+}
 const FIREBASE_CONFIG = null;
 const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
 const loadJs = src => new Promise((ok, ko) => { const t = document.createElement("script"); t.src = src; t.onload = ok; t.onerror = ko; document.head.append(t); });
