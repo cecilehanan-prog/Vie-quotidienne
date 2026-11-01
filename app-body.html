@@ -487,6 +487,7 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 #trip-mode .btn span { font-size: 1.2rem; }
 [data-sec=rappel] { --sec: #f08c00; }
 [data-sec=sync] { --sec: #0fa3d1; }
+.pill:empty { display: none; }
 #rap-list .item.late { border-left-color: #d33; }
 #rap-list .item.done .what { text-decoration: line-through; opacity: .55; }
 .habits-top .shop-item.off { opacity: .6; }
@@ -672,7 +673,7 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
   <!-- ===== MAISON ===== -->
   <section class="view" id="view-home2" hidden>
     <article class="card" data-sec="loyal">
-      <div class="card-head"><h2>💳 Mes cartes de fidélité</h2><span class="pill" id="loyal-count"></span></div>
+      <div class="card-head"><h2>Mes cartes de fidélité</h2><span class="pill" id="loyal-count"></span></div>
       <div class="loyal-grid" id="loyal-list"></div>
       <details id="loyal-add">
         <summary>➕ Ajouter une carte</summary>
@@ -2363,7 +2364,7 @@ async function findTrip() {
 /* Mes envies de voyage : lieux + date facultative ; un appui prépare la recherche */
 let dreams = store.get("dreams", []);
 function renderDreams() {
-  $("#dream-count").textContent = dreams.length ? `${dreams.length} lieu${dreams.length > 1 ? "x" : ""}` : "vide";
+  $("#dream-count").textContent = dreams.length ? `${dreams.length} lieu${dreams.length > 1 ? "x" : ""}` : "";
   const sorted = [...dreams].sort((a, b) => (a.date || "9999") < (b.date || "9999") ? -1 : 1);
   $("#dream-list").replaceChildren(...(sorted.length ? sorted.map(d => el("div", { class: "shop-item" },
     el("button", { class: "what", type: "button", style: "border:0;background:none;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:0", onclick: () => {
@@ -2602,7 +2603,7 @@ function renderMeals() {
   mealPick = mealPick.filter(k => recipeOf(k));
   $("#meal-people").textContent = mealPeople;
   const favs = favKeys();
-  $("#fav-count").textContent = favs.length ? `${favs.length}` : "vide";
+  $("#fav-count").textContent = favs.length ? `${favs.length}` : "";
   $("#fav-grid").replaceChildren(...(favs.length ? favs.map(mealBtn) : [el("p", { class: "muted small", style: "grid-column:1/-1", text: "Touche un repas, puis 🤍 pour le garder ici. Tu peux aussi écrire tes propres recettes 👇" })]));
   $("#meal-grid").replaceChildren(...mealShown.filter(i => !favs.includes(i)).map(mealBtn));
   $("#meal-add").textContent = mealPick.length ? `🛒 Ajouter les ingrédients (${mealPick.length} repas)` : "👆 Choisis tes repas";
@@ -2769,7 +2770,7 @@ function grpHead(text, key) {
 }
 function renderShop() {
   const left = shop.filter(i => !i.done).length;
-  $("#shop-count").textContent = shop.length ? `${left} à prendre` : "vide";
+  $("#shop-count").textContent = shop.length ? `${left} à prendre` : "";
   const groups = {};
   for (const i of shop) if (!isFav(i.name)) (groups[i.aisle || rayonOf(i.name)] ||= []).push(i);
   const order = getAisleOrder();
@@ -2806,7 +2807,7 @@ function simpleList(key, emoList, fallback, emptyText) {
   const save = () => { store.set(key, items); render(); };
   const render = () => {
     const left = items.filter(w => !w.done).length;
-    $(`#${key}-count`).textContent = items.length ? `${left} à acheter` : "vide";
+    $(`#${key}-count`).textContent = items.length ? `${left} à acheter` : "";
     $(`#${key}-list`).replaceChildren(...(items.length ? [...items].sort((a, b) => a.done - b.done).map(w => el("label", { class: "shop-item" + (w.done ? " done" : "") },
       el("input", { type: "checkbox", checked: !!w.done, onchange: e => { w.done = e.target.checked; save(); } }),
       el("span", { class: "what" }, el("i", { class: "emo", "aria-hidden": "true", text: (emoList.find(([re]) => re.test(w.name.toLowerCase())) || [, fallback])[1] }), w.name, w.where ? el("span", { class: "muted", text: " · " + w.where }) : null),
@@ -3033,7 +3034,7 @@ async function showLoyal(id) {
   try { ticketLock = await navigator.wakeLock?.request("screen"); } catch {}
 }
 function renderLoyal() {
-  $("#loyal-count").textContent = loyal.length ? `${loyal.length} carte${loyal.length > 1 ? "s" : ""}` : "vide";
+  $("#loyal-count").textContent = loyal.length ? `${loyal.length} carte${loyal.length > 1 ? "s" : ""}` : "";
   $("#loyal-suggest").replaceChildren(...LOYAL_BRANDS.map(([n]) => el("option", { value: n })));
   $("#loyal-list").replaceChildren(...(loyal.length ? loyal.map(c => {
     const b = loyalBrand(c.name);
@@ -3117,7 +3118,7 @@ $("#auto-form").addEventListener("submit", e => {
 let vtix = store.get("vtix", []);
 function renderVtix() {
   const today = new Date().toISOString().slice(0, 10);
-  $("#vt-count").textContent = vtix.length ? `${vtix.length} billet${vtix.length > 1 ? "s" : ""}` : "vide";
+  $("#vt-count").textContent = vtix.length ? `${vtix.length} billet${vtix.length > 1 ? "s" : ""}` : "";
   const sorted = [...vtix].sort((a, b) => ((a.date || "9999") < today) - ((b.date || "9999") < today) || (a.date || "9999").localeCompare(b.date || "9999"));
   $("#vt-list").replaceChildren(...(sorted.length ? sorted.map(t => el("div", { class: "shop-item" + (t.date && t.date < today ? " done" : "") },
     el("button", { class: "what", type: "button", style: "border:0;background:none;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:0", onclick: () => showTicket(t.id, t.name) },
@@ -3141,7 +3142,7 @@ let outings = store.get("outings", []), films = store.get("films", []), filmStar
 const OUT_EMO = [[/musée|museum/, "🏛️"], [/expo/, "🖼️"], [/concert|opéra|festival de musique|jazz/, "🎵"], [/théâtre|pièce|spectacle|danse|ballet/, "🎭"],
   [/cinéma|ciné|film/, "🎬"], [/festival|fête/, "🎪"], [/château|monument|visite|patrimoine/, "🏰"], [/jardin|parc/, "🌳"]];
 function renderOutings() {
-  $("#outing-count").textContent = outings.length ? `${outings.filter(o => !o.done).length} à voir` : "vide";
+  $("#outing-count").textContent = outings.length ? `${outings.filter(o => !o.done).length} à voir` : "";
   const sorted = [...outings].sort((a, b) => a.done - b.done || (a.date || "9999").localeCompare(b.date || "9999"));
   $("#outing-list").replaceChildren(...(sorted.length ? sorted.map(o => el("label", { class: "shop-item" + (o.done ? " done" : "") },
     el("input", { type: "checkbox", checked: !!o.done, "aria-label": "Vu", onchange: e => { o.done = e.target.checked; store.set("outings", outings); renderOutings(); renderTiles(); } }),
@@ -3170,7 +3171,7 @@ function renderStars() {
   $("#film-stars").replaceChildren(...[1, 2, 3, 4, 5].map(n => el("button", { class: "btn", type: "button", "aria-pressed": String(n <= filmStars), "aria-label": n + " étoiles", text: "★", style: "padding:6px 8px", onclick: () => { filmStars = n; renderStars(); } })));
 }
 function renderFilms() {
-  $("#film-count").textContent = films.length ? `${films.length} film${films.length > 1 ? "s" : ""}` : "vide";
+  $("#film-count").textContent = films.length ? `${films.length} film${films.length > 1 ? "s" : ""}` : "";
   $("#film-list").replaceChildren(...(films.length ? [...films].reverse().map(f => el("div", { class: "shop-item" },
     el("span", { class: "what" }, el("i", { class: "emo", "aria-hidden": "true", text: "🎬" }), el("strong", { text: f.name }), el("span", { text: " " + "⭐".repeat(f.stars) }),
       f.note ? el("div", { class: "small muted", text: f.note }) : null),
@@ -3188,7 +3189,7 @@ function renderBookStars() {
   $("#book-stars").replaceChildren(...[1, 2, 3, 4, 5].map(n => el("button", { class: "btn", type: "button", "aria-pressed": String(n <= bookStars), "aria-label": n + " étoiles", text: "★", style: "padding:6px 8px", onclick: () => { bookStars = n; renderBookStars(); } })));
 }
 function renderBooks() {
-  $("#book-count").textContent = books.length ? `${books.length} livre${books.length > 1 ? "s" : ""}` : "vide";
+  $("#book-count").textContent = books.length ? `${books.length} livre${books.length > 1 ? "s" : ""}` : "";
   $("#book-list").replaceChildren(...(books.length ? [...books].reverse().map(b => el("div", { class: "shop-item" },
     el("span", { class: "what" }, el("i", { class: "emo", "aria-hidden": "true", text: "📖" }), el("strong", { text: b.name }), el("span", { text: " " + "⭐".repeat(b.stars) }),
       b.note ? el("div", { class: "small muted", text: b.note }) : null),
@@ -3206,7 +3207,7 @@ function renderLovedStars() {
   $("#loved-stars").replaceChildren(...[1, 2, 3, 4, 5].map(n => el("button", { class: "btn", type: "button", "aria-pressed": String(n <= lovedStars), "aria-label": n + " étoiles", text: "★", style: "padding:6px 8px", onclick: () => { lovedStars = n; renderLovedStars(); } })));
 }
 function renderLoved() {
-  $("#loved-count").textContent = loved.length ? `${loved.length} sortie${loved.length > 1 ? "s" : ""}` : "vide";
+  $("#loved-count").textContent = loved.length ? `${loved.length} sortie${loved.length > 1 ? "s" : ""}` : "";
   $("#loved-list").replaceChildren(...(loved.length ? [...loved].reverse().map(o => el("div", { class: "shop-item" },
     el("span", { class: "what" }, el("i", { class: "emo", "aria-hidden": "true", text: (OUT_EMO.find(([re]) => re.test(o.name.toLowerCase())) || [, "💖"])[1] }), el("strong", { text: o.name }), el("span", { text: " " + "⭐".repeat(o.stars) }),
       o.note ? el("div", { class: "small muted", text: o.note }) : null),
