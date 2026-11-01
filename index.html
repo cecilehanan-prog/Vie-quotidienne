@@ -498,6 +498,7 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 .pres-cd { display: flex; gap: 10px; margin-bottom: 6px; } .pres-cd > span { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px; border-radius: 12px; background: var(--surface); }
 .pres-cd b { font-size: 1.6rem; color: #2b59c3; } .pres-cd small { font-size: .75rem; color: var(--muted); text-align: center; }
 .pill:empty { display: none; }
+.rdv-cat h3 { margin: 16px 0 8px; font-size: 1rem; color: var(--sec); } .rdv-cat:first-child h3 { margin-top: 4px; }
 p.small:empty, p.muted:empty, #store-msg:empty { display: none; }
 #rap-list .item.late { border-left-color: #d33; }
 #rap-list .item.done .what { text-decoration: line-through; opacity: .55; }
@@ -1007,7 +1008,7 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
     <article class="card" data-sec="rdv">
       <h2>🔎 Trouver près de moi</h2>
       <p class="small muted">Je cherche autour de toi, où que tu sois.</p>
-      <div class="grid2" id="rdv-find"></div>
+      <div id="rdv-find"></div>
     </article>
   </section>
 
@@ -3631,7 +3632,7 @@ function renderDhikr() {
 
 /* ----- Rendez-vous : mes adresses (coiffeur, ostéo…), réserver ou appeler d'un geste, puis noter dans l'agenda ----- */
 const RDV_KINDS = [["coiffeur", "✂️", "Coiffeur", "maps"], ["osteo", "🦴", "Ostéopathe", "osteopathe"], ["medecin", "🩺", "Médecin", "medecin-generaliste"], ["dentiste", "🦷", "Dentiste", "dentiste"],
-  ["kine", "💆", "Kiné", "masseur-kinesitherapeute"], ["ophtalmo", "👁️", "Ophtalmo", "ophtalmologue"], ["esthe", "💅", "Esthéticienne", "maps"], ["veto", "🐾", "Vétérinaire", "maps"], ["garage", "🔧", "Garage", "maps"], ["autre", "✨", "Autre", "maps"]];
+  ["kine", "💆", "Kiné", "masseur-kinesitherapeute"], ["ophtalmo", "👁️", "Ophtalmo", "ophtalmologue"], ["esthe", "💅", "Esthéticienne", "maps"], ["veto", "🐾", "Vétérinaire", "maps"], ["garage", "🔧", "Garage", "maps"], ["gyneco", "🌸", "Gynécologue", "gynecologue"], ["ct", "🚗", "Contrôle technique", "maps"], ["autre", "✨", "Autre", "maps"]];
 const rdvKind = k => RDV_KINDS.find(x => x[0] === k) || RDV_KINDS.at(-1);
 let pros = store.get("pros", []);
 const gcalLink = e => { const d = evDate(e), f = x => x.toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z"; return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${f(d)}/${f(new Date(+d + 3600e3))}&location=${encodeURIComponent(e.place || "")}`; };
@@ -3657,12 +3658,14 @@ function renderRdv() {
 }
 $("#rdv-kind").replaceChildren(...RDV_KINDS.map(([k, e, l]) => el("option", { value: k, text: `${e} ${l}` })));
 $("#rdv-form").addEventListener("submit", e => { e.preventDefault(); pros.push({ id: uid(), kind: $("#rdv-kind").value, name: $("#rdv-name").value.trim(), phone: $("#rdv-phone").value.trim(), url: $("#rdv-url").value.trim(), city: $("#rdv-city").value.trim() }); store.set("pros", pros); e.target.reset(); $("#rdv-city").value = "Tarare"; e.target.closest("details").open = false; renderRdv(); });
-$("#rdv-find").replaceChildren(...RDV_KINDS.slice(0, -1).map(([k, e, l, doc]) => el("button", { class: "linkbox", type: "button", onclick: async () => {
+const RDV_CATS = [["🩺 Santé", ["medecin", "dentiste", "ophtalmo", "gyneco", "kine", "osteo"]], ["💅 Beauté", ["coiffeur", "esthe"]], ["🚗 Auto", ["garage", "ct"]], ["🐾 Animaux", ["veto"]]];
+const findBtn = ([k, e, l, doc]) => el("button", { class: "linkbox", type: "button", onclick: async () => {
   const pos = await hereOnce() || TARARE;
   if (doc !== "maps") { let city = "tarare"; try { city = (await (await fetch(`https://photon.komoot.io/reverse?lat=${pos[0]}&lon=${pos[1]}&lang=fr`)).json()).features?.[0]?.properties?.city || city; } catch {}
     open(`https://www.doctolib.fr/${doc}/${city.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, "_blank"); }
   else open(`https://www.google.com/maps/search/${encodeURIComponent(l.toLowerCase())}/@${pos[0]},${pos[1]},14z`, "_blank");
-} }, el("strong", { text: `${e} ${l}` }))));
+} }, el("strong", { text: `${e} ${l}` }));
+$("#rdv-find").replaceChildren(...RDV_CATS.map(([t, ks]) => el("div", { class: "rdv-cat" }, el("h3", { text: t }), el("div", { class: "grid2" }, ...ks.map(k => findBtn(rdvKind(k)))))));
 
 /* ----- Bien-être : huiles essentielles, remèdes naturels, bain de pieds ionique (infos recoupées, prudence d'abord) ----- */
 const BIEN_RULES = [["💧", "Toujours diluer dans une huile végétale (sauf mention « pure, 1 goutte »)."], ["🧪", "Nouvelle huile ? Test 24 h : 1 goutte diluée au pli du coude."],
