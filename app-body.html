@@ -3744,7 +3744,9 @@ function renderBien() {
 $("#bien-form").addEventListener("submit", e => { e.preventDefault(); bienMine.push({ id: uid(), t: $("#bien-t").value.trim(), x: $("#bien-x").value.trim() }); store.set("bienMine", bienMine); e.target.reset(); renderBien(); });
 renderPrayers(); renderRamadan(); setInterval(renderPrayers, 60000);
 renderKeep(); renderMeals(); renderStores(); renderAisles(); renderShop(); renderLeclerc(); renderHabits(); renderMeter(); renderChores(); renderHouseHome();
-show(store.get("view", "home"));
+show("home");
+let hiddenAt = 0;
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") hiddenAt = Date.now(); else if (hiddenAt && Date.now() - hiddenAt > 60000) show("home"); });
 loadWeather(); loadGoodNews(); scheduleReminders();
 try { if (navigator.permissions) navigator.permissions.query({ name: "geolocation" }).then(s => { if (s.state === "granted") { detectStore(false); alertsHere(true); } }).catch(() => {}); } catch {}
 $("#store-detect").addEventListener("click", () => detectStore(true));
