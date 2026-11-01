@@ -403,6 +403,15 @@ details summary { cursor: pointer; font-weight: 700; }
 .pro-top { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; } .pro-top .emo { font-size: 1.6rem; }
 .pro-top b { display: block; } .pro .row { margin-top: 8px; }
 .pro-when { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; } .pro-when button { grid-column: 1 / -1; }
+/* Santé (CéHa, 1/11) : Doctolib d'abord, puis le suivi du cycle */
+[data-sec=doc] { --sec: #107aca; } [data-sec=cycle] { --sec: #d6457a; }
+.doc-big { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 16px; border-radius: 16px; background: #107aca; color: #fff; font-weight: 800; font-size: 1.1rem; text-decoration: none; margin: 6px 0 10px; }
+.cyc-now { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; margin: 6px 0 10px; }
+.cyc-ring { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; text-align: center; line-height: 1.05; font-weight: 800;
+  background: conic-gradient(var(--sec) calc(var(--p) * 1%), color-mix(in srgb, var(--sec) 15%, transparent) 0); }
+.cyc-ring > span { width: 60px; height: 60px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; font-size: .78rem; } .cyc-ring b { font-size: 1.3rem; display: block; }
+.cyc-bar { display: grid; grid-auto-flow: column; gap: 2px; margin: 4px 0 10px; } .cyc-bar i { height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--sec) 14%, transparent); }
+.cyc-bar i.r { background: var(--sec); } .cyc-bar i.f { background: #7cc6a4; } .cyc-bar i.t { outline: 2px solid var(--fg); outline-offset: 1px; }
 .bien-rules { margin: 6px 0 0; padding-left: 0; list-style: none; display: grid; gap: 6px; } .bien-rules li { display: grid; grid-template-columns: 1.6em 1fr; gap: 6px; }
 .oil { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start; background: var(--surface-2); border-radius: 14px; padding: 12px; margin-top: 8px; border: 2px solid transparent; }
 .oil.ok { border-color: color-mix(in srgb, #2e9b57 50%, transparent); } .oil.no { opacity: .5; }
@@ -1000,6 +1009,22 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
 
   <section class="view" id="view-bien" hidden>
     <button class="btn" type="button" data-goto="home" style="margin-bottom:10px">⬅️ Accueil</button>
+    <article class="card" data-sec="doc">
+      <h2>🩺 Prendre rendez-vous</h2>
+      <a class="doc-big" href="https://www.doctolib.fr/" target="_blank" rel="noopener">📅 Ouvrir Doctolib</a>
+      <div class="grid2" id="doc-quick"></div>
+      <a class="small" href="https://www.doctolib.fr/account/appointments" target="_blank" rel="noopener">🗂️ Mes rendez-vous Doctolib</a>
+    </article>
+    <article class="card" data-sec="cycle">
+      <div class="card-head"><h2>🌸 Mon cycle</h2><a class="btn" id="cyc-health" href="x-apple-health://" hidden>❤️ App Santé</a></div>
+      <div id="cyc-body"></div>
+      <div class="row"><button class="btn primary" type="button" id="cyc-today">🩸 Mes règles ont commencé aujourd'hui</button></div>
+      <details style="margin-top:8px"><summary>📅 Noter une autre date</summary>
+        <form class="inline" id="cyc-form"><input type="date" id="cyc-date" required aria-label="Premier jour des règles"><button class="btn primary" type="submit">Noter</button></form>
+        <div class="list" id="cyc-list"></div>
+      </details>
+      <p class="small muted">🔒 Reste seulement sur ce téléphone. L'appli Santé de l'iPhone ne peut pas être lue par une appli web : note ici le 1er jour, ou continue dans l'app Santé (bouton ❤️).</p>
+    </article>
     <article class="card" data-sec="bienwarn">
       <h2>🛟 Les règles d'or</h2>
       <ul class="bien-rules" id="bien-rules"></ul>
@@ -1193,7 +1218,7 @@ const el = (tag, attrs = {}, ...kids) => {
   return n;
 };
 /* Synchro iMac ↔ iPhone (CéHa, 26/10) : chaque clé modifiée est datée, puis envoyée dans son espace Firebase privé */
-const SYNC_SKIP = /^(icsLinks|fired|paperAlerted|fuelBrands|view|hereCity|placeGeo|rappels|dhikrData|permitDoc|adminRefV|_t|wx:|feed:|quran:)/;
+const SYNC_SKIP = /^(icsLinks|fired|paperAlerted|fuelBrands|view|hereCity|placeGeo|rappels|dhikrData|permitDoc|cycles|adminRefV|_t|wx:|feed:|quran:)/;
 const syncMeta = () => { try { return JSON.parse(localStorage.getItem("mq:_t") || "{}"); } catch { return {}; } };
 let syncPush = null;
 const store = {
@@ -2961,7 +2986,7 @@ const TILES = [
   ["move", "car", "Trajets", null],
   ["trip", "trip", "Voyage", null],
   ["auto", "auto", "Auto · Moto", () => autoDue().length],
-  ["bien", "bien", "Bien-être", null],
+  ["bien", "bien", "Santé et bien-être", null],
   ["admin", "admin", "Papiers", () => admin.filter(x => !x.done && x.date && daysUntil(x.date) <= 30).length],
   ["serenite", "pray", "Sérénité", null],
 ];
@@ -3638,6 +3663,31 @@ const NATURE = [
 ];
 const ION = [["#f3e27a", "Jaune, vert", "vessie, reins, voies urinaires"], ["#e98a2c", "Orange", "articulations"], ["#7a4a24", "Brun", "foie, tabac, cellules"], ["#2b2b2b", "Noir", "foie"], ["#f4f4f4", "Flocons blancs", "lymphe"], ["#b33a2e", "Points rouges", "caillots"], ["#e7eef3", "Mousse blanche", "mucus, ganglions"]];
 let kitOk = store.get("kitOk", {}), boboSel = null, bienMine = store.get("bienMine", []);
+/* Doctolib : les spécialités qu'elle utilise, déjà cherchées autour de Tarare */
+$("#doc-quick").replaceChildren(...[["👩‍⚕️", "Généraliste", "medecin-generaliste"], ["🦷", "Dentiste", "dentiste"], ["🌸", "Gynécologue", "gynecologue"], ["😁", "Orthodontiste", "orthodontiste"], ["👁️", "Ophtalmo", "ophtalmologue"], ["🧒", "Pédiatre", "pediatre"]]
+  .map(([e, n, k]) => el("a", { class: "linkbox", href: `https://www.doctolib.fr/${k}/tarare`, target: "_blank", rel: "noopener" }, el("i", { class: "emo", text: e }), el("strong", { text: n }), el("span", { text: "près de Tarare" }))));
+/* Suivi du cycle : 1er jour des règles noté ici ; prochaine date = moyenne des derniers cycles (28 j au départ) */
+let cycles = store.get("cycles", []);
+const saveCycles = () => { cycles = [...new Set(cycles)].sort(); store.set("cycles", cycles); renderCycle(); };
+function renderCycle() {
+  const dd = (a, b) => Math.round((new Date(b + "T12:00") - new Date(a + "T12:00")) / DAY);
+  const gaps = cycles.slice(1).map((d, i) => dd(cycles[i], d)).filter(g => g >= 18 && g <= 45).slice(-6);
+  const len = gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length) : 28, last = cycles[cycles.length - 1];
+  $("#cyc-list").replaceChildren(...[...cycles].reverse().slice(0, 8).map(d => el("div", { class: "item" }, el("div", { class: "what", text: "🩸 " + new Date(d + "T12:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "long", year: "numeric" }) }),
+    el("button", { class: "icon-btn", type: "button", "aria-label": "Effacer", text: "✕", onclick: () => { cycles = cycles.filter(x => x !== d); saveCycles(); } }))));
+  if (!last) { $("#cyc-body").replaceChildren(el("p", { class: "muted", text: "Touche le bouton le 1er jour de tes règles : je calcule les prochaines toute seule." })); return; }
+  const day = dd(last, todayISO()) + 1, next = new Date(new Date(last + "T12:00").getTime() + len * DAY), inDays = dd(todayISO(), ymd(next)), ov = len - 14;
+  $("#cyc-body").replaceChildren(
+    el("div", { class: "cyc-now" }, el("div", { class: "cyc-ring", style: `--p:${Math.min(100, day / len * 100)}` }, el("span", {}, el("div", {}, el("b", { text: day }), "jour"))),
+      el("div", {}, el("b", { text: inDays > 0 ? `Prochaines règles vers le ${dShort(next)}` : inDays === 0 ? "Règles attendues aujourd'hui" : `Retard de ${-inDays} jour${inDays < -1 ? "s" : ""}` }),
+        el("div", { class: "small muted", text: inDays > 0 ? `dans ${inDays} jour${inDays > 1 ? "s" : ""} · cycle de ${len} jours${gaps.length ? "" : " (par défaut)"}` : `cycle de ${len} jours` }))),
+    el("div", { class: "cyc-bar", "aria-hidden": "true" }, ...Array.from({ length: len }, (_, i) => el("i", { class: [i < 5 ? "r" : "", i >= ov - 5 && i <= ov ? "f" : "", i === day - 1 ? "t" : ""].join(" ") }))),
+    el("div", { class: "small muted", text: "🟥 règles · 🟩 période fertile (estimation, pas une contraception)" }));
+}
+$("#cyc-today").addEventListener("click", () => { cycles.push(todayISO()); saveCycles(); });
+$("#cyc-form").addEventListener("submit", e => { e.preventDefault(); cycles.push($("#cyc-date").value); e.target.reset(); saveCycles(); });
+$("#cyc-health").hidden = !/iPhone|iPad/.test(navigator.userAgent);
+renderCycle();
 function renderBien() {
   $("#bien-rules").replaceChildren(...BIEN_RULES.map(([e, t]) => el("li", {}, el("span", { text: e }), el("span", { text: t }))));
   const kept = KIT.filter(k => kitOk[k[0]] === true).length, decided = KIT.filter(k => k[0] in kitOk).length;
