@@ -625,7 +625,7 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
     </article>
 
     <article class="card" data-sec="sync">
-      <div class="card-head"><h2>🔄 iMac ↔ iPhone</h2><span class="pill" id="sync-state">pas encore</span></div>
+      <div class="card-head"><h2>🔄 iMac ↔ iPhone ↔ iPad</h2><span class="pill" id="sync-state">pas encore</span></div>
       <p class="small muted" id="sync-msg">Connecte-toi une fois sur chaque appareil : tes listes, papiers et rendez-vous seront les mêmes partout.</p>
       <div class="row"><button class="btn primary" type="button" id="sync-in">Se connecter avec Google</button><button class="btn" type="button" id="sync-out" hidden>Se déconnecter</button></div>
     </article>
@@ -3820,7 +3820,7 @@ function runTalk(raw) {
   const q = t.replace(/^(?:cherche|recherche|demande à claude|claude)\s*/i, "");
   say(`🔎 « ${q} »`, askClaude(q), askGoogle(q));
 }
-const FIREBASE_CONFIG = null;
+const FIREBASE_CONFIG = { apiKey: "AIzaSyA-n1BG9p4nTX98nTtNoTVd6PzDwBn65Do", authDomain: "mon-quotidien-d86c1.firebaseapp.com", projectId: "mon-quotidien-d86c1", storageBucket: "mon-quotidien-d86c1.firebasestorage.app", messagingSenderId: "563933042145", appId: "1:563933042145:web:7fd0df1378d3ea8d4b2ea0" };
 const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
 const loadJs = src => new Promise((ok, ko) => { const t = document.createElement("script"); t.src = src; t.onload = ok; t.onerror = ko; document.head.append(t); });
 let fbDoc = null, pending = new Set(), pushTimer = 0, wantReload = false;
