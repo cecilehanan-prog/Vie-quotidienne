@@ -498,6 +498,7 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 .pres-cd { display: flex; gap: 10px; margin-bottom: 6px; } .pres-cd > span { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px; border-radius: 12px; background: var(--surface); }
 .pres-cd b { font-size: 1.6rem; color: #2b59c3; } .pres-cd small { font-size: .75rem; color: var(--muted); text-align: center; }
 .pill:empty { display: none; }
+#doc-quick2, .rdv-cat .grid2 { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); } #doc-quick2 .linkbox, .rdv-cat .linkbox { overflow-wrap: normal; word-break: normal; hyphens: manual; }
 .rdv-cat h3 { margin: 16px 0 8px; font-size: 1rem; color: var(--sec); } .rdv-cat:first-child h3 { margin-top: 4px; }
 p.small:empty, p.muted:empty, #store-msg:empty { display: none; }
 #rap-list .item.late { border-left-color: #d33; }
@@ -521,7 +522,7 @@ p.small:empty, p.muted:empty, #store-msg:empty { display: none; }
 #shop-form .mic { width: 44px; height: 44px; }
 /* « Parle-moi » : un micro toujours là pour demander à l'appli (CéHa, 1/11) */
 #talk-fab { position: fixed; right: 14px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 6; width: 58px; height: 58px; border-radius: 50%; border: 0; cursor: pointer; font-size: 1.6rem;
-  background: linear-gradient(140deg, #d97757, #c2508f); color: #fff; box-shadow: 0 6px 18px rgba(194,80,143,.4); }
+  background: linear-gradient(120deg, #8a5a00, #b8860b 45%, #d4a017 60%, #8a5a00); color: #fff; box-shadow: 0 6px 18px rgba(184,134,11,.4); }
 #talk { position: fixed; inset: auto 0 0 0; z-index: 7; background: var(--surface); border-radius: 22px 22px 0 0; box-shadow: 0 -8px 30px rgba(0,0,0,.25);
   padding: 18px 16px calc(20px + env(safe-area-inset-bottom, 0px)); max-height: 80vh; overflow: auto; }
 #talk[hidden] { display: none; }
@@ -1005,7 +1006,7 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
         </form>
       </details>
     </article>
-    <article class="card" data-sec="doc">
+    <article class="card" data-sec="rdv">
       <h2>🩺 Prendre un rendez-vous santé</h2>
       <a class="doc-big" href="https://www.doctolib.fr/" target="_blank" rel="noopener">📅 Ouvrir Doctolib</a>
       <div class="grid2 doc-quick" id="doc-quick2"></div>
@@ -3671,7 +3672,8 @@ const findBtn = ([k, e, l, doc]) => el("button", { class: "linkbox", type: "butt
     open(`https://www.doctolib.fr/${doc}/${city.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, "_blank"); }
   else open(`https://www.google.com/maps/search/${encodeURIComponent(l.toLowerCase())}/@${pos[0]},${pos[1]},14z`, "_blank");
 } }, el("strong", { text: `${e} ${l}` }));
-$("#rdv-find").replaceChildren(...RDV_CATS.map(([t, ks]) => el("div", { class: "rdv-cat" }, el("h3", { text: t }), el("div", { class: "grid2" }, ...ks.map(k => findBtn(rdvKind(k)))))));
+$("#doc-quick2").replaceChildren(...RDV_CATS[0][1].map(k => findBtn(rdvKind(k))));
+$("#rdv-find").replaceChildren(...RDV_CATS.slice(1).map(([t, ks]) => el("div", { class: "rdv-cat" }, el("h3", { text: t }), el("div", { class: "grid2" }, ...ks.map(k => findBtn(rdvKind(k)))))));
 
 /* ----- Bien-être : huiles essentielles, remèdes naturels, bain de pieds ionique (infos recoupées, prudence d'abord) ----- */
 const BIEN_RULES = [["💧", "Toujours diluer dans une huile végétale (sauf mention « pure, 1 goutte »)."], ["🧪", "Nouvelle huile ? Test 24 h : 1 goutte diluée au pli du coude."],
@@ -3707,10 +3709,7 @@ const NATURE = [
 ];
 const ION = [["#f3e27a", "Jaune, vert", "vessie, reins, voies urinaires"], ["#e98a2c", "Orange", "articulations"], ["#7a4a24", "Brun", "foie, tabac, cellules"], ["#2b2b2b", "Noir", "foie"], ["#f4f4f4", "Flocons blancs", "lymphe"], ["#b33a2e", "Points rouges", "caillots"], ["#e7eef3", "Mousse blanche", "mucus, ganglions"]];
 let kitOk = store.get("kitOk", {}), boboSel = null, bienMine = store.get("bienMine", []);
-/* Doctolib : les spécialités qu'elle utilise, déjà cherchées autour de Tarare */
-const DOC_QUICK = () => [["👩‍⚕️", "Généraliste", "medecin-generaliste"], ["🦷", "Dentiste", "dentiste"], ["🌸", "Gynécologue", "gynecologue"], ["😁", "Orthodontiste", "orthodontiste"], ["👁️", "Ophtalmo", "ophtalmologue"], ["🧒", "Pédiatre", "pediatre"]]
-  .map(([e, n, k]) => el("a", { class: "linkbox", href: `https://www.doctolib.fr/${k}/tarare`, target: "_blank", rel: "noopener" }, el("i", { class: "emo", text: e }), el("strong", { text: n }), el("span", { text: "près de Tarare" })));
-for (const id of ["#doc-quick", "#doc-quick2"]) $(id)?.replaceChildren(...DOC_QUICK());
+
 /* Suivi du cycle : 1er jour des règles noté ici ; prochaine date = moyenne des derniers cycles (28 j au départ) */
 let cycles = store.get("cycles", []), cycleEnds = store.get("cycleEnds", {});
 const saveCycles = () => { cycles = [...new Set(cycles)].sort(); store.set("cycles", cycles); for (const k in cycleEnds) if (!cycles.includes(k)) delete cycleEnds[k]; store.set("cycleEnds", cycleEnds); renderCycle(); };
