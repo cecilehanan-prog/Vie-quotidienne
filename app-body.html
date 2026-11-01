@@ -487,6 +487,9 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 #trip-mode .btn span { font-size: 1.2rem; }
 [data-sec=rappel] { --sec: #f08c00; }
 [data-sec=sync] { --sec: #0fa3d1; }
+.pres-head { list-style: none; padding: 12px; border-radius: 14px; background: color-mix(in srgb, #2b59c3 10%, transparent); margin-bottom: 8px; }
+.pres-cd { display: flex; gap: 10px; margin-bottom: 6px; } .pres-cd > span { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px; border-radius: 12px; background: var(--surface); }
+.pres-cd b { font-size: 1.6rem; color: #2b59c3; } .pres-cd small { font-size: .75rem; color: var(--muted); text-align: center; }
 .pill:empty { display: none; }
 #rap-list .item.late { border-left-color: #d33; }
 #rap-list .item.done .what { text-decoration: line-through; opacity: .55; }
@@ -1503,15 +1506,19 @@ async function loadAir(p) {
 
 /* ---------- actus (flux RSS) ---------- */
 const gnews = q => `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=fr&gl=FR&ceid=FR:fr`;
+// Que des infos positives (CéHa, 1/11) : chaque titre qui parle de malheur, de violence ou de crise est écarté
+const BAD_NEWS = /\b(morts?|morte|d[ée]c[èe]s|d[ée]c[ée]d|tu[ée]e?s?|meurtr|assassin|homicide|viol[ée]?e?s?\b|agress|attentat|terroris|guerre|bombard|missile|frappes?\b|otage|massacre|accident|drame|trag[ée]d|tragique|incendie|explosion|bless[ée]|victime|crash|noyad|disparu|disparition|enl[èe]vement|catastroph|inondation|s[ée]isme|temp[êe]te|ouragan|canicule|s[ée]cheresse|crise|ch[ôo]mage|licenci|faillite|gr[èe]ve|manif|[ée]meute|violen|garde [àa] vue|proc[èe]s|condamn|prison|mis en examen|enqu[êe]te|interpell|trafic de|drogue|scandale|plainte|menace|danger|inqui[ée]t|pol[ée]mique|harc[èe]lement|suicide|cancer|[ée]pid[ée]mie|p[ée]nurie|inflation|dette|d[ée]ficit|pollution|alerte|col[èe]re|tension|conflit|arrest|braquage|vol\b|cambriol|fusillade|couteau|arme|chute|panne|perturb)/i;
 const FEEDS = {
-  tarare: { label: "🏡 Tarare", urls: [gnews("Tarare OR \"Ouest rhodanien\" OR Amplepuis OR Beaujolais when:7d")] },
-  lyon: { label: "🦁 Lyon", urls: ["https://www.lyoncapitale.fr/feed/", gnews("Lyon when:2d")] },
-  courrier: { label: "🌍 La France vue du monde", urls: ["https://www.courrierinternational.com/feed/all/rss.xml", gnews("site:courrierinternational.com when:3d")] },
-  bonnes: { label: "🌈 Infos positives", urls: ["https://positivr.fr/feed/", gnews("\"Éclat positif\" OR \"bonne nouvelle\" OR \"initiative solidaire\" France when:3d"), gnews("\"bonne nouvelle\" OR solidarité OR initiative when:3d")] },
-  france: { label: "🇫🇷 France", urls: ["https://www.francetvinfo.fr/titres.rss"] },
-  monde: { label: "🗺️ Monde", urls: ["https://www.france24.com/fr/rss"] },
+  bonnes: { label: "🌈 Bonnes nouvelles", pos: true, urls: ["https://positivr.fr/feed/", "https://www.wedemain.fr/feed/", gnews("site:positivr.fr when:7d"), gnews("\"bonne nouvelle\" OR \"belle histoire\" OR \"initiative solidaire\" OR \"geste solidaire\" when:3d")] },
+  tarare: { label: "🏡 Tarare", pos: true, urls: [gnews("Tarare OR \"Ouest rhodanien\" OR Amplepuis OR Beaujolais when:7d")] },
+  lyon: { label: "🦁 Lyon", pos: true, urls: ["https://www.lyoncapitale.fr/feed/", gnews("Lyon when:2d")] },
+  france: { label: "🇫🇷 France", pos: true, urls: ["https://www.francetvinfo.fr/titres.rss", gnews("\"bonne nouvelle\" France when:3d")] },
+  courrier: { label: "🌍 Vue du monde", pos: true, urls: ["https://www.courrierinternational.com/feed/all/rss.xml", gnews("site:courrierinternational.com France when:7d"), gnews("France \"vu de l'étranger\" OR \"presse étrangère\" OR \"la presse internationale\" when:7d")] },
+  // Présidentielle 2027 : 1er tour 18 avril, 2e tour 2 mai 2027 (info.gouv.fr) ; l'onglet disparaît tout seul le 4 mai 2027
+  pres: { label: "🗳️ Présidentielle", until: "2027-05-04", urls: [gnews("\"présidentielle 2027\" when:2d"), gnews("\"présidentielle 2027\" sondage when:7d"), gnews("\"présidentielle 2027\" candidat OR candidature OR programme when:3d")] },
 };
-let currentFeed = "tarare", newsLoaded = false;
+for (const [k, f] of Object.entries(FEEDS)) if (f.until && daysUntil(f.until) <= 0) delete FEEDS[k];
+let currentFeed = "bonnes", newsLoaded = false;
 for (const [k, f] of Object.entries(FEEDS)) {
   $("#news-tabs").append(el("button", { class: "btn", type: "button", "data-feed-tab": k, text: f.label, onclick: () => loadNews(k) }));
 }
@@ -1534,7 +1541,7 @@ async function getFeed(key) {
   let items = results.flatMap(r => r.status === "fulfilled" ? r.value : []);
   if (!items.length) { const c = store.get("feed:" + key); if (c) return { items: c.items, stale: true, at: c.at }; throw new Error("vide"); }
   const seen = new Set();
-  items = items.filter(i => i.title && !seen.has(i.title) && seen.add(i.title))
+  items = items.filter(i => i.title && !seen.has(i.title) && seen.add(i.title) && !(FEEDS[key].pos && BAD_NEWS.test(i.title)))
     .sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 25);
   store.set("feed:" + key, { items, at: Date.now() });
   return { items, stale: false, at: Date.now() };
@@ -1557,11 +1564,21 @@ async function loadNews(key) {
   $("#news-src").textContent = "";
   try {
     const { items, stale, at } = await getFeed(key);
-    list.replaceChildren(...items.map(newsLi));
+    list.replaceChildren(...(key === "pres" ? [presHead()] : []), ...items.map(newsLi));
     $("#news-updated").textContent = (stale ? "Hors ligne, mis à jour " : "Mis à jour ") + new Date(at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   } catch {
     list.replaceChildren(el("li", { class: "muted", text: "Les infos ne sont pas joignables pour l'instant. Réessaie dans un moment." }));
   }
+}
+function presHead() {
+  const d1 = daysUntil("2027-04-18"), d2 = daysUntil("2027-05-02");
+  return el("li", { class: "pres-head" },
+    el("div", { class: "pres-cd" }, el("span", {}, el("b", { text: d1 > 0 ? d1 : "✓" }), el("small", { text: d1 > 0 ? "jours avant le 1er tour" : "1er tour passé" })),
+      el("span", {}, el("b", { text: d2 > 0 ? d2 : "✓" }), el("small", { text: d2 > 0 ? "jours avant le 2e tour" : "2e tour passé" }))),
+    el("div", { class: "small muted", text: "🗓️ 1er tour dimanche 18 avril 2027 · 2e tour dimanche 2 mai 2027" }),
+    el("div", { class: "row", style: "margin-top:6px" },
+      el("a", { class: "btn", href: "https://fr.wikipedia.org/wiki/Liste_de_sondages_sur_l%27%C3%A9lection_pr%C3%A9sidentielle_fran%C3%A7aise_de_2027", target: "_blank", rel: "noopener", text: "📊 Tous les sondages" }),
+      el("a", { class: "btn", href: "https://fr.wikipedia.org/wiki/%C3%89lection_pr%C3%A9sidentielle_fran%C3%A7aise_de_2027", target: "_blank", rel: "noopener", text: "👥 Les candidats" })));
 }
 async function loadGoodNews() {
   const ul = $("#home-good"); if (!ul) return;
