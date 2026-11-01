@@ -1335,6 +1335,7 @@ const VIEW_SEC = { home: "wx", news: "news", agenda: "agenda", rdv: "rdv", cultu
 const svg = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
 function buildTabbar() {
   for (const [id, label] of VIEWS) {
+    if (id === "serenite") continue; // Sérénité reste discrète : seulement en tuile
     const b = el("button", { type: "button", "data-view": id, "data-sec": VIEW_SEC[id] });
     b.innerHTML = svg(ICONS[id] || SEC_ICON[VIEW_SEC[id]]) + `<span>${label}</span>`;
     b.addEventListener("click", () => show(id));
