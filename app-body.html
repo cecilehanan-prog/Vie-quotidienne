@@ -666,7 +666,7 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       </div>
       <details class="gsync" id="gsync">
         <summary><span>🔄 Mes agendas Google en direct</span><span class="pill" id="gsync-state">à brancher</span></summary>
-        <p class="small muted">Colle ici tes liens privés Google Agenda (adresse secrète au format iCal), un par ligne. Ils restent seulement sur ce téléphone.</p>
+        <p class="small muted">Colle ici tes liens privés Google Agenda (adresse secrète au format iCal), un par ligne. 🔒 Ils sont gardés dans ton espace privé et sont les mêmes sur tous tes appareils.</p>
         <textarea id="gsync-links" rows="3" autocomplete="off" spellcheck="false" aria-label="Liens iCal privés"></textarea>
         <div class="row" style="margin-top:8px"><button class="btn primary" type="button" id="gsync-save">💾 Brancher</button><button class="btn" type="button" id="gsync-now">🔄 Actualiser</button></div>
         <p class="small muted" id="gsync-msg"></p>
@@ -1020,7 +1020,7 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
         <form class="inline" id="cyc-form"><input type="date" id="cyc-date" required aria-label="Premier jour des règles"><button class="btn primary" type="submit">Noter</button></form>
         <div class="list" id="cyc-list"></div>
       </details>
-      <p class="small muted">🔒 Reste seulement sur ce téléphone. L'appli Santé de l'iPhone ne peut pas être lue par une appli web : note ici le 1er jour, ou continue dans l'app Santé (bouton ❤️).</p>
+      <p class="small muted">🔒 Gardé dans ton espace privé, le même sur tous tes appareils. L'appli Santé de l'iPhone ne peut pas être lue par une appli web : note ici le 1er jour, ou continue dans l'app Santé (bouton ❤️).</p>
     </article>
     <article class="card" data-sec="bienwarn">
       <h2>🛟 Les règles d'or</h2>
@@ -1215,7 +1215,7 @@ const el = (tag, attrs = {}, ...kids) => {
   return n;
 };
 /* Synchro iMac ↔ iPhone (CéHa, 26/10) : chaque clé modifiée est datée, puis envoyée dans son espace Firebase privé */
-const SYNC_SKIP = /^(icsLinks|fired|paperAlerted|fuelBrands|view|hereCity|placeGeo|rappels|dhikrData|permitDoc|cycles|cycleEnds|adminRefV|_t|wx:|feed:|quran:)/;
+const SYNC_SKIP = /^(fired|paperAlerted|fuelBrands|view|hereCity|placeGeo|rappels|dhikrData|permitDoc|adminRefV|_t|wx:|feed:|quran:)/;
 const syncMeta = () => { try { return JSON.parse(localStorage.getItem("mq:_t") || "{}"); } catch { return {}; } };
 let syncPush = null;
 const store = {
@@ -1726,7 +1726,7 @@ $("#ics-file").addEventListener("change", async ev => {
   ev.target.value = "";
 });
 /* Google Agenda en direct : le robot « Relais Agenda » dépose les agendas chiffrés (branche agenda) ;
-   chaque agenda se déchiffre avec la clé tirée de son propre lien privé, gardé seulement sur ce téléphone. */
+   chaque agenda se déchiffre avec la clé tirée de son propre lien privé, gardé seulement sur tes appareils et ton espace privé. */
 const AGENDA_URL = "https://raw.githubusercontent.com/cecilehanan-prog/Vie-quotidienne/agenda/agenda.enc";
 // Ordre et noms voulus par CéHa : Cé Perso, Cé Santé, Job, Gabriel, Jasmin, Maison (puis les fêtes)
 const CALS = [[/perso|cecilehanan/i, "Cé Perso"], [/^c[ée] sant/i, "Cé Santé"], [/aesh|cit[ée] scol/i, "Job AESH"], [/actual|job/i, "Job Actual Médical"],
@@ -1792,7 +1792,7 @@ function renderRappels() {
 $("#rap-all").addEventListener("click", () => { rapAll = !rapAll; $("#rap-all").textContent = rapAll ? "Moins" : "Voir tout"; renderRappels(); });
 renderRappels();
 $("#gsync-links").value = store.get("icsLinks", "");
-$("#gsync-save").addEventListener("click", () => { store.set("icsLinks", $("#gsync-links").value.trim()); $("#gsync-msg").textContent = `🔗 ${icsLinks().length} lien(s) gardé(s) sur ce téléphone.`; syncAgenda(true); });
+$("#gsync-save").addEventListener("click", () => { store.set("icsLinks", $("#gsync-links").value.trim()); $("#gsync-msg").textContent = `🔗 ${icsLinks().length} lien(s) gardé(s), les mêmes sur tous tes appareils.`; syncAgenda(true); });
 $("#gsync-now").addEventListener("click", () => syncAgenda(true));
 { // lien d'installation en un geste : …#agendas=<liens> (reste dans le téléphone, n'est jamais envoyé au site)
   const m = /[#&]agendas=([^&]+)/.exec(location.hash);
@@ -3844,7 +3844,13 @@ async function syncStart() {
   const auth = firebase.auth();
   $("#sync-in").onclick = async () => {
     const p = new firebase.auth.GoogleAuthProvider();
-    try { await auth.signInWithPopup(p); } catch (e) { if (/popup/i.test(e.code || "")) auth.signInWithRedirect(p); else syncSay("😕 erreur", "La connexion n'a pas marché : " + (e.code || "réessaie")); }
+    syncSay("⏳ connexion…", "Une fenêtre Google s'ouvre : choisis ton compte.");
+    try { await auth.signInWithPopup(p); } catch (e) {
+      const c = e.code || "";
+      if (/popup-blocked/.test(c)) syncSay("😕 bloqué", "La fenêtre Google a été bloquée. Sur iPhone/iPad : Réglages › Safari › décoche « Bloquer les pop-up », puis réessaie.");
+      else if (/popup-closed|cancelled/.test(c)) syncSay("pas encore", "La fenêtre Google s'est fermée avant la fin. Réessaie et choisis ton compte.");
+      else syncSay("😕 erreur", "La connexion n'a pas marché (" + (c || e.message || "réessaie") + ").");
+    }
   };
   $("#sync-out").onclick = () => auth.signOut();
   auth.onAuthStateChanged(user => {
