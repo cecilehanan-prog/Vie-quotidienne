@@ -998,6 +998,12 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
         </form>
       </details>
     </article>
+    <article class="card" data-sec="doc">
+      <h2>🩺 Prendre un rendez-vous santé</h2>
+      <a class="doc-big" href="https://www.doctolib.fr/" target="_blank" rel="noopener">📅 Ouvrir Doctolib</a>
+      <div class="grid2 doc-quick" id="doc-quick2"></div>
+      <a class="small" href="https://www.doctolib.fr/account/appointments" target="_blank" rel="noopener">🗂️ Mes rendez-vous Doctolib</a>
+    </article>
     <article class="card" data-sec="rdv">
       <h2>🔎 Trouver près de moi</h2>
       <p class="small muted">Je cherche autour de toi, où que tu sois.</p>
@@ -1007,12 +1013,6 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
 
   <section class="view" id="view-bien" hidden>
     <button class="btn" type="button" data-goto="home" style="margin-bottom:10px">⬅️ Accueil</button>
-    <article class="card" data-sec="doc">
-      <h2>🩺 Prendre rendez-vous</h2>
-      <a class="doc-big" href="https://www.doctolib.fr/" target="_blank" rel="noopener">📅 Ouvrir Doctolib</a>
-      <div class="grid2" id="doc-quick"></div>
-      <a class="small" href="https://www.doctolib.fr/account/appointments" target="_blank" rel="noopener">🗂️ Mes rendez-vous Doctolib</a>
-    </article>
     <article class="card" data-sec="cycle">
       <div class="card-head"><h2>🌸 Mon cycle</h2><a class="btn" id="cyc-health" href="x-apple-health://" hidden>❤️ App Santé</a></div>
       <div id="cyc-body"></div>
@@ -3015,7 +3015,7 @@ const TILES = [
   ["move", "car", "Trajets", null],
   ["trip", "trip", "Voyage", null],
   ["auto", "auto", "Auto · Moto", () => autoDue().length],
-  ["bien", "bien", "Santé et bien-être", null],
+  ["bien", "bien", "Bien-être", null],
   ["admin", "admin", "Papiers", () => admin.filter(x => !x.done && x.date && daysUntil(x.date) <= 30).length],
   ["serenite", "pray", "Sérénité", null],
 ];
@@ -3625,7 +3625,13 @@ function renderDhikr() {
 
 /* ----- Rendez-vous : mes adresses (coiffeur, ostéo…), réserver ou appeler d'un geste, puis noter dans l'agenda ----- */
 const RDV_KINDS = [["coiffeur", "✂️", "Coiffeur", "maps"], ["osteo", "🦴", "Ostéopathe", "osteopathe"], ["medecin", "🩺", "Médecin", "medecin-generaliste"], ["dentiste", "🦷", "Dentiste", "dentiste"],
-  ["kine", "💆", "Kiné", "masseur-kinesitherapeute"], ["ophtalmo", "👁️", "Ophtalmo", "ophtalmologue"], ["esthe", "💅", "Esthéticienne", "maps"], ["veto", "🐾", "Vétérinaire", "maps"], ["garage", "🔧", "Garage", "maps"], ["gyneco", "🌸", "Gynécologue", "gynecologue"], ["ct", "🚗", "Contrôle technique", "maps"], ["autre", "✨", "Autre", "maps"]];
+  ["kine", "💆", "Kiné", "masseur-kinesitherapeute"], ["ophtalmo", "👁️", "Ophtalmo", "ophtalmologue"], ["esthe", "💅", "Esthéticienne", "maps"], ["veto", "🐾", "Vétérinaire", "maps"], ["garage", "🔧", "Garage", "maps"], ["gyneco", "🌸", "Gynécologue", "gynecologue"], ["ct", "🚗", "Contrôle technique", "maps"],
+  ["ortho", "😁", "Orthodontiste", "orthodontiste"], ["dermato", "🧴", "Dermatologue", "dermatologue-et-venerologue"], ["podo", "🦶", "Podologue", "pedicure-podologue"], ["psy", "🧠", "Psychologue", "psychologue"],
+  ["sagefemme", "🤱", "Sage-femme", "sage-femme"], ["labo", "🧪", "Laboratoire d'analyses", "maps"], ["radio", "🩻", "Radiologie", "maps"], ["pharma", "💊", "Pharmacie de garde", "maps"],
+  ["onglerie", "💅", "Onglerie", "maps"], ["massage", "🌿", "Massage, spa", "maps"],
+  ["pneus", "🛞", "Pneus", "maps"], ["carrosserie", "🛠️", "Carrosserie", "maps"], ["lavage", "🧽", "Lavage auto", "maps"], ["moto", "🏍️", "Garage moto", "maps"],
+  ["plombier", "🚿", "Plombier", "maps"], ["electricien", "💡", "Électricien", "maps"], ["serrurier", "🔑", "Serrurier", "maps"], ["chauffage", "🔥", "Chauffagiste", "maps"], ["cordonnier", "👞", "Cordonnier", "maps"], ["retouche", "🧵", "Retouches couture", "maps"],
+  ["toiletteur", "🐩", "Toiletteur", "maps"], ["autre", "✨", "Autre", "maps"]];
 const rdvKind = k => RDV_KINDS.find(x => x[0] === k) || RDV_KINDS.at(-1);
 let pros = store.get("pros", []);
 const gcalLink = e => { const d = evDate(e), f = x => x.toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z"; return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${f(d)}/${f(new Date(+d + 3600e3))}&location=${encodeURIComponent(e.place || "")}`; };
@@ -3651,7 +3657,7 @@ function renderRdv() {
 }
 $("#rdv-kind").replaceChildren(...RDV_KINDS.map(([k, e, l]) => el("option", { value: k, text: `${e} ${l}` })));
 $("#rdv-form").addEventListener("submit", e => { e.preventDefault(); pros.push({ id: uid(), kind: $("#rdv-kind").value, name: $("#rdv-name").value.trim(), phone: $("#rdv-phone").value.trim(), url: $("#rdv-url").value.trim(), city: $("#rdv-city").value.trim() }); store.set("pros", pros); e.target.reset(); $("#rdv-city").value = "Tarare"; e.target.closest("details").open = false; renderRdv(); });
-const RDV_CATS = [["🩺 Santé", ["medecin", "dentiste", "ophtalmo", "gyneco", "kine", "osteo"]], ["💅 Beauté", ["coiffeur", "esthe"]], ["🚗 Auto", ["garage", "ct"]], ["🐾 Animaux", ["veto"]]];
+const RDV_CATS = [["🩺 Santé", ["medecin", "pharma", "dentiste", "ortho", "ophtalmo", "gyneco", "sagefemme", "dermato", "kine", "osteo", "podo", "psy", "labo", "radio"]], ["💅 Beauté et bien-être", ["coiffeur", "esthe", "onglerie", "massage"]], ["🚗 Auto et moto", ["garage", "ct", "pneus", "carrosserie", "lavage", "moto"]], ["🏠 Maison", ["plombier", "electricien", "serrurier", "chauffage", "cordonnier", "retouche"]], ["🐾 Animaux", ["veto", "toiletteur"]]];
 const findBtn = ([k, e, l, doc]) => el("button", { class: "linkbox", type: "button", onclick: async () => {
   const pos = await hereOnce() || TARARE;
   if (doc !== "maps") { let city = "tarare"; try { city = (await (await fetch(`https://photon.komoot.io/reverse?lat=${pos[0]}&lon=${pos[1]}&lang=fr`)).json()).features?.[0]?.properties?.city || city; } catch {}
@@ -3695,8 +3701,9 @@ const NATURE = [
 const ION = [["#f3e27a", "Jaune, vert", "vessie, reins, voies urinaires"], ["#e98a2c", "Orange", "articulations"], ["#7a4a24", "Brun", "foie, tabac, cellules"], ["#2b2b2b", "Noir", "foie"], ["#f4f4f4", "Flocons blancs", "lymphe"], ["#b33a2e", "Points rouges", "caillots"], ["#e7eef3", "Mousse blanche", "mucus, ganglions"]];
 let kitOk = store.get("kitOk", {}), boboSel = null, bienMine = store.get("bienMine", []);
 /* Doctolib : les spécialités qu'elle utilise, déjà cherchées autour de Tarare */
-$("#doc-quick").replaceChildren(...[["👩‍⚕️", "Généraliste", "medecin-generaliste"], ["🦷", "Dentiste", "dentiste"], ["🌸", "Gynécologue", "gynecologue"], ["😁", "Orthodontiste", "orthodontiste"], ["👁️", "Ophtalmo", "ophtalmologue"], ["🧒", "Pédiatre", "pediatre"]]
-  .map(([e, n, k]) => el("a", { class: "linkbox", href: `https://www.doctolib.fr/${k}/tarare`, target: "_blank", rel: "noopener" }, el("i", { class: "emo", text: e }), el("strong", { text: n }), el("span", { text: "près de Tarare" }))));
+const DOC_QUICK = () => [["👩‍⚕️", "Généraliste", "medecin-generaliste"], ["🦷", "Dentiste", "dentiste"], ["🌸", "Gynécologue", "gynecologue"], ["😁", "Orthodontiste", "orthodontiste"], ["👁️", "Ophtalmo", "ophtalmologue"], ["🧒", "Pédiatre", "pediatre"]]
+  .map(([e, n, k]) => el("a", { class: "linkbox", href: `https://www.doctolib.fr/${k}/tarare`, target: "_blank", rel: "noopener" }, el("i", { class: "emo", text: e }), el("strong", { text: n }), el("span", { text: "près de Tarare" })));
+for (const id of ["#doc-quick", "#doc-quick2"]) $(id)?.replaceChildren(...DOC_QUICK());
 /* Suivi du cycle : 1er jour des règles noté ici ; prochaine date = moyenne des derniers cycles (28 j au départ) */
 let cycles = store.get("cycles", []), cycleEnds = store.get("cycleEnds", {});
 const saveCycles = () => { cycles = [...new Set(cycles)].sort(); store.set("cycles", cycles); for (const k in cycleEnds) if (!cycles.includes(k)) delete cycleEnds[k]; store.set("cycleEnds", cycleEnds); renderCycle(); };
