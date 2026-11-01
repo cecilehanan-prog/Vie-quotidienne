@@ -2396,21 +2396,31 @@ const alertQueries = (city, zone = "lyon") => zone === "lyon" ? [
 ];
 // Déplacements : rendez-vous de l'agenda loin de chez moi (3 jours à venir) + ceux notés à la main
 let tripsPlanned = store.get("tripsPlanned", []);
-const placeGeo = store.get("placeGeo", {});
+// Lieux des rendez-vous (CéHa, 1/11 : « n'invente rien ») : on ne garde une ville que si elle est vraiment écrite dans le lieu.
+// Un code postal (« 69570 Dardilly ») fait foi ; sinon la ville trouvée doit apparaître dans le texte, sinon on ignore.
+const placeGeo = store.get("placeGeo2", {});
+try { localStorage.removeItem("mq:placeGeo"); } catch {}
+const fold = t => (t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 async function geoPlace(place) {
   if (place in placeGeo) return placeGeo[place];
+  const txt = place.replace(/\\n|\n/g, ", "), cp = /\b(\d{5})\s+([A-Za-zÀ-ÿ' -]+?)(?:\s*,|\s+France|$)/.exec(txt);
   let r = null;
   try {
-    const f = (await getJSON(`https://photon.komoot.io/api/?q=${encodeURIComponent(place)}&limit=1&lang=fr&lat=45.9&lon=4.43`, 8000)).features?.[0];
-    if (f) { const pr = f.properties || {}; r = { pos: [f.geometry.coordinates[1], f.geometry.coordinates[0]], city: pr.city || pr.town || pr.village || pr.name || place }; }
+    const q = cp ? `${cp[2]} ${cp[1]}` : txt;
+    for (const f of (await getJSON(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=fr&lat=45.9&lon=4.43`, 8000)).features || []) {
+      const pr = f.properties || {}, city = pr.city || pr.town || pr.village || (pr.type === "city" ? pr.name : "");
+      if (!city) continue;
+      const ok = cp ? fold(city) === fold(cp[2]) || pr.postcode === cp[1] : fold(txt).includes(fold(city));
+      if (ok) { r = { pos: [f.geometry.coordinates[1], f.geometry.coordinates[0]], city: cp ? cp[2].trim() : city }; break; }
+    }
   } catch { return null; }
-  placeGeo[place] = r; store.set("placeGeo", placeGeo); return r;
+  placeGeo[place] = r; store.set("placeGeo2", placeGeo); return r;
 }
 async function tripsAhead() {
   const today = new Date().toISOString().slice(0, 10), until = new Date(Date.now() + 3 * DAY).toISOString().slice(0, 10);
   tripsPlanned = tripsPlanned.filter(t => t.date >= today); store.set("tripsPlanned", tripsPlanned);
   const out = tripsPlanned.filter(t => t.date <= until).map(t => ({ city: t.city, date: t.date, why: "déplacement noté" }));
-  for (const e of (events || []).filter(e => e.place && !e.sample && e.date >= today && e.date <= until).slice(0, 15)) {
+  for (const e of (events || []).filter(e => e.place && !e.sample && !isGarde(e) && !isVac(e) && e.date >= today && e.date <= until).slice(0, 15)) {
     const g = await geoPlace(e.place);
     if (g && distKm(TARARE, g.pos) > 60 && distKm(NETS.lyon.center, g.pos) > 60) out.push({ city: g.city, date: e.date, why: e.title });
   }
