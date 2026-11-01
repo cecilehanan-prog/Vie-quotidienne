@@ -1203,6 +1203,25 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
 </nav>
 
 <script>
+/* Anciennes versions d'iPad / iPhone : petits compléments, et message visible si l'appli plante */
+(function () {
+  if (!Array.prototype.at) Object.defineProperty(Array.prototype, "at", { value: function (n) { n = Math.trunc(n) || 0; if (n < 0) n += this.length; return this[n]; }, configurable: true, writable: true });
+  if (!String.prototype.at) Object.defineProperty(String.prototype, "at", { value: function (n) { n = Math.trunc(n) || 0; if (n < 0) n += this.length; return this[n]; }, configurable: true, writable: true });
+  var rc = function () { while (this.firstChild) this.removeChild(this.firstChild); this.append.apply(this, arguments); };
+  [Element, Document, DocumentFragment].forEach(function (C) { if (C && !C.prototype.replaceChildren) C.prototype.replaceChildren = rc; });
+  var shown = false;
+  function oops(msg) {
+    if (shown) return; shown = true;
+    var d = document.createElement("div");
+    d.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#fff3cd;color:#222;border:2px solid #e0a800;border-radius:12px;padding:10px;font:14px/1.4 -apple-system,sans-serif";
+    d.textContent = "😕 L'appli a un souci sur cet appareil. Envoie une capture de ce message à Claude : " + msg + " — " + navigator.userAgent;
+    (document.body || document.documentElement).appendChild(d);
+  }
+  window.addEventListener("error", function (e) { oops((e.message || "erreur") + " (ligne " + (e.lineno || "?") + ")"); });
+  window.addEventListener("unhandledrejection", function (e) { var r = e.reason; if (r && r.name === "TypeError") oops(String(r.message || r)); });
+})();
+</script>
+<script>
 (() => {
 "use strict";
 
@@ -2797,7 +2816,7 @@ function renderShop() {
   const left = shop.filter(i => !i.done).length;
   $("#shop-count").textContent = shop.length ? `${left} à prendre` : "";
   const groups = {};
-  for (const i of shop) if (!isFav(i.name)) (groups[i.aisle || rayonOf(i.name)] ||= []).push(i);
+  for (const i of shop) if (!isFav(i.name)) { const g = i.aisle || rayonOf(i.name); (groups[g] = groups[g] || []).push(i); }
   const order = getAisleOrder();
   const delBtn = i => el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + i.name, text: "✕", onclick: e => { e.preventDefault(); shop = shop.filter(x => x !== i); saveShop(); } });
   const row = i => el("label", { class: "shop-item" + (i.done ? " done" : "") },
@@ -3110,7 +3129,7 @@ function renderAuto() {
       el("div", { class: "maint" }, ...rules.map(r => { const st = maintStatus(v, r); return el("div", { class: st.none ? "none" : st.soon ? "soon" : "" }, el("strong", { text: (st.soon ? "⚠️ " : "") + r[1] }), el("span", { text: st.txt })); })),
       el("form", { class: "inline", style: "flex-wrap:wrap", onsubmit: e => {
         e.preventDefault(); const km = parseInt(kIn.value.replace(/\D/g, "")) || 0;
-        (v.log ||= []).push({ id: uid(), op: opSel.value, date: dIn.value, km, note: nIn.value.trim() });
+        (v.log = v.log || []).push({ id: uid(), op: opSel.value, date: dIn.value, km, note: nIn.value.trim() });
         if (km > (v.km || 0)) v.km = km; saveAuto();
       } }, opSel, dIn, kIn, nIn, el("button", { class: "btn primary", type: "submit", text: "✅ Noter" })),
       el("div", { class: "row", style: "margin-top:8px" },
