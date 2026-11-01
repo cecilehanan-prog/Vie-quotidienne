@@ -477,6 +477,7 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 #trip-mode .btn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; white-space: nowrap; font-size: .85rem; }
 #trip-mode .btn span { font-size: 1.2rem; }
 [data-sec=rappel] { --sec: #f08c00; }
+[data-sec=sync] { --sec: #0fa3d1; }
 #rap-list .item.late { border-left-color: #d33; }
 #rap-list .item.done .what { text-decoration: line-through; opacity: .55; }
 .habits-top .shop-item.off { opacity: .6; }
@@ -490,6 +491,17 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 .garde .g-txt { display: flex; flex-direction: column; line-height: 1.2; }
 .garde small { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .garde b { font-size: .95rem; font-weight: 600; color: var(--fg); }
+/* Trajet de Gabriel vers le lycée de Cibeins (CéHa, 1/11) */
+[data-sec=gab] { --sec: #e96248; }
+.gab-when { font-weight: 700; margin: 2px 0 8px; }
+.gab-leg { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--sec) 9%, transparent); }
+.gab-leg .t { flex: none; display: flex; flex-direction: column; align-items: center; min-width: 54px; line-height: 1.1; }
+.gab-leg .t b { font-size: 1.35rem; } .gab-leg .t small { font-size: .78rem; color: var(--muted); }
+.gab-leg .ln { flex: none; min-width: 46px; text-align: center; padding: 4px 8px; border-radius: 8px; font-weight: 800; font-size: .9rem; color: #fff; background: var(--ln); }
+.gab-leg .w { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; } .gab-leg .w small { color: var(--muted); font-size: .8rem; }
+.gab-mid { margin: 4px 0 4px 26px; padding: 4px 0 4px 14px; border-left: 2px dashed color-mix(in srgb, var(--sec) 55%, transparent); font-size: .82rem; color: var(--muted); }
+.gab-alt { margin-top: 8px; font-size: .85rem; color: var(--muted); }
+.gab-dir + .gab-dir { margin-top: 16px; }
 /* Date sur la ligne du salut, tout à droite, alignée au bord des cartes */
 header.top { flex-wrap: nowrap; align-items: flex-end; }
 header.top h1#greet { flex: 1 1 auto; min-width: 0; margin-bottom: 6px; }
@@ -532,6 +544,11 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       <div class="list" id="home-agenda"></div>
     </article>
 
+    <article class="card" data-sec="gab" id="gab-home" hidden>
+      <div class="card-head"><h2>🎒 Trajet de Gabriel</h2><button class="btn" data-goto="move">Voir tout</button></div>
+      <div id="gab-home-body"></div>
+    </article>
+
     <article class="card" data-sec="rappel">
       <div class="card-head"><h2>Rappels</h2><button class="btn" type="button" id="rap-all">Voir tout</button></div>
       <div class="list" id="rap-list"></div>
@@ -565,6 +582,12 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       </form>
       <div class="list" id="todo-list"></div>
       <p class="small muted">Pas besoin de date : coche quand c'est fait. Tu peux ajouter une date si tu veux.</p>
+    </article>
+
+    <article class="card" data-sec="sync">
+      <div class="card-head"><h2>🔄 iMac ↔ iPhone</h2><span class="pill" id="sync-state">pas encore</span></div>
+      <p class="small muted" id="sync-msg">Connecte-toi une fois sur chaque appareil : tes listes, papiers et rendez-vous seront les mêmes partout.</p>
+      <div class="row"><button class="btn primary" type="button" id="sync-in">Se connecter avec Google</button><button class="btn" type="button" id="sync-out" hidden>Se déconnecter</button></div>
     </article>
   </section>
 
@@ -737,6 +760,11 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
 
   <!-- ===== TRAJETS ===== -->
   <section class="view" id="view-move" hidden>
+    <article class="card" data-sec="gab">
+      <h2>🎒 Trajet de Gabriel · lycée de Cibeins</h2>
+      <p class="small muted">Je l'affiche sur l'accueil tout seul, les semaines où il est avec toi : le dimanche pour le lundi matin, le jeudi pour le vendredi soir.</p>
+      <div id="gab-move-body"></div>
+    </article>
     <article class="card" data-sec="traf">
       <h2>🚦 Info trafic</h2>
       <div class="alerts" id="trip-alerts"></div>
@@ -1130,9 +1158,19 @@ const el = (tag, attrs = {}, ...kids) => {
   for (const c of kids.flat()) if (c != null) n.append(c.nodeType ? c : document.createTextNode(frTypo(c)));
   return n;
 };
+/* Synchro iMac ↔ iPhone (CéHa, 26/10) : chaque clé modifiée est datée, puis envoyée dans son espace Firebase privé */
+const SYNC_SKIP = /^(icsLinks|fired|paperAlerted|fuelBrands|view|hereCity|placeGeo|rappels|dhikrData|permitDoc|adminRefV|_t|wx:|feed:|quran:)/;
+const syncMeta = () => { try { return JSON.parse(localStorage.getItem("mq:_t") || "{}"); } catch { return {}; } };
+let syncPush = null;
 const store = {
   get(k, d) { try { const v = localStorage.getItem("mq:" + k); return v ? JSON.parse(v) : d; } catch { return d; } },
-  set(k, v) { try { localStorage.setItem("mq:" + k, JSON.stringify(v)); } catch {} },
+  set(k, v) {
+    try {
+      const j = JSON.stringify(v); if (localStorage.getItem("mq:" + k) === j) return;
+      localStorage.setItem("mq:" + k, j);
+      if (!SYNC_SKIP.test(k)) { const m = syncMeta(); m[k] = Date.now(); localStorage.setItem("mq:_t", JSON.stringify(m)); syncPush?.(k); }
+    } catch {}
+  },
 };
 const uid = () => Math.random().toString(36).slice(2, 10);
 const DAY = 86400000;
@@ -1547,6 +1585,49 @@ function renderAgenda() {
   const vac = upcoming.find(e => isVac(e) && new Date(e.date + "T00:00") - today < 7 * DAY);
   const we = upcoming.find(e => isGarde(e) && gardeSat(e.date) - today < 7 * DAY);
   $("#home-agenda").replaceChildren(...(todays.length ? todays.map(e => evItem(e, false)) : [el("p", { class: "muted", text: "🌿 Rien de prévu aujourd'hui." })]), ...(vac ? [vacChip(vac)] : []), ...(we ? [gardeChip(we)] : []));
+  renderGabTrip();
+}
+/* Trajet de Gabriel (CéHa, 1/11) : lundi matin Tarare → lycée de Cibeins (car 217 puis A85), vendredi soir retour.
+   Seulement après / avant un week-end « Charlie & Gabriel chez Cécile », et pas pendant les vacances scolaires.
+   Horaires tirés des fiches officielles (217 : Cars du Rhône 2024-25 ; A85 : Cars Région Ain 2025-26) : à revérifier à chaque rentrée. */
+const GAB_TRIP = {
+  aller: { title: "Lundi matin · Tarare → lycée", legs: [
+    { ln: "217", c: "#d32f2f", dep: "06:40", from: "Tarare Gare", arr: "07:42", to: "Villefranche Gare" },
+    { ln: "A85", c: "#1e6fb8", dep: "08:00", from: "Villefranche Gare routière", arr: "08:15", to: "Lycée de Cibeins" }],
+    mid: "⏳ 18 min pour changer de car à la gare de Villefranche", alt: "🕕 Plus tôt : 217 à 06:10 (même A85 de 08:00). Les cours commencent à 9h10." },
+  retour: { title: "Vendredi soir · lycée → Tarare", legs: [
+    { ln: "A85", c: "#1e6fb8", dep: "16:50", from: "Lycée de Cibeins", arr: "17:34", to: "Villefranche Gare routière" },
+    { ln: "217", c: "#d32f2f", dep: "17:46", from: "Villefranche Gare", arr: "18:57", to: "Tarare Gare" }],
+    mid: "⏳ 12 min pour changer de car à la gare de Villefranche", alt: "🕕 Plus tard : A85 à 18:05 puis 217 à 19:13 (Tarare 20:13). Les cours finissent à 16h45." },
+};
+function gabDir(t, label) {
+  const leg = l => el("div", { class: "gab-leg", style: `--ln:${l.c}` },
+    el("span", { class: "t" }, el("b", { text: l.dep }), el("small", { text: "→ " + l.arr })),
+    el("span", { class: "ln", text: "🚌 " + l.ln }),
+    el("span", { class: "w" }, el("b", { text: l.from }), el("small", { text: "descendre à " + l.to })));
+  return el("div", { class: "gab-dir" }, el("div", { class: "gab-when", text: label || t.title }), leg(t.legs[0]), el("div", { class: "gab-mid", text: t.mid }), leg(t.legs[1]), el("div", { class: "gab-alt", text: t.alt }));
+}
+const gabNote = () => el("p", { class: "small muted", style: "margin-top:12px" },
+  "ℹ️ Horaires des fiches officielles, à vérifier sur ",
+  el("a", { href: "https://www.tcl.fr/", target: "_blank", rel: "noopener", text: "TCL (217)" }), " et ",
+  el("a", { href: "https://transportsdelain.fr/", target: "_blank", rel: "noopener", text: "Cars Région Ain (A85)" }),
+  ". 🚆 S'il rentre en train le vendredi, dis-le-moi et je change le retour.");
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const withMeWe = sat => events.some(e => isGarde(e) && /c[ée]cile/i.test(e.cal) && gardeSat(e.date).toDateString() === sat.toDateString());
+const onVac = d => { const k = ymd(d); return events.some(e => isVac(e) && e.date <= k && (e.end || e.date) >= k); };
+function gabTripNow(now = new Date()) {
+  const w = now.getDay(), h = now.getHours(), day = n => { const d = startOfDay(now); d.setDate(d.getDate() + n); return d; };
+  if (w === 0 || (w === 1 && h < 10)) { const mon = day(w === 0 ? 1 : 0), sat = new Date(mon.getTime() - 2 * DAY + 12 * 3600e3);
+    if (withMeWe(sat) && !onVac(mon)) return [GAB_TRIP.aller, w === 0 ? "Demain matin, il part au lycée" : "Ce matin, il part au lycée"]; }
+  if (w === 4 || (w === 5 && h < 20)) { const fri = day(w === 4 ? 1 : 0), sat = new Date(fri.getTime() + DAY + 12 * 3600e3);
+    if (withMeWe(sat) && !onVac(fri)) return [GAB_TRIP.retour, w === 4 ? "Demain soir, il rentre chez toi" : "Ce soir, il rentre chez toi"]; }
+  return null;
+}
+function renderGabTrip() {
+  $("#gab-move-body").replaceChildren(gabDir(GAB_TRIP.aller), gabDir(GAB_TRIP.retour), gabNote());
+  const t = gabTripNow();
+  $("#gab-home").hidden = !t;
+  if (t) $("#gab-home-body").replaceChildren(gabDir(t[0], "🗓️ " + t[1]), gabNote());
 }
 $("#ev-form").addEventListener("submit", e => {
   e.preventDefault();
@@ -3533,5 +3614,61 @@ try {
     if (added.length) { const t = el("div", { class: "toast", text: "💳 Cartes rangées : " + added.join(", ") }); document.body.append(t); setTimeout(() => t.remove(), 6000); }
   }
 } catch {}
+
+/* ---------- synchro Firebase ---------- */
+// Identifiants publics de son projet Firebase (pas secrets : la sécurité vient des règles, seule elle peut lire ses données)
+const FIREBASE_CONFIG = null;
+const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
+const loadJs = src => new Promise((ok, ko) => { const t = document.createElement("script"); t.src = src; t.onload = ok; t.onerror = ko; document.head.append(t); });
+let fbDoc = null, pending = new Set(), pushTimer = 0, wantReload = false;
+const syncSay = (state, msg) => { $("#sync-state").textContent = state; if (msg != null) $("#sync-msg").textContent = msg; };
+const reloadSoon = () => { const a = document.activeElement; if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) { wantReload = true; return; } location.reload(); };
+document.addEventListener("focusout", () => setTimeout(() => { if (wantReload) reloadSoon(); }, 300));
+function flush() {
+  if (!fbDoc || !pending.size) return;
+  const m = syncMeta(), up = {};
+  for (const k of pending) { const v = localStorage.getItem("mq:" + k); if (v != null) up[k] = { v, t: m[k] || Date.now() }; }
+  pending.clear();
+  fbDoc.set(up, { merge: true }).then(() => syncSay("✅ synchronisé", null)).catch(() => syncSay("hors ligne", null));
+}
+syncPush = k => { pending.add(k); clearTimeout(pushTimer); pushTimer = setTimeout(flush, 1500); };
+async function syncStart() {
+  if (!FIREBASE_CONFIG) { syncSay("bientôt", "La synchro sera prête dès que ton espace Firebase sera créé."); $("#sync-in").hidden = true; return; }
+  try {
+    await loadJs(FB + "firebase-app-compat.js"); await loadJs(FB + "firebase-auth-compat.js"); await loadJs(FB + "firebase-firestore-compat.js");
+  } catch { syncSay("hors ligne", "Pas de connexion pour le moment."); return; }
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  const auth = firebase.auth();
+  $("#sync-in").onclick = async () => {
+    const p = new firebase.auth.GoogleAuthProvider();
+    try { await auth.signInWithPopup(p); } catch (e) { if (/popup/i.test(e.code || "")) auth.signInWithRedirect(p); else syncSay("😕 erreur", "La connexion n'a pas marché : " + (e.code || "réessaie")); }
+  };
+  $("#sync-out").onclick = () => auth.signOut();
+  auth.onAuthStateChanged(user => {
+    $("#sync-in").hidden = !!user; $("#sync-out").hidden = !user;
+    if (!user) { fbDoc = null; syncSay("pas encore", "Connecte-toi une fois sur chaque appareil : tes listes, papiers et rendez-vous seront les mêmes partout."); return; }
+    syncSay("⏳ synchro…", "Connectée avec " + (user.email || "Google") + ". Tout ce que tu ajoutes ici apparaît sur ton autre appareil.");
+    fbDoc = firebase.firestore().collection("users").doc(user.uid);
+    fbDoc.onSnapshot(snap => {
+      const remote = snap.data() || {}, m = syncMeta(); let changed = false;
+      for (const [k, r] of Object.entries(remote)) {
+        if (SYNC_SKIP.test(k) || !r || typeof r.v !== "string") continue;
+        if ((r.t || 0) > (m[k] || 0) && localStorage.getItem("mq:" + k) !== r.v) { localStorage.setItem("mq:" + k, r.v); changed = true; }
+        if ((r.t || 0) > (m[k] || 0)) m[k] = r.t;
+      }
+      localStorage.setItem("mq:_t", JSON.stringify(m));
+      // Ce qui n'existe que sur cet appareil (ou plus récent ici) part vers l'autre
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i); if (!key.startsWith("mq:")) continue;
+        const k = key.slice(3); if (SYNC_SKIP.test(k)) continue;
+        if (!remote[k] || (m[k] || 0) > (remote[k].t || 0)) { if (!m[k]) { m[k] = 1; } pending.add(k); }
+      }
+      localStorage.setItem("mq:_t", JSON.stringify(m));
+      if (pending.size) flush(); else syncSay("✅ synchronisé", null);
+      if (changed) reloadSoon();
+    }, () => syncSay("😕 erreur", "Je n'arrive pas à lire ton espace Firebase."));
+  });
+}
+syncStart();
 })();
 </script>
