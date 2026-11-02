@@ -1814,7 +1814,7 @@ async function syncAgenda(manual) {
     events = events.filter(x => !x.sample && !x.gcal && !x.imported && !seenEv.has(x.date + (x.time || "") + (x.title || "").trim().toLowerCase())).concat(fresh);
     saveEvents(); renderTiles();
     const ago = Math.max(0, Math.round((Date.now() - new Date(pack.u)) / 6e4));
-    st.textContent = "✅ en direct"; msg.textContent = `${got.length} agenda${got.length > 1 ? "s" : ""} · mis à jour il y a ${ago} min`;
+    st.textContent = "✅ en direct"; msg.textContent = `${got.length} agenda${got.length > 1 ? "s" : ""} · mis à jour il y a ${ago} min : ${got.map(c => c.n || "sans nom").sort((a, b) => a.localeCompare(b, "fr")).join(", ")}${links.length > got.length ? ` · ⚠️ ${links.length - got.length} lien${links.length - got.length > 1 ? "s" : ""} illisible${links.length - got.length > 1 ? "s" : ""}` : ""}`;
   } catch (e) { st.textContent = "hors ligne"; if (manual) msg.textContent = "😕 Pas de connexion au robot pour le moment."; }
 }
 /* Rappels (payer, prendre RDV, rendre des livres…) : agenda Google « Rappels », caché dans Google Agenda, montré seulement ici */
