@@ -30,10 +30,11 @@ jobs:
           tz = ZoneInfo("Europe/Paris")
           now = datetime.datetime.now(tz)
           start, end = (now - datetime.timedelta(days=2)).date(), (now + datetime.timedelta(days=200)).date()
-          # Agendas publics (pas besoin de secret) : fêtes musulmanes de Google
-          PUBLIC = ["https://calendar.google.com/calendar/ical/fr.islamic%23holiday%40group.v.calendar.google.com/public/basic.ics"]
+          # Agendas publics (pas besoin de secret) : fêtes musulmanes et jours fériés en France, de Google
+          PUBLIC = ["https://calendar.google.com/calendar/ical/fr.islamic%23holiday%40group.v.calendar.google.com/public/basic.ics",
+                    "https://calendar.google.com/calendar/ical/fr.french%23holiday%40group.v.calendar.google.com/public/basic.ics"]
           blobs, pub = [], []
-          for n, link in enumerate(PUBLIC + re.findall(r"https://\S+", os.environ["AGENDA_ICS"] + "\n" + os.environ.get("AGENDA_ICS_PLUS", "")), start=0):
+          for n, link in enumerate(PUBLIC + re.findall(r"https://\S+", os.environ["AGENDA_ICS"] + "\n" + os.environ.get("AGENDA_ICS_PLUS", "")), start=1 - 2):
               try:
                   cal = icalendar.Calendar.from_ical(urllib.request.urlopen(urllib.request.Request(link, headers={"User-Agent": "Mozilla/5.0"}), timeout=60).read())
               except Exception as e:
