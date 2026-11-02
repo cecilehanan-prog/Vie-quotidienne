@@ -538,6 +538,7 @@ p.small:empty, p.muted:empty, #store-msg:empty { display: none; }
 #talk[hidden] { display: none; }
 #talk h2 { margin: 0 0 4px; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
 #talk .big-mic { display: block; margin: 12px auto; width: 84px; height: 84px; border-radius: 50%; border: 0; font-size: 2.2rem; cursor: pointer; color: #fff; background: linear-gradient(140deg, #d97757, #c2508f); }
+#talk .talk-state { text-align: center; margin: 0 0 10px; font-weight: 600; min-height: 1.4em; }
 #talk .big-mic.rec { background: #e53935; animation: micpulse 1s infinite; }
 #talk form { display: flex; gap: 6px; } #talk form input { flex: 1; min-width: 0; }
 #talk .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
@@ -3959,47 +3960,101 @@ try {
    Ajoute du lait · itinéraire vers Lyon · rappelle-moi de… · météo · agenda · sinon on ouvre Claude avec la question. */
 const talkFab = el("button", { id: "talk-fab", type: "button", "aria-label": "Parle-moi" });
 talkFab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg>';
-const talkIn = el("input", { type: "text", placeholder: "⌨️ Écris ici, en toute discrétion", "aria-label": "Ta demande", autocomplete: "off" });
+const talkIn = el("input", { type: "text", placeholder: "⌨️ Ou écris ici, en toute discrétion", "aria-label": "Ta demande", autocomplete: "off" });
 const talkOut = el("div", { id: "talk-out", "aria-live": "polite" });
+const talkState = el("p", { id: "talk-state", class: "talk-state", "aria-live": "polite", text: SpeechRec ? "🎤 Touche le micro pour parler" : "⌨️ Écris ta demande" });
 const bigMic = el("button", { class: "big-mic", type: "button", "aria-label": "Parler", text: "🎤", hidden: !SpeechRec });
 const talk = el("div", { id: "talk", role: "dialog", "aria-label": "Parle-moi", hidden: true },
-  el("h2", {}, el("span", { text: "🎙️ Parle-moi" }), el("button", { class: "icon-btn", type: "button", "aria-label": "Fermer", text: "✕", onclick: () => { talk.hidden = true; } })),
-  el("p", { class: "small muted", text: SpeechRec ? "🎤 Touche le micro pour parler, ou ⌨️ écris ta demande en silence, au choix." : "Écris ta demande (ou touche le 🎤 du clavier pour dicter)." }),
-  bigMic,
+  el("h2", {}, el("span", { text: "🎙️ Parle-moi" }), el("button", { class: "icon-btn", type: "button", "aria-label": "Fermer", text: "✕", onclick: () => closeTalk() })),
+  bigMic, talkState,
   el("form", { onsubmit: e => { e.preventDefault(); if (talkIn.value.trim()) runTalk(talkIn.value); } }, talkIn, el("button", { class: "btn primary", type: "submit", text: "OK" })),
-  el("div", { class: "chips" }, ...["Ajoute du lait et des œufs", "Itinéraire vers Lyon Part-Dieu", "Rappelle-moi d'appeler le dentiste", "Règles du 12 au 17 octobre", "Quel temps demain ?", "Mon agenda"].map(t => el("button", { type: "button", text: t, onclick: () => runTalk(t) }))),
-  talkOut);
+  talkOut,
+  el("div", { class: "chips" }, ...["Ajoute du lait et des œufs", "J'ai fait le plein de 40 litres à 1,85", "Le beurre coûte 2,89 euros", "Itinéraire vers Lyon Part-Dieu", "Rappelle-moi d'appeler le dentiste", "Quel temps demain ?"].map(t => el("button", { type: "button", text: t, onclick: () => { talkIn.value = t; runTalk(t); } }))));
 document.body.append(talkFab, talk);
-talkFab.addEventListener("click", () => { talk.hidden = !talk.hidden; talkOut.replaceChildren(); if (!talk.hidden && !SpeechRec) talkIn.focus(); });
-bigMic.addEventListener("click", () => dictate(bigMic, t => { talkIn.value = t; runTalk(t); }));
+/* Écoute : un seul geste. Toucher le micro doré ouvre la fenêtre ET écoute tout de suite. */
+let rec = null, heard = "";
+const setState = (txt, on) => { talkState.textContent = txt; bigMic.classList.toggle("rec", !!on); };
+const MIC_HELP = "🔒 Le micro est bloqué. Sur l'iMac : clique sur l'icône à gauche de l'adresse › Micro › Autoriser. Sur l'iPhone : Réglages › Safari › Micro › Autoriser. Tu peux aussi écrire ta demande ci-dessous.";
+function stopListen() { try { rec?.stop(); } catch {} }
+function closeTalk() { stopListen(); talk.hidden = true; }
+function startListen() {
+  if (!SpeechRec) { setState("⌨️ Écris ta demande", false); talkIn.focus(); return; }
+  stopListen(); talkOut.replaceChildren(); talkIn.value = ""; heard = "";
+  let r; try { r = new SpeechRec(); } catch { setState("⌨️ Le micro ne marche pas ici. Écris ta demande.", false); talkIn.focus(); return; }
+  rec = r; r.lang = "fr-FR"; r.interimResults = true; r.maxAlternatives = 1; r.continuous = false;
+  let failed = false;
+  r.onstart = () => setState("🔴 Je t'écoute… parle maintenant", true);
+  r.onresult = e => { let txt = ""; for (const res of e.results) txt += res[0].transcript; heard = txt.trim(); talkIn.value = heard; setState("👂 " + heard, true); };
+  r.onerror = e => {
+    failed = true; const c = e.error || "";
+    if (/not-allowed|service-not-allowed/.test(c)) setState(MIC_HELP, false);
+    else if (c === "no-speech") setState("😶 Je n'ai rien entendu. Touche le micro et réessaie.", false);
+    else if (c === "audio-capture") setState("🎙️ Je ne trouve pas de micro. Écris ta demande.", false);
+    else if (c === "network") setState("📡 Pas de connexion. Réessaie, ou écris ta demande.", false);
+    else if (c !== "aborted") setState("😕 Je n'ai pas pu écouter (" + c + "). Écris ta demande.", false);
+  };
+  r.onend = () => { if (rec === r) rec = null; bigMic.classList.remove("rec"); if (failed) return; if (heard) { runTalk(heard); } else setState("😶 Je n'ai rien entendu. Touche le micro et réessaie.", false); };
+  try { r.start(); } catch { setState("😕 Touche encore le micro.", false); }
+}
+talkFab.addEventListener("click", () => { if (!talk.hidden && !rec) { closeTalk(); return; } if (talk.hidden) { talk.hidden = false; startListen(); } else stopListen(); });
+bigMic.addEventListener("click", () => { if (rec) stopListen(); else startListen(); });
 const say = (text, ...extra) => talkOut.replaceChildren(el("div", { text }), ...(extra.length ? [el("div", { class: "row" }, ...extra)] : []));
 const askClaude = q => el("a", { class: "btn primary", href: "https://claude.ai/new?q=" + encodeURIComponent(q), target: "_blank", rel: "noopener", text: "💬 Demander à Claude" });
 const askGoogle = q => el("a", { class: "btn", href: "https://www.google.com/search?q=" + encodeURIComponent(q), target: "_blank", rel: "noopener", text: "🔎 Google" });
+const undoBtn = fn => el("button", { class: "btn", type: "button", text: "↩️ Annuler", onclick: e => { fn(); e.target.replaceWith(el("span", { class: "muted", text: "Annulé" })); } });
 function runTalk(raw) {
   const t = raw.trim().replace(/[.!]+$/, ""), low = t.toLowerCase();
   let m;
-  if (/r[èe]gles|\bcycle\b/.test(low) && /\d|aujourd|hier|fini|termin/.test(low)) return say(talkCycle(t), el("button", { class: "btn", type: "button", text: "Voir mon cycle", onclick: () => { talk.hidden = true; show("bien"); } }));
-  if ((m = /^(?:rappelle[- ]moi|n'oublie pas|il faut que je|je dois)\s+(?:de |d'|qu'il faut |que )?(.+)$/i.exec(t))) {
-    const what = m[1][0].toUpperCase() + m[1].slice(1);
-    todos.push({ id: uid(), title: what, date: "", done: false }); saveTodos();
-    return say(`✅ Noté dans tes choses à faire : ${what}`);
+  setState("🧠 J'ai compris : « " + t + " »", false);
+  const sayR = (text, ...extra) => say(text, ...extra);
+  const go = (v, sel) => { closeTalk(); show(v); if (sel) setTimeout(() => $(sel)?.scrollIntoView({ behavior: "smooth", block: "center" }), 300); };
+  if (/r[èe]gles|\bcycle\b/.test(low) && /\d|aujourd|hier|fini|termin/.test(low)) return sayR(talkCycle(t), el("button", { class: "btn", type: "button", text: "Voir mon cycle", onclick: () => go("bien") }));
+  // ⛽ un plein : « j'ai fait le plein de 40 litres à 1,85 » / « plein gazole 70 euros 38 litres »
+  if (/\bplein\b/.test(low)) {
+    const l = (/(\d+(?:[.,]\d+)?)\s*(?:l\b|litres?)/.exec(low) || [])[1], rest = low.replace(/(\d+(?:[.,]\d+)?)\s*(?:l\b|litres?)/, " ");
+    let pl, tot;
+    for (const x of rest.matchAll(/(à|a|au prix de)?\s*(\d+(?:[.,]\d+)?)\s*(€|euros?)?(\s*(?:le|du|par|\/)\s*litre)?/g)) {
+      if (x[1] || x[4]) pl = pl ?? x[2]; else if (x[3]) tot = tot ?? x[2];
+    }
+    let L = parseNum(l ?? ""), PL = parseNum(pl ?? ""), T = parseNum(tot ?? "");
+    if (PL != null && T != null && PL === T) PL = null;
+    if ([L, PL, T].filter(v => v != null && v > 0).length >= 2) {
+      if (!(T > 0)) T = L * PL; else if (!(PL > 0)) PL = T / L; else if (!(L > 0)) L = T / PL;
+      const kind = /gazole|diesel|gasoil/.test(low) ? "gazole" : /essence|sp ?9[58]|e10/.test(low) ? "essence" : tankKind, fill = { id: uid(), kind, date: todayISO(), l: Math.round(L * 100) / 100, pl: Math.round(PL * 1000) / 1000, tot: Math.round(T * 100) / 100 };
+      tankKind = kind; tankFills.push(fill); saveTank();
+      return sayR(`⛽ Plein ${kind === "gazole" ? "de gazole" : "d'essence"} noté : ${num2(fill.l)} L × ${num2(fill.pl, 3)} €/L = ${euro(fill.tot)}`,
+        undoBtn(() => { tankFills = tankFills.filter(x => x !== fill); saveTank(); }), el("button", { class: "btn", type: "button", text: "Voir", onclick: () => go("home2", '[data-sec="tank"]') }));
+    }
+    return sayR("⛽ Dis-moi les litres et le prix, par exemple : « j'ai fait le plein de 40 litres à 1,85 ».");
   }
-  if ((m = /^(?:ajoute|rajoute|mets|note)\s+(.+?)(?:\s+(?:à|a|dans|sur) (?:la|ma) liste(?: de courses)?| aux courses)?$/i.exec(t)) && !/rappel|agenda|à faire/.test(low)) {
-    const names = addMany([m[1]]);
-    return say(names.length ? `🛒 Ajouté à ta liste de courses : ${names.join(", ")}` : "Je n'ai pas compris quoi ajouter.", el("button", { class: "btn", type: "button", text: "Voir la liste", onclick: () => { talk.hidden = true; show("home2"); } }));
+  // 📈 le prix d'un produit : « le beurre coûte 2,89 euros » / « j'ai payé le café 3,40 »
+  if ((m = /(?:prix d(?:u|e la|es|e l'|e)\s+|j'ai pay[ée]\s+(?:le |la |les |l')?)(.+?)\s*(?:est à|à|a|:|=)?\s*(\d+(?:[.,]\d+)?)\s*(?:€|euros?)/i.exec(t)) || (m = /^(?:le |la |les |l')?(.+?)\s+(?:co[uû]te|est à|était à)\s+(\d+(?:[.,]\d+)?)\s*(?:€|euros?)/i.exec(t))) {
+    const name = m[1].trim().replace(/^(du|de la|de l'|des|le|la|les|l')\s*/i, ""), price = parseNum(m[2]);
+    if (name && price != null) { const nm = name[0].toUpperCase() + name.slice(1), e = { id: uid(), name: nm, price, date: todayISO() }; priceLog.push(e); prCur = nm; savePriceLog();
+      return sayR(`📈 Prix noté : ${nm}, ${euro(price)}`, undoBtn(() => { priceLog = priceLog.filter(x => x !== e); savePriceLog(); }), el("button", { class: "btn", type: "button", text: "Voir la courbe", onclick: () => go("home2", '[data-sec="prices"]') })); }
+  }
+  if ((m = /^(?:rappelle[- ]moi|n'oublie pas|il faut que je|je dois)\s+(?:de |d'|qu'il faut |que )?(.+)$/i.exec(t))) {
+    const what = m[1][0].toUpperCase() + m[1].slice(1), item = { id: uid(), title: what, date: "", done: false };
+    todos.push(item); saveTodos();
+    return sayR(`✅ Noté dans tes choses à faire : ${what}`, undoBtn(() => { todos = todos.filter(x => x !== item); saveTodos(); }));
+  }
+  if ((m = /^(?:ajoute|rajoute|mets|met|note|achète|rapporte|il me faut|il nous faut|j'ai besoin d(?:e |u |es |')?|il faut (?:acheter|prendre)?)\s*(.+?)(?:\s+(?:à|a|dans|sur) (?:la|ma) liste(?: de courses)?| aux courses| dans (?:les|mes) courses)?$/i.exec(t)) && !/rappel|agenda|à faire/.test(low)) {
+    const before = shop.length, names = addMany([m[1]]), added = shop.slice(before);
+    return sayR(names.length ? `🛒 Ajouté à ta liste de courses : ${names.join(", ")}` : "Je n'ai pas compris quoi ajouter.",
+      ...(names.length ? [undoBtn(() => { shop = shop.filter(x => !added.includes(x)); saveShop(); })] : []), el("button", { class: "btn", type: "button", text: "Voir la liste", onclick: () => go("home2") }));
   }
   if ((m = /(?:itin[ée]raire|aller|chemin|trajet|route)\s+(?:vers|à|a|jusqu'à|pour aller à|pour)?\s*(.+)$/i.exec(t)) || (m = /^(?:comment )?(?:je vais|on va|aller) (?:à|a|au|aux|en) (.+)$/i.exec(t))) {
     const dest = m[1].replace(/^(la|le|les|l')\s+/i, "");
-    talk.hidden = true; show("move");
+    closeTalk(); show("move");
     setTimeout(() => { $("#tr-to").value = dest; $("#tr-go").click(); $("#tr-to").scrollIntoView({ block: "center" }); }, 300);
-    return say(`🧭 Je cherche comment aller à ${dest}`);
+    return;
   }
-  if (/m[ée]t[ée]o|temps (fait|demain|aujourd)|quel temps|pleuvoir|pluie/.test(low)) { talk.hidden = true; show("home"); $('[data-sec="wx"]')?.scrollIntoView({ behavior: "smooth" }); return; }
-  if (/agenda|rendez-vous|rdv/.test(low)) { talk.hidden = true; show("agenda"); return; }
-  if (/courses|liste/.test(low)) { talk.hidden = true; show("home2"); return; }
-  if (/train|gare/.test(low)) { talk.hidden = true; show("move"); $('[data-sec="rail"]')?.scrollIntoView({ behavior: "smooth" }); return; }
+  if (/m[ée]t[ée]o|temps (fait|demain|aujourd)|quel temps|pleuvoir|pluie/.test(low)) { closeTalk(); show("home"); $('[data-sec="wx"]')?.scrollIntoView({ behavior: "smooth" }); return; }
+  if (/agenda|rendez-vous|rdv/.test(low)) { closeTalk(); show("agenda"); return; }
+  if (/courses|liste/.test(low)) { closeTalk(); show("home2"); return; }
+  if (/train|gare/.test(low)) { closeTalk(); show("move"); $('[data-sec="rail"]')?.scrollIntoView({ behavior: "smooth" }); return; }
   const q = t.replace(/^(?:cherche|recherche|demande à claude|claude)\s*/i, "");
-  say(`🔎 « ${q} »`, askClaude(q), askGoogle(q));
+  sayR(`🔎 Je ne sais pas le faire moi-même. Tu veux chercher « ${q} » ?`, askClaude(q), askGoogle(q));
 }
 const FIREBASE_CONFIG = { apiKey: "AIzaSyA-n1BG9p4nTX98nTtNoTVd6PzDwBn65Do", authDomain: "mon-quotidien-d86c1.firebaseapp.com", projectId: "mon-quotidien-d86c1", storageBucket: "mon-quotidien-d86c1.firebasestorage.app", messagingSenderId: "563933042145", appId: "1:563933042145:web:7fd0df1378d3ea8d4b2ea0" };
 const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
