@@ -509,6 +509,11 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 .pres-cd b { font-size: 1.6rem; color: #2b59c3; } .pres-cd small { font-size: .75rem; color: var(--muted); text-align: center; }
 .pill:empty { display: none; }
 #doc-quick2, .rdv-cat .grid2 { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); } #doc-quick2 .linkbox, .rdv-cat .linkbox { overflow-wrap: normal; word-break: normal; hyphens: manual; }
+.caisse-btn { width: 100%; margin: 10px 0 4px; border: 2px dashed var(--sec); font-weight: 700; }
+.caisse { position: fixed; left: 12px; right: 12px; bottom: calc(90px + env(safe-area-inset-bottom, 0px)); z-index: 8; max-width: 520px; margin: 0 auto; max-height: 60vh; overflow: auto;
+  background: var(--surface); border: 3px solid #d32f2f; border-radius: 18px; padding: 14px 16px; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+.caisse.ok { border-color: #2e9b57; text-align: center; }
+.caisse h3 { margin: 0 0 8px; font-size: 1.05rem; color: #d32f2f; } .caisse-grp { margin: 8px 0; }
 .rdv-cat h3 { margin: 16px 0 8px; font-size: 1rem; color: var(--sec); } .rdv-cat:first-child h3 { margin-top: 4px; }
 p.small:empty, p.muted:empty, #store-msg:empty { display: none; }
 #rap-list .item.late { border-left-color: #d33; }
@@ -725,6 +730,7 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       </form>
       <datalist id="shop-suggest"></datalist>
       <div class="list" id="shop-list"></div>
+      <button class="btn caisse-btn" type="button" id="shop-caisse">🧾 Je passe en caisse : ai-je oublié quelque chose ?</button>
       <div class="row">
         <button class="btn primary" type="button" id="shop-done">✅ Courses finies</button>
         <button class="btn" type="button" id="shop-habits-add">⭐ Ajouter les habituels à racheter</button>
@@ -2838,8 +2844,8 @@ function renderShop() {
   const order = getAisleOrder();
   const delBtn = i => el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + i.name, text: "✕", onclick: e => { e.preventDefault(); shop = shop.filter(x => x !== i); saveShop(); } });
   const row = i => el("label", { class: "shop-item" + (i.done ? " done" : "") },
-    el("input", { type: "checkbox", checked: !!i.done, onchange: e => { i.done = e.target.checked; saveShop(); } }),
-    el("span", { class: "what" }, emoSpan(i.name, "🛒"), i.name, i.qty ? el("span", { class: "muted", text: " × " + i.qty }) : null),
+    el("input", { type: "checkbox", checked: !!i.done, onchange: e => { i.done = e.target.checked; saveShop(); if (i.done) caisseWatch(i); } }),
+    el("span", { class: "what" }, i.name, i.qty ? el("span", { class: "muted", text: " × " + i.qty }) : null),
     favBtn(i.name), delBtn(i));
   // ⭐ Mes favoris, toujours en tête : cochables s'ils sont sur la liste, sinon un « + » pour les ajouter
   const star = [el("div", { class: "shop-group habits-top" }, ...grpHead("⭐ Mes favoris", "⭐"),
@@ -2849,7 +2855,7 @@ function renderShop() {
       const due = habitDue(h);
       return el("div", { class: "shop-item off" },
         el("button", { class: "icon-btn add", type: "button", "aria-label": "Ajouter " + h.name + " à la liste", text: "＋", onclick: () => { addToList(h.name); saveShop(); } }),
-        el("span", { class: "what" }, emoSpan(h.name, "🛒"), h.name, due ? el("span", { class: "pill soon", style: "margin-left:6px", text: "à racheter" }) : null),
+        el("span", { class: "what" }, h.name, due ? el("span", { class: "pill soon", style: "margin-left:6px", text: "à racheter" }) : null),
         favBtn(h.name));
     }) : [el("p", { class: "small muted", text: "Touche ☆ à côté d'un produit pour le mettre en favori." })]))];
   const kids = [...star, ...order.filter(c => groups[c] || grpOpen === c).map((c, n) => el("div", { class: "shop-group" }, ...grpHead(`${n + 1}. ${AISLE_EMO[c]} ${c}`, c),
@@ -2927,6 +2933,34 @@ function addMany(lines, aisle = null) {
   return names;
 }
 $("#shop-paste-go").addEventListener("click", () => { addMany($("#shop-paste").value.split(/\n|;/)); $("#shop-paste").value = ""; });
+/* Avant la caisse : l'appli vérifie ce qui n'est pas coché.
+   Toute seule quand je coche un article du dernier rayon de ma liste, ou quand je touche « Je passe en caisse ». */
+const aisleOf = i => i.aisle || rayonOf(i.name);
+let caisseShown = "";
+function caisseAlert(auto) {
+  const left = shop.filter(i => !i.done);
+  $("#caisse")?.remove();
+  if (!left.length) { if (!auto) { const ok = el("div", { id: "caisse", class: "caisse ok" }, el("b", { text: "✅ Tout est dans ton panier, bonne caisse !" })); document.body.append(ok); setTimeout(() => ok.remove(), 2500); } return; }
+  try { navigator.vibrate?.([180, 90, 180]); } catch {}
+  const order = getAisleOrder(), byAisle = {};
+  for (const i of left) (byAisle[aisleOf(i)] = byAisle[aisleOf(i)] || []).push(i);
+  const box = el("div", { id: "caisse", class: "caisse", role: "alertdialog", "aria-label": "Avant la caisse" },
+    el("h3", { text: `⚠️ Avant la caisse : ${left.length} article${left.length > 1 ? "s" : ""} pas encore pris` }),
+    ...order.filter(a => byAisle[a]).map(a => el("div", { class: "caisse-grp" }, el("div", { class: "small muted", text: `${AISLE_EMO[a] || "📦"} ${a}` }),
+      ...byAisle[a].map(i => el("label", { class: "shop-item" }, el("input", { type: "checkbox", onchange: e => { i.done = e.target.checked; saveShop(); } }),
+        el("span", { class: "what" }, i.name, i.qty ? el("span", { class: "muted", text: " × " + i.qty }) : null))))),
+    el("div", { class: "row" }, el("button", { class: "btn primary", type: "button", text: "👍 C'est bon", onclick: () => box.remove() })));
+  document.body.append(box);
+}
+function caisseWatch(i) {
+  const withItems = getAisleOrder().filter(a => shop.some(x => aisleOf(x) === a));
+  const last = withItems[withItems.length - 1], left = shop.filter(x => !x.done);
+  if (!left.length || aisleOf(i) !== last) return;
+  const key = left.map(x => x.name).join("|");
+  if (caisseShown === key) return;
+  caisseShown = key; caisseAlert(true);
+}
+$("#shop-caisse").addEventListener("click", () => caisseAlert(false));
 $("#shop-done").addEventListener("click", () => {
   const bought = shop.filter(i => i.done);
   if (!bought.length) { $("#shop-msg").textContent = "Coche d'abord les articles que tu as pris."; return; }
