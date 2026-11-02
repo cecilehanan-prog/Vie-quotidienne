@@ -532,7 +532,9 @@ p.small:empty, p.muted:empty, #store-msg:empty { display: none; }
 #shop-form .mic { width: 44px; height: 44px; }
 /* « Parle-moi » : un micro toujours là pour demander à l'appli (CéHa, 1/11) */
 #talk-fab { position: fixed; right: 14px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 6; width: 58px; height: 58px; border-radius: 50%; border: 0; cursor: pointer; font-size: 1.6rem;
-  background: linear-gradient(120deg, #8a5a00, #b8860b 45%, #d4a017 60%, #8a5a00); color: #fff; box-shadow: 0 6px 18px rgba(184,134,11,.4); }
+  background: none; color: #b8860b; box-shadow: none; display: grid; place-items: center; padding: 0; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+#talk-fab svg { width: 40px; height: 40px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #talk-fab { color: #e2b04a; } } :root[data-theme="dark"] #talk-fab { color: #e2b04a; }
 #talk { position: fixed; inset: auto 0 0 0; z-index: 7; background: var(--surface); border-radius: 22px 22px 0 0; box-shadow: 0 -8px 30px rgba(0,0,0,.25);
   padding: 18px 16px calc(20px + env(safe-area-inset-bottom, 0px)); max-height: 80vh; overflow: auto; }
 #talk[hidden] { display: none; }
@@ -3826,7 +3828,8 @@ try {
 // Identifiants publics de son projet Firebase (pas secrets : la sécurité vient des règles, seule elle peut lire ses données)
 /* « Parle-moi » (CéHa, 1/11) : elle parle ou écrit, l'appli fait. Gratuit, tout se passe dans le téléphone.
    Ajoute du lait · itinéraire vers Lyon · rappelle-moi de… · météo · agenda · sinon on ouvre Claude avec la question. */
-const talkFab = el("button", { id: "talk-fab", type: "button", "aria-label": "Parle-moi", text: "🎙️" });
+const talkFab = el("button", { id: "talk-fab", type: "button", "aria-label": "Parle-moi" });
+talkFab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg>';
 const talkIn = el("input", { type: "text", placeholder: "⌨️ Écris ici, en toute discrétion", "aria-label": "Ta demande", autocomplete: "off" });
 const talkOut = el("div", { id: "talk-out", "aria-live": "polite" });
 const bigMic = el("button", { class: "big-mic", type: "button", "aria-label": "Parler", text: "🎤", hidden: !SpeechRec });
