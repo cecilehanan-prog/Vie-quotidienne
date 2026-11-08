@@ -126,7 +126,7 @@ h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; mar
 .linkbox strong { font-family: var(--font-display); font-weight: 500; }
 .linkbox span { font-size: .85rem; color: var(--muted); }
 
-input[type=text], input[type=date], input[type=time], input[type=search], select { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+input[type=text], input[type=date], input[type=time], input[type=search], input[type=tel], input[type=url], input[type=email], select { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; }
 form.inline { display: flex; gap: 8px; flex-wrap: wrap; }
 form.inline > input { flex: 1 1 140px; }
 
@@ -1041,6 +1041,7 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
           <select id="rdv-kind" aria-label="Type"></select>
           <input id="rdv-name" required placeholder="Nom (ex. Salon Léa)" aria-label="Nom">
           <input id="rdv-phone" type="tel" placeholder="Téléphone" aria-label="Téléphone">
+          <input id="rdv-email" type="email" placeholder="Adresse mail" aria-label="Adresse mail">
           <input id="rdv-url" type="url" placeholder="Lien de réservation (Planity, Doctolib…)" aria-label="Lien de réservation">
           <input id="rdv-city" placeholder="Ville" aria-label="Ville" value="Tarare">
           <button class="btn primary" type="submit">💾 Garder cette adresse</button>
@@ -3799,16 +3800,28 @@ const RDV_KINDS = [["coiffeur", "✂️", "Coiffeur", "maps"], ["osteo", "🦴",
 const rdvKind = k => RDV_KINDS.find(x => x[0] === k) || RDV_KINDS.at(-1);
 let pros = store.get("pros", []);
 const gcalLink = e => { const d = evDate(e), f = x => x.toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z"; return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${f(d)}/${f(new Date(+d + 3600e3))}&location=${encodeURIComponent(e.place || "")}`; };
-let rdvOpen = null;
+let rdvOpen = null, rdvEdit = null;
 function renderRdv() {
   $("#rdv-pros").replaceChildren(...(pros.length ? pros.map(p => {
     const [, e, label] = rdvKind(p.kind), box = el("div", { class: "pro" },
       el("div", { class: "pro-top" }, el("span", { class: "emo", text: e }), el("div", {}, el("b", { text: p.name }), el("span", { class: "small muted", text: [label, p.city].filter(Boolean).join(" · ") })),
-        el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer " + p.name, text: "✕", onclick: () => { if (confirm(`Retirer ${p.name} ?`)) { pros = pros.filter(x => x.id !== p.id); store.set("pros", pros); renderRdv(); } } })),
+        el("div", { style: "display:flex;gap:2px;align-items:center" },
+          el("button", { class: "icon-btn", type: "button", "aria-label": "Modifier " + p.name, text: "✏️", onclick: () => { rdvEdit = rdvEdit === p.id ? null : p.id; renderRdv(); } }),
+          el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer " + p.name, text: "✕", onclick: () => { if (confirm(`Retirer ${p.name} ?`)) { pros = pros.filter(x => x.id !== p.id); store.set("pros", pros); renderRdv(); } } }))),
       el("div", { class: "row" },
         p.url ? el("a", { class: "btn primary", href: p.url, target: "_blank", rel: "noopener", text: "📅 Réserver" }) : null,
         p.phone ? el("a", { class: "btn" + (p.url ? "" : " primary"), href: "tel:" + p.phone.replace(/[^\d+]/g, ""), text: "📞 Appeler" }) : null,
+        p.email ? el("a", { class: "btn", href: "mailto:" + p.email, text: "✉️ Écrire" }) : null,
         el("button", { class: "btn", type: "button", text: "📝 Noter le RDV", onclick: () => { rdvOpen = rdvOpen === p.id ? null : p.id; renderRdv(); } })));
+    if (rdvEdit === p.id) {
+      const kind = el("select", { "aria-label": "Type" }, ...RDV_KINDS.map(([k, ic, l]) => el("option", { value: k, text: `${ic} ${l}`, selected: k === p.kind })));
+      const f = (ph, v, type) => el("input", { type: type || "text", placeholder: ph, value: v || "", "aria-label": ph });
+      const nm = f("Nom", p.name), ph = f("Téléphone", p.phone, "tel"), em = f("Adresse mail", p.email, "email"), ur = f("Lien de réservation (Planity, Doctolib…)", p.url, "url"), ci = f("Adresse ou ville", p.city);
+      nm.required = true;
+      box.append(el("form", { class: "rdv-form", onsubmit: ev => { ev.preventDefault(); pros = pros.map(x => x.id === p.id ? { ...x, kind: kind.value, name: nm.value.trim(), phone: ph.value.trim(), email: em.value.trim(), url: ur.value.trim(), city: ci.value.trim() } : x); store.set("pros", pros); rdvEdit = null; renderRdv(); } },
+        kind, nm, ph, em, ur, ci,
+        el("div", { class: "row" }, el("button", { class: "btn primary", type: "submit", text: "💾 Enregistrer" }), el("button", { class: "btn", type: "button", text: "Annuler", onclick: () => { rdvEdit = null; renderRdv(); } }))));
+    }
     if (rdvOpen === p.id) {
       const d = el("input", { type: "date", required: true, value: new Date(Date.now() + DAY).toLocaleDateString("sv-SE"), "aria-label": "Jour" }), t = el("input", { type: "time", value: "10:00", "aria-label": "Heure" });
       box.append(el("form", { class: "pro-when", onsubmit: ev => { ev.preventDefault(); events = events.filter(x => !x.sample); const ne = { id: uid(), title: `${label} · ${p.name}`, date: d.value, time: t.value, place: p.city || "", remind: 1440, rdv: true }; events.push(ne); saveEvents(); rdvOpen = null; renderRdv(); renderTiles(); } },
@@ -3818,7 +3831,7 @@ function renderRdv() {
   }) : [el("p", { class: "muted", text: "Ajoute ton coiffeur, ton ostéo… une seule fois, ensuite tout se fait d'un geste." })]));
 }
 $("#rdv-kind").replaceChildren(...RDV_KINDS.map(([k, e, l]) => el("option", { value: k, text: `${e} ${l}` })));
-$("#rdv-form").addEventListener("submit", e => { e.preventDefault(); pros.push({ id: uid(), kind: $("#rdv-kind").value, name: $("#rdv-name").value.trim(), phone: $("#rdv-phone").value.trim(), url: $("#rdv-url").value.trim(), city: $("#rdv-city").value.trim() }); store.set("pros", pros); e.target.reset(); $("#rdv-city").value = "Tarare"; e.target.closest("details").open = false; renderRdv(); });
+$("#rdv-form").addEventListener("submit", e => { e.preventDefault(); pros.push({ id: uid(), kind: $("#rdv-kind").value, name: $("#rdv-name").value.trim(), phone: $("#rdv-phone").value.trim(), email: $("#rdv-email").value.trim(), url: $("#rdv-url").value.trim(), city: $("#rdv-city").value.trim() }); store.set("pros", pros); e.target.reset(); $("#rdv-city").value = "Tarare"; e.target.closest("details").open = false; renderRdv(); });
 const RDV_CATS = [["🩺 Santé", ["medecin", "pharma", "dentiste", "ortho", "ophtalmo", "gyneco", "sagefemme", "dermato", "kine", "osteo", "podo", "psy", "labo", "radio"]], ["💅 Beauté et bien-être", ["coiffeur", "esthe", "onglerie", "massage"]], ["🚗 Auto et moto", ["garage", "ct", "pneus", "carrosserie", "lavage", "moto"]], ["🏠 Maison", ["plombier", "electricien", "serrurier", "chauffage", "cordonnier", "retouche"]], ["🐾 Animaux", ["veto", "toiletteur"]]];
 const findBtn = ([k, e, l, doc]) => el("button", { class: "linkbox", type: "button", onclick: async () => {
   const pos = await hereOnce() || TARARE;
