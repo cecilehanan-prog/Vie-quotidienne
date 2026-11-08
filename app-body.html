@@ -496,6 +496,9 @@ header.top h1#greet { position: relative; flex: 1 1 100%; align-items: flex-end;
 #trip-mode .btn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; white-space: nowrap; font-size: .85rem; }
 #trip-mode .btn span { font-size: 1.2rem; }
 [data-sec=rappel] { --sec: #f08c00; }
+.point-soir { border-radius: 14px; padding: 10px 12px; margin-bottom: 10px; background: color-mix(in srgb, var(--sec) 12%, transparent); background: rgba(240,140,0,.12); }
+.point-soir h3 { margin: 0 0 2px; font-size: 1rem; }
+.point-soir p { margin: 4px 0; font-size: .92rem; }
 [data-sec=sync] { --sec: #0fa3d1; }
 .pres-head { list-style: none; padding: 12px; border-radius: 14px; background: transparent; background: color-mix(in srgb, #2b59c3 10%, transparent); margin-bottom: 8px; }
 .pres-cd { display: flex; gap: 10px; margin-bottom: 6px; } .pres-cd > span { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px; border-radius: 12px; background: var(--surface); }
@@ -1836,8 +1839,9 @@ async function syncAgenda(manual) {
     }
     if (!got.length) { st.textContent = "en attente"; msg.textContent = "⏳ Le robot n'a pas encore lu ces agendas. Réessaie dans 10 minutes."; return; }
     const fresh = [], rap = [], seenEv = new Set(); // un même rendez-vous présent dans deux agendas (ou deux fois dans la liste) n'apparaît qu'une fois
-    for (const cal of got.filter(c => /rappel/i.test(c.n))) for (const e of cal.e) rap.push({ id: e.d + "|" + e.t, title: e.t, date: e.d, time: e.h });
-    store.set("rappels", rap); renderRappels();
+    const soir = [];
+    for (const cal of got.filter(c => /rappel/i.test(c.n))) for (const e of cal.e) { if (/point du soir/i.test(e.t)) soir.push({ date: e.d, text: e.x || "" }); else rap.push({ id: e.d + "|" + e.t, title: e.t, date: e.d, time: e.h }); }
+    store.set("rappels", rap); store.set("pointSoir", soir); renderRappels();
     for (const cal of [...got.filter(c => !/rappel/i.test(c.n)), ...(pack.pub || []).map(c => ({ ...c, pub: true }))]) {
       const [rank, label] = calInfo(cal.n);
       for (const e of cal.e) if (!seenEv.has(e.d + e.h + e.t.trim().toLowerCase()) && seenEv.add(e.d + e.h + e.t.trim().toLowerCase())) fresh.push({ id: "g:" + e.d + e.h + e.t, title: (cal.pub ? (/f[ée]ri|france/i.test(cal.n) ? "🇫🇷 " : "🌙 ") : "") + e.t, date: e.d, time: e.h, place: e.p, end: e.z || "", remind: cal.pub || !e.h ? 0 : 30, gcal: true, cal: label, rank });
@@ -1856,8 +1860,10 @@ function renderRappels() {
   const lim = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
   const list = store.get("rappels", []).filter(r => !done.includes(r.id) || rapAll).filter(r => rapAll || r.date <= lim).sort((a, b) => a.date < b.date ? -1 : 1);
   const box = $("#rap-list");
-  if (!list.length) { box.replaceChildren(el("p", { class: "muted", text: store.get("rappels", null) ? "✨ Rien à penser pour l'instant." : "🔔 Tes rappels arrivent ici dès que l'agenda « Rappels » est branché." })); return; }
-  box.replaceChildren(...list.map(r => {
+  const soirs = store.get("pointSoir", []).filter(x => x.text && x.date <= today && daysUntil(x.date) >= -1).sort((a, b) => a.date < b.date ? 1 : -1), soir = soirs[0];
+  const soirBox = soir ? el("div", { class: "point-soir" }, el("h3", { text: "🌙 Le point du soir" }), el("div", { class: "small muted", text: fmtDay(soir.date) }), ...soir.text.split(/\n+/).map(l => l.trim()).filter(Boolean).map(l => el("p", { text: l.replace(/^#+\s*/, "").replace(/\*\*/g, "") }))) : null;
+  if (!list.length) { box.replaceChildren(...[soirBox, el("p", { class: "muted", text: store.get("rappels", null) ? "✨ Rien à penser pour l'instant." : "🔔 Tes rappels arrivent ici dès que l'agenda « Rappels » est branché." })].filter(Boolean)); return; }
+  box.replaceChildren(...[soirBox].filter(Boolean), ...list.map(r => {
     const dd = daysUntil(r.date), ok = done.includes(r.id);
     return el("div", { class: "item " + (ok ? "done" : dd < 0 ? "late" : dd <= 2 ? "soon" : "") },
       el("input", { type: "checkbox", checked: ok, "aria-label": "Fait : " + r.title, onchange: e => { const d = store.get("rappelsDone", []).filter(x => x !== r.id); if (e.target.checked) d.push(r.id); store.set("rappelsDone", d); renderRappels(); } }),
