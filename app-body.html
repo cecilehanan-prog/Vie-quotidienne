@@ -1822,16 +1822,24 @@ async function syncAgenda(manual) {
   const links = icsLinks(), st = $("#gsync-state"), msg = $("#gsync-msg");
   if (!links.length) { st.textContent = "à brancher"; return; }
   try {
+    // 1) Netlify : une petite fonction lit les agendas à la demande (sans GitHub). 2) sinon l'ancien robot GitHub.
+    let pack = null, got = [];
+    try {
+      const f = await fetch("/.netlify/functions/agenda", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ links }), cache: "no-store" });
+      if (f.ok && /json/.test(f.headers.get("content-type") || "")) { const j = await f.json(); if (j && j.cals) { pack = { u: new Date().toISOString(), a: [], pub: j.pub || [] }; got = j.cals; } }
+    } catch (e) { /* pas de fonction ici : on essaie l'ancien robot */ }
+    if (!pack) {
     const r = await fetch(AGENDA_URL + "?t=" + Date.now(), { cache: "no-store" });
     if (r.status === 404) { st.textContent = "en attente"; msg.textContent = "⏳ Le robot n'a pas encore tourné. Réessaie dans 10 minutes."; return; }
     if (!r.ok) throw new Error("absent");
-    const pack = await r.json(), got = [];
+    pack = await r.json();
     for (const link of links) {
       const raw = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("vie-quotidienne-agenda|" + link));
       const id = hex(await crypto.subtle.digest("SHA-256", raw)).slice(0, 12), blob = pack.a.find(b => b.id === id);
       if (!blob) continue;
       const all = b64bytes(blob.c), key = await crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
       got.push(JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: all.slice(0, 12) }, key, all.slice(12)))));
+    }
     }
     if (!got.length) { st.textContent = "en attente"; msg.textContent = "⏳ Le robot n'a pas encore lu ces agendas. Réessaie dans 10 minutes."; return; }
     const fresh = [], rap = [], seenEv = new Set(); // un même rendez-vous présent dans deux agendas (ou deux fois dans la liste) n'apparaît qu'une fois
