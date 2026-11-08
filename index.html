@@ -1040,10 +1040,6 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
   <section class="view" id="view-rdv" hidden>
     <button class="btn" type="button" data-goto="home" style="margin-bottom:10px">⬅️ Accueil</button>
     <article class="card" data-sec="rdv">
-      <h2>⏰ Mes prochains rendez-vous</h2>
-      <div class="list" id="rdv-next"></div>
-    </article>
-    <article class="card" data-sec="rdv">
       <h2>💇 Mes adresses</h2>
       <p class="small muted">Un geste pour réserver ou appeler, puis je note le rendez-vous dans ton agenda.</p>
       <div id="rdv-pros"></div>
@@ -3804,8 +3800,6 @@ let pros = store.get("pros", []);
 const gcalLink = e => { const d = evDate(e), f = x => x.toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z"; return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${f(d)}/${f(new Date(+d + 3600e3))}&location=${encodeURIComponent(e.place || "")}`; };
 let rdvOpen = null;
 function renderRdv() {
-  const next = events.filter(e => e.rdv && evDate(e) >= startOfDay(new Date())).sort((a, b) => evDate(a) - evDate(b));
-  $("#rdv-next").replaceChildren(...(next.length ? next.map(e => { const it = evItem(e, false); it.append(el("a", { class: "btn", href: gcalLink(e), target: "_blank", rel: "noopener", text: "📆 Google", title: "Ajouter à Google Agenda", style: "grid-column:1/-1;justify-self:start" })); return it; }) : [el("p", { class: "muted", text: "🌿 Aucun rendez-vous noté." })]));
   $("#rdv-pros").replaceChildren(...(pros.length ? pros.map(p => {
     const [, e, label] = rdvKind(p.kind), box = el("div", { class: "pro" },
       el("div", { class: "pro-top" }, el("span", { class: "emo", text: e }), el("div", {}, el("b", { text: p.name }), el("span", { class: "small muted", text: [label, p.city].filter(Boolean).join(" · ") })),
