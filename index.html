@@ -2764,14 +2764,17 @@ function renderLeclerc() {
 const AISLES = [
   ["Fruits et légumes", "🥕"], ["Boulangerie", "🥖"], ["Boucherie et poisson", "🥩"], ["Fromages et crèmerie", "🧀"],
   ["Épicerie salée", "🥫"], ["Épicerie sucrée", "🍫"], ["Produits du monde", "🌍"], ["Boissons", "🥤"],
-  ["Hygiène et santé", "🧴"], ["Entretien et maison", "🧽"], ["Animaux", "🐱"], ["Bricolage et jardin", "🔧"],
-  ["Surgelés", "🧊"], ["Autre", "📦"],
+  ["Hygiène et santé", "🧴"], ["Entretien et maison", "🧽"], ["Animaux", "🐾"], ["Bricolage et jardin", "🔧"],
+  ["Surgelés", "❄️"], ["Autre", "📦"],
 ];
 const AISLE_EMO = Object.fromEntries(AISLES);
+// Nom affiché (le nom interne « Animaux » reste le même pour garder les rangements déjà faits)
+const AISLE_LABEL = { "Animaux": "Produits animaux" };
+const aisleName = c => AISLE_LABEL[c] || c;
 // Ordre de reconnaissance : du plus précis au plus général
 const RAYONS = [
-  ["Surgelés", /surgel|glace|petits pois surgel/],
-  ["Animaux", /croquette|litière|pour chat|pour chien|graines de poulet|phéromone/],
+  ["Surgelés", /surgel|congel|glace|petits pois surgel/],
+  ["Animaux", /croquette|litière|pâtée|pour chat|pour chien|\bchats?\b|\bchiens?\b|friandise|os à mâcher|gamelle|vermifuge|antipuce|pipette|graines de poulet|graines pour oiseaux|graines oiseaux|phéromone|animaux|aquarium|poisson rouge/],
   ["Bricolage et jardin", /peinture|barillet|serrure|ampoule|brique|œil de sécurité|oeil de sécurité|enceinte|casto|bignone|jasmin|terreau|plante|déménagement/],
   ["Hygiène et santé", /shampo|savon|dentifrice|gel douche|fleur de douche|déodorant|pince cheveux|coton|imigrane|doliprane|pansement|brosse à dents|papier toilette|papier hygiénique|\bpq\b|mouchoir|lingette|rasoir|tampon|serviette hygiénique|protège|après-shampoing|crème solaire|démaquillant|vernis|dentaire|ibuprofène|paracétamol|spasfon|sérum physiologique/],
   ["Entretien et maison", /lessive|éponge|essuie|sac poubelle|liquide vaisselle|encens|bougie|javel|adoucissant|nettoyant|produit vaisselle|tablette lave|papier alu|film alimentaire|papier cuisson/],
@@ -2839,7 +2842,7 @@ async function detectStore(manual) {
 }
 function renderAisles() {
   const o = getAisleOrder();
-  $("#aisle-list").replaceChildren(...o.map((n, i) => el("div", { class: "aisle" }, el("span", { text: `${i + 1}. ${AISLE_EMO[n]} ${n}` }),
+  $("#aisle-list").replaceChildren(...o.map((n, i) => el("div", { class: "aisle" }, el("span", { text: `${i + 1}. ${AISLE_EMO[n]} ${aisleName(n)}` }),
     el("button", { class: "icon-btn", type: "button", "aria-label": "Monter " + n, text: "⬆️", disabled: i === 0, onclick: () => moveAisle(i, -1) }),
     el("button", { class: "icon-btn", type: "button", "aria-label": "Descendre " + n, text: "⬇️", disabled: i === o.length - 1, onclick: () => moveAisle(i, 1) }))));
 }
@@ -2855,6 +2858,8 @@ const saveShop = () => { store.set("shop", shop); try { renderLeclerc(); } catch
 const lastBought = name => purchases.filter(p => p.name.toLowerCase() === name.toLowerCase()).map(p => p.date).sort().pop();
 const habitDue = h => { const l = lastBought(h.name); return !l || -daysUntil(l) >= h.every - 1; };
 const onList = name => shop.some(i => i.name.toLowerCase() === name.toLowerCase());
+// 13/11 (demande de CéHa) : les croquettes vont dans « Produits animaux », plus dans ⭐ Mes favoris (une seule fois ; ☆ pour les remettre en favori)
+{ const K = "mig-croquettes-animaux-2026-11-13"; if (!store.get(K, false)) { habits = habits.filter(h => fold(h.name) !== "croquettes"); store.set("habits", habits); store.set(K, true); } }
 
 // Dictée vocale (Chrome, Safari) : « lait, œufs et pain » devient trois articles
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2906,7 +2911,7 @@ function renderShop() {
         el("span", { class: "what" }, h.name, due ? el("span", { class: "pill soon", style: "margin-left:6px", text: "à racheter" }) : null),
         favBtn(h.name));
     }) : [el("p", { class: "small muted", text: "Touche ☆ à côté d'un produit pour le mettre en favori." })]))];
-  const kids = [...star, ...order.filter(c => groups[c] || grpOpen === c).map((c, n) => el("div", { class: "shop-group" }, ...grpHead(`${n + 1}. ${AISLE_EMO[c]} ${c}`, c),
+  const kids = [...star, ...order.filter(c => groups[c] || grpOpen === c).map((c, n) => el("div", { class: "shop-group" }, ...grpHead(`${n + 1}. ${AISLE_EMO[c]} ${aisleName(c)}`, c),
     ...(groups[c] || []).sort((a, b) => a.done - b.done).map(row)))];
   $("#shop-list").replaceChildren(...kids);
   $("#shop-suggest").replaceChildren(...[...new Set([...habits.map(h => h.name), ...purchases.map(p => p.name)])].map(n => el("option", { value: n })));
@@ -2992,7 +2997,7 @@ function addMany(lines, aisle = null) {
     const auto = aisle ? rayonReconnu(n) : null;
     const dest = auto || aisle;
     if (!tryAdd(n, "", dest)) return false;
-    if (auto && auto !== aisle) moved.push({ auto, txt: `« ${n} » rangé dans ${auto}` });
+    if (auto && auto !== aisle) moved.push({ auto, txt: `« ${n} » rangé dans ${aisleName(auto)}` });
     return true;
   });
   saveShop();
@@ -3014,7 +3019,7 @@ function caisseAlert(auto) {
   for (const i of left) (byAisle[aisleOf(i)] = byAisle[aisleOf(i)] || []).push(i);
   const box = el("div", { id: "caisse", class: "caisse", role: "alertdialog", "aria-label": "Avant la caisse" },
     el("h3", { text: `⚠️ Avant la caisse : ${left.length} article${left.length > 1 ? "s" : ""} pas encore pris` }),
-    ...order.filter(a => byAisle[a]).map(a => el("div", { class: "caisse-grp" }, el("div", { class: "small muted", text: `${AISLE_EMO[a] || "📦"} ${a}` }),
+    ...order.filter(a => byAisle[a]).map(a => el("div", { class: "caisse-grp" }, el("div", { class: "small muted", text: `${AISLE_EMO[a] || "📦"} ${aisleName(a)}` }),
       ...byAisle[a].map(i => el("label", { class: "shop-item" }, el("input", { type: "checkbox", onchange: e => { i.done = e.target.checked; saveShop(); } }),
         el("span", { class: "what" }, i.name, i.qty ? el("span", { class: "muted", text: " × " + i.qty }) : null))))),
     el("div", { class: "row" }, el("button", { class: "btn primary", type: "button", text: "👍 C'est bon", onclick: () => box.remove() })));
