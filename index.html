@@ -665,7 +665,7 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
     <article class="card" data-sec="sync">
       <div class="card-head"><h2>🔄 iMac ↔ iPhone ↔ iPad</h2><span class="pill" id="sync-state">pas encore</span></div>
       <p class="small muted" id="sync-msg">Connecte-toi une fois sur chaque appareil : tes listes, papiers et rendez-vous seront les mêmes partout.</p>
-      <div class="row"><button class="btn primary" type="button" id="sync-in">Se connecter avec Google</button><button class="btn" type="button" id="sync-out" hidden>Se déconnecter</button></div>
+      <div class="row"><button class="btn primary" type="button" id="sync-in">Se connecter avec Google</button><button class="btn" type="button" id="sync-now" hidden>🔄 Synchroniser maintenant</button><button class="btn" type="button" id="sync-out" hidden>Se déconnecter</button></div>
     </article>
   </section>
 
@@ -2891,9 +2891,11 @@ const lastBought = name => purchases.filter(p => p.name.toLowerCase() === name.t
 const habitDue = h => { const l = lastBought(h.name); return !l || -daysUntil(l) >= h.every - 1; };
 const onList = name => shop.some(i => i.name.toLowerCase() === name.toLowerCase());
 // 13/11 (demande de CéHa) : les croquettes vont dans « Produits animaux », plus dans ⭐ Mes favoris (une seule fois ; ☆ pour les remettre en favori)
-{ const K = "mig-croquettes-animaux-2026-11-13"; if (!store.get(K, false)) { habits = habits.filter(h => fold(h.name) !== "croquettes"); store.set("habits", habits); store.set(K, true); } }
+// Ces deux remises en ordre se font sans « dater » la liste (écriture silencieuse) : sinon l'appareil qui les fait en premier passerait pour avoir la liste la plus récente et écraserait les modifications faites sur l'autre appareil.
+const quietSet = (k, v) => { try { localStorage.setItem("mq:" + k, JSON.stringify(v)); } catch {} };
+{ const K = "mig-croquettes-animaux-2026-11-13"; if (!localStorage.getItem("mq:" + K)) { const n = habits.filter(h => fold(h.name) !== "croquettes"); if (n.length !== habits.length) { habits = n; quietSet("habits", habits); } quietSet(K, true); } }
 // 13/11 : « Croquettes » devient « Croquettes pour chat » (une seule fois, quantité conservée)
-{ const K = "mig-croquettes-chat-2026-11-13"; if (!store.get(K, false)) { shop.forEach(i => { if (fold(i.name) === "croquettes") i.name = "Croquettes pour chat"; }); store.set("shop", shop); store.set(K, true); } }
+{ let ch = false; shop.forEach(i => { if (fold(i.name) === "croquettes") { i.name = "Croquettes pour chat"; ch = true; } }); if (ch) quietSet("shop", shop); }
 
 // Dictée vocale (Chrome, Safari) : « lait, œufs et pain » devient trois articles
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -4200,29 +4202,47 @@ async function syncStart() {
   };
   $("#sync-out").onclick = () => auth.signOut();
   auth.onAuthStateChanged(user => {
-    $("#sync-in").hidden = !!user; $("#sync-out").hidden = !user;
+    $("#sync-in").hidden = !!user; $("#sync-out").hidden = !user; $("#sync-now").hidden = !user;
     if (!user) { fbDoc = null; syncSay("pas encore", "Connecte-toi une fois sur chaque appareil : tes listes, papiers et rendez-vous seront les mêmes partout."); return; }
     syncSay("⏳ synchro…", "Connectée avec " + (user.email || "Google") + ". Tout ce que tu ajoutes ici apparaît sur ton autre appareil.");
     fbDoc = firebase.firestore().collection("users").doc(user.uid);
-    fbDoc.onSnapshot(snap => {
-      const remote = snap.data() || {}, m = syncMeta(); let changed = false;
-      for (const [k, r] of Object.entries(remote)) {
-        if (SYNC_SKIP.test(k) || !r || typeof r.v !== "string") continue;
-        if ((r.t || 0) > (m[k] || 0) && localStorage.getItem("mq:" + k) !== r.v) { localStorage.setItem("mq:" + k, r.v); changed = true; }
-        if ((r.t || 0) > (m[k] || 0)) m[k] = r.t;
-      }
-      localStorage.setItem("mq:_t", JSON.stringify(m));
-      // Ce qui n'existe que sur cet appareil (ou plus récent ici) part vers l'autre
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i); if (!key.startsWith("mq:")) continue;
-        const k = key.slice(3); if (SYNC_SKIP.test(k)) continue;
-        if (!remote[k] || (m[k] || 0) > (remote[k].t || 0)) { if (!m[k]) { m[k] = 1; } pending.add(k); }
-      }
-      localStorage.setItem("mq:_t", JSON.stringify(m));
-      if (pending.size) flush(); else syncSay("✅ synchronisé", null);
-      if (changed) reloadSoon();
-    }, () => syncSay("😕 erreur", "Je n'arrive pas à lire ton espace Firebase."));
+    // On n'agit que sur ce que dit vraiment le serveur (pas sur la copie gardée dans l'appareil), sinon une copie vide pourrait faire écraser le cloud
+    fbDoc.onSnapshot({ includeMetadataChanges: true }, snap => { if (snap.metadata.fromCache) return; if (applyRemote(snap.data() || {})) reloadSoon(); }, () => syncSay("😕 erreur", "Je n'arrive pas à lire ton espace Firebase."));
   });
+  $("#sync-now").onclick = async () => {
+    if (!fbDoc) { syncSay("pas encore", "Connecte-toi d'abord avec Google."); return; }
+    syncSay("⏳ synchro…", "Je regarde ce qu'il y a dans ton espace…");
+    try {
+      const remote = (await fbDoc.get({ source: "server" })).data() || {};
+      const count = s => { try { return JSON.parse(s || "[]").length; } catch { return "?"; } };
+      const ici = count(localStorage.getItem("mq:shop")), la = count(remote.shop && remote.shop.v);
+      const changed = applyRemote(remote);
+      syncSay("✅ synchronisé", `Liste de courses : ${ici} articles ici, ${la} dans ton espace. ` + (changed ? "Je mets ton appareil à jour…" : "Tout est pareil."));
+      if (changed) reloadSoon();
+    } catch { syncSay("😕 erreur", "Je n'arrive pas à joindre ton espace. Vérifie ta connexion et réessaie."); }
+  };
+}
+/* Fusionne ce qu'il y a dans le cloud avec cet appareil. Le plus récent gagne, clé par clé.
+   Premier branchement d'un appareil (ou d'une nouvelle adresse) : le cloud gagne toujours, pour qu'une liste neuve (créée par le démarrage) n'écrase pas celle de l'autre appareil. */
+function applyRemote(remote) {
+  const first = !localStorage.getItem("mq:_tjoined"), m = syncMeta(); let changed = false;
+  for (const [k, r] of Object.entries(remote)) {
+    if (SYNC_SKIP.test(k) || !r || typeof r.v !== "string") continue;
+    const newer = (r.t || 0) > (m[k] || 0);
+    if ((first || newer) && localStorage.getItem("mq:" + k) !== r.v) { localStorage.setItem("mq:" + k, r.v); changed = true; }
+    if (first || newer) m[k] = r.t || 1;
+  }
+  localStorage.setItem("mq:_t", JSON.stringify(m));
+  // Ce qui n'existe que sur cet appareil (ou plus récent ici) part vers l'autre
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i); if (!key.startsWith("mq:")) continue;
+    const k = key.slice(3); if (SYNC_SKIP.test(k)) continue;
+    if (!remote[k] || (m[k] || 0) > (remote[k].t || 0)) { if (!m[k]) { m[k] = 1; } pending.add(k); }
+  }
+  localStorage.setItem("mq:_t", JSON.stringify(m));
+  localStorage.setItem("mq:_tjoined", "1");
+  if (pending.size) flush(); else syncSay("✅ synchronisé", null);
+  return changed;
 }
 syncStart();
 })();
