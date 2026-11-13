@@ -2853,6 +2853,8 @@ const habitDue = h => { const l = lastBought(h.name); return !l || -daysUntil(l)
 const onList = name => shop.some(i => i.name.toLowerCase() === name.toLowerCase());
 // 13/11 (demande de CéHa) : les croquettes vont dans « Produits animaux », plus dans ⭐ Mes favoris (une seule fois ; ☆ pour les remettre en favori)
 { const K = "mig-croquettes-animaux-2026-11-13"; if (!store.get(K, false)) { habits = habits.filter(h => fold(h.name) !== "croquettes"); store.set("habits", habits); store.set(K, true); } }
+// 13/11 : « Croquettes » devient « Croquettes pour chat » (une seule fois, quantité conservée)
+{ const K = "mig-croquettes-chat-2026-11-13"; if (!store.get(K, false)) { shop.forEach(i => { if (fold(i.name) === "croquettes") i.name = "Croquettes pour chat"; }); store.set("shop", shop); store.set(K, true); } }
 
 // Dictée vocale (Chrome, Safari) : « lait, œufs et pain » devient trois articles
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2970,7 +2972,7 @@ function tryAdd(name, qty = "", aisle = null) {
     ["Ravioles"], ["Ortho fruits"], ["Yaourt aux fruits"], ["Mozzarella"], ["Cœur d'artichaut"], ["Mâche"],
     ["Jus de pomme"], ["Crème d'amande cuisine"], ["Jus de cranberry"], ["Ratatouille"], ["Haricots blancs à la tomate"],
     ["Soupe"], ["Coulis de tomate"], ["Céréales de petit-déjeuner"], ["Nutella"], ["Compote de pêches"],
-    ["Compote de fraises"], ["Croquettes", "2"], ["Brioche"], ["Gâteaux"], ["Emmental"], ["Noix"], ["Rainbow Peak"],
+    ["Compote de fraises"], ["Croquettes pour chat", "2"], ["Brioche"], ["Gâteaux"], ["Emmental"], ["Noix"], ["Rainbow Peak"],
     ["Fromage de chèvre"], ["Camembert"], ["St Moret"],
   ];
   items.forEach(([n, q]) => addToList(n, q || ""));
