@@ -720,6 +720,14 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       <div class="tabs" id="store-tabs"></div>
       <button class="btn" type="button" id="store-detect" style="margin:6px 0">📍 Je suis dans un magasin</button>
       <p class="small muted" id="store-msg"></p>
+      <details id="store-add">
+        <summary>➕ Ajouter un magasin</summary>
+        <form class="inline" id="store-form" style="margin-top:8px">
+          <input type="text" id="store-new" placeholder="Nom (ex. Carrefour Tarare)" required aria-label="Nom du magasin" autocomplete="off">
+          <button class="btn primary" type="submit">Ajouter</button>
+        </form>
+        <p class="small muted">Ensuite, touche son nom ci-dessus et range ses rayons avec ⬆️ ⬇️ (dans « Ordre des rayons ») : une seule fois, c'est gardé pour toujours.</p>
+      </details>
       <form class="inline" id="shop-form">
         <input type="text" id="shop-name" placeholder="Ajouter un article (ex. lait)" required aria-label="Article" list="shop-suggest" autocomplete="off">
         <input type="text" id="shop-qty" placeholder="Qté" aria-label="Quantité" class="num">
@@ -747,8 +755,9 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       </details>
       <details>
         <summary id="aisle-title">🗺️ Ordre des rayons</summary>
-        <p class="small muted">Range les rayons dans l'ordre où tu passes avec ⬆️ ⬇️</p>
+        <p class="small muted">Range les rayons dans l'ordre où tu passes avec ⬆️ ⬇️. C'est gardé pour ce magasin : tu ne le fais qu'une fois, ensuite ta liste se range toute seule quand tu touches son nom.</p>
         <div class="list" id="aisle-list"></div>
+        <div id="store-del"></div>
       </details>
       <details id="shop-online">
         <summary>🛍️ Commander en ligne</summary>
@@ -2798,12 +2807,27 @@ const BRANDS = [
   [/sephora/i, "https://www.sephora.fr/"], [/action/i, "https://www.action.com/fr-fr/"], [/decathlon/i, "https://www.decathlon.fr/"],
   [/super ?u|hyper ?u|magasins u/i, "https://www.coursesu.com/"], [/casino/i, "https://www.casino.fr/"], [/nocib/i, "https://www.nocibe.fr/"],
 ];
+// Magasins ajoutés par CéHa (nom, mot reconnu autour d'elle) ; l'ordre de leurs rayons est gardé dans aisleOrders comme pour Auchan et Lidl
+let customStores = store.get("customStores", []);
+const loadCustomStores = () => customStores.forEach(c => { STORES[c.id] = { name: c.name, emo: "🛒", re: new RegExp(c.re, "i"), promo: "https://www.google.com/search?q=" + encodeURIComponent("promo " + c.name), order: AISLES.map(a => a[0]), custom: true }; });
+loadCustomStores();
 let curStore = store.get("curStore", "auchan"), aisleOrders = store.get("aisleOrders", {});
+if (!STORES[curStore]) curStore = "auchan";
 const getAisleOrder = () => { const names = AISLES.map(a => a[0]); const o = (aisleOrders[curStore] || STORES[curStore].order).filter(n => names.includes(n)); return [...o, ...names.filter(n => !o.includes(n))]; };
 function pickStore(k) { curStore = k; store.set("curStore", k); renderStores(); renderAisles(); renderShop(); }
 function renderStores() {
   $("#store-tabs").replaceChildren(...Object.entries(STORES).map(([k, st]) => el("button", { class: "btn", type: "button", "aria-pressed": String(k === curStore), text: `${st.emo} ${st.name}`, onclick: () => pickStore(k) })));
   $("#aisle-title").textContent = `🗺️ Ordre des rayons chez ${STORES[curStore].name}`;
+  $("#store-del").replaceChildren(...(STORES[curStore].custom ? [el("button", { class: "btn", type: "button", style: "margin-top:8px", text: "🗑️ Retirer ce magasin",
+    onclick: () => { if (!confirm(`Retirer ${STORES[curStore].name} ?`)) return; const id = curStore; customStores = customStores.filter(c => c.id !== id); store.set("customStores", customStores); delete STORES[id]; delete aisleOrders[id]; store.set("aisleOrders", aisleOrders); pickStore("auchan"); } })] : []));
+}
+function addStore(raw) {
+  const name = (raw || "").trim().replace(/\s+/g, " "); if (!name) return;
+  const known = Object.entries(STORES).find(([, s]) => fold(s.name) === fold(name));
+  if (known) { pickStore(known[0]); return; }
+  const first = name.split(" ")[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const c = { id: "c" + uid(), name, re: first.length >= 3 ? first : name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") };
+  customStores.push(c); store.set("customStores", customStores); loadCustomStores(); pickStore(c.id);
 }
 function storeBanner(name, promo, known) {
   const html = el("div", { class: "store-banner" }, el("strong", { text: `📍 Tu es chez ${name}` }),
@@ -3987,6 +4011,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 loadWeather(); loadGoodNews(); scheduleReminders();
 try { if (navigator.permissions) navigator.permissions.query({ name: "geolocation" }).then(s => { if (s.state === "granted") { detectStore(false); alertsHere(true); } }).catch(() => {}); } catch {}
 $("#store-detect").addEventListener("click", () => detectStore(true));
+$("#store-form").addEventListener("submit", e => { e.preventDefault(); addStore($("#store-new").value); e.target.reset(); $("#store-add").open = false; $("#store-msg").textContent = `✅ ${STORES[curStore].name} ajouté. Range maintenant ses rayons dans « Ordre des rayons » ci-dessous, une seule fois.`; });
 try { if ("serviceWorker" in navigator && location.protocol === "https:" && document.querySelector('link[rel="manifest"]')) navigator.serviceWorker.register("sw.js").catch(() => {}); } catch {}
 try {
   const m = /[#&]courses=([^&]*)/.exec(location.hash);
