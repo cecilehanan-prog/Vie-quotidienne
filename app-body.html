@@ -547,6 +547,14 @@ p.small:empty, p.muted:empty, #store-msg:empty { display: none; }
 #talk .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 #talk .chips button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 6px 12px; font-size: .85rem; cursor: pointer; color: var(--fg); }
 #talk-out { margin-top: 12px; font-weight: 600; } #talk-out .row { margin-top: 8px; }
+/* Un seul appui : le micro clignote et écoute, sans ouvrir de page. Une petite carte n'apparaît qu'avec la réponse (CéHa, 13/11) */
+@keyframes fabblink { 50% { opacity: .3; transform: scale(1.15); } }
+#talk-fab.rec { color: #e53935 !important; animation: fabblink .9s infinite; }
+#talk.compact { inset: auto 12px calc(146px + env(safe-area-inset-bottom, 0px)) 12px; border-radius: 18px; padding: 10px 14px 14px; max-height: 45vh; box-shadow: 0 6px 24px rgba(0,0,0,.3); }
+#talk.compact h2 { margin: 0; justify-content: flex-end; }
+#talk.compact h2 span, #talk.compact .big-mic, #talk.compact form, #talk.compact .chips { display: none; }
+#talk.compact .talk-state { margin: 0; text-align: left; }
+#talk.compact #talk-out { margin-top: 8px; }
 .garde { display: flex; align-items: center; gap: 10px; margin: 8px 0; padding: 8px 14px 8px 8px; border-radius: 999px; width: fit-content; max-width: 100%;
   background: transparent; background: color-mix(in srgb, var(--cal) 16%, transparent); border: 1.5px solid var(--cal); border: 1.5px solid color-mix(in srgb, var(--cal) 55%, transparent); }
 .garde .g-ico { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--cal); font-size: 1.05rem; box-shadow: 0 2px 6px transparent; box-shadow: 0 2px 6px color-mix(in srgb, var(--cal) 45%, transparent); }
@@ -4054,30 +4062,36 @@ const talk = el("div", { id: "talk", role: "dialog", "aria-label": "Parle-moi", 
 document.body.append(talkFab, talk);
 /* Écoute : un seul geste. Toucher le micro doré ouvre la fenêtre ET écoute tout de suite. */
 let rec = null, heard = "";
-const setState = (txt, on) => { talkState.textContent = txt; bigMic.classList.toggle("rec", !!on); };
+const setState = (txt, on) => { talkState.textContent = txt; bigMic.classList.toggle("rec", !!on); talkFab.classList.toggle("rec", !!on); };
+let talkTimer = 0;
+// Petite carte au-dessus du micro (sans page entière) ; la fenêtre complète (avec le champ pour écrire) ne s'ouvre qu'en cas de souci de micro
+const showCompact = () => { talk.classList.add("compact"); talk.hidden = false; clearTimeout(talkTimer); talkTimer = setTimeout(() => { if (talk.classList.contains("compact")) closeTalk(); }, 14000); };
+const showFull = () => { clearTimeout(talkTimer); talk.classList.remove("compact"); talk.hidden = false; };
 const MIC_HELP = "🔒 Le micro est bloqué. Sur l'iMac : clique sur l'icône à gauche de l'adresse › Micro › Autoriser. Sur l'iPhone : Réglages › Safari › Micro › Autoriser. Tu peux aussi écrire ta demande ci-dessous.";
 function stopListen() { try { rec?.stop(); } catch {} }
-function closeTalk() { stopListen(); talk.hidden = true; }
+function closeTalk() { stopListen(); clearTimeout(talkTimer); talk.hidden = true; talk.classList.remove("compact"); talkFab.classList.remove("rec"); }
 function startListen() {
-  if (!SpeechRec) { setState("⌨️ Écris ta demande", false); talkIn.focus(); return; }
+  if (!SpeechRec) { showFull(); setState("⌨️ Écris ta demande", false); talkIn.focus(); return; }
   stopListen(); talkOut.replaceChildren(); talkIn.value = ""; heard = "";
-  let r; try { r = new SpeechRec(); } catch { setState("⌨️ Le micro ne marche pas ici. Écris ta demande.", false); talkIn.focus(); return; }
+  let r; try { r = new SpeechRec(); } catch { showFull(); setState("⌨️ Le micro ne marche pas ici. Écris ta demande.", false); talkIn.focus(); return; }
   rec = r; r.lang = "fr-FR"; r.interimResults = true; r.maxAlternatives = 1; r.continuous = false;
   let failed = false;
   r.onstart = () => setState("🔴 Je t'écoute… parle maintenant", true);
   r.onresult = e => { let txt = ""; for (const res of e.results) txt += res[0].transcript; heard = txt.trim(); talkIn.value = heard; setState("👂 " + heard, true); };
   r.onerror = e => {
     failed = true; const c = e.error || "";
-    if (/not-allowed|service-not-allowed/.test(c)) setState(MIC_HELP, false);
-    else if (c === "no-speech") setState("😶 Je n'ai rien entendu. Touche le micro et réessaie.", false);
-    else if (c === "audio-capture") setState("🎙️ Je ne trouve pas de micro. Écris ta demande.", false);
-    else if (c === "network") setState("📡 Pas de connexion. Réessaie, ou écris ta demande.", false);
-    else if (c !== "aborted") setState("😕 Je n'ai pas pu écouter (" + c + "). Écris ta demande.", false);
+    if (/not-allowed|service-not-allowed/.test(c)) { showFull(); setState(MIC_HELP, false); }
+    else if (c === "no-speech") { showCompact(); setState("😶 Je n'ai rien entendu. Touche le micro et réessaie.", false); }
+    else if (c === "audio-capture") { showFull(); setState("🎙️ Je ne trouve pas de micro. Écris ta demande.", false); }
+    else if (c === "network") { showFull(); setState("📡 Pas de connexion. Réessaie, ou écris ta demande.", false); }
+    else if (c !== "aborted") { showFull(); setState("😕 Je n'ai pas pu écouter (" + c + "). Écris ta demande.", false); }
+    else talkFab.classList.remove("rec");
   };
-  r.onend = () => { if (rec === r) rec = null; bigMic.classList.remove("rec"); if (failed) return; if (heard) { runTalk(heard); } else setState("😶 Je n'ai rien entendu. Touche le micro et réessaie.", false); };
-  try { r.start(); } catch { setState("😕 Touche encore le micro.", false); }
+  r.onend = () => { if (rec === r) rec = null; bigMic.classList.remove("rec"); talkFab.classList.remove("rec"); if (failed) return; if (heard) { runTalk(heard); } else { showCompact(); setState("😶 Je n'ai rien entendu. Touche le micro et réessaie.", false); } };
+  try { r.start(); } catch { showFull(); setState("😕 Le micro n'a pas démarré. Touche-le encore une fois.", false); }
 }
-talkFab.addEventListener("click", () => { if (!talk.hidden && !rec) { closeTalk(); return; } if (talk.hidden) { talk.hidden = false; startListen(); } else stopListen(); });
+// Un seul appui sur le micro doré : il clignote et écoute tout de suite (pas de page), puis l'appli fait ce qui est demandé
+talkFab.addEventListener("click", () => { if (rec) { stopListen(); return; } if (!talk.hidden) closeTalk(); startListen(); });
 bigMic.addEventListener("click", () => { if (rec) stopListen(); else startListen(); });
 const say = (text, ...extra) => talkOut.replaceChildren(el("div", { text }), ...(extra.length ? [el("div", { class: "row" }, ...extra)] : []));
 const askClaude = q => el("a", { class: "btn primary", href: "https://claude.ai/new?q=" + encodeURIComponent(q), target: "_blank", rel: "noopener", text: "💬 Demander à Claude" });
@@ -4086,6 +4100,7 @@ const undoBtn = fn => el("button", { class: "btn", type: "button", text: "↩️
 function runTalk(raw) {
   const t = raw.trim().replace(/[.!]+$/, ""), low = t.toLowerCase();
   let m;
+  if (talk.hidden) showCompact();
   setState("🧠 J'ai compris : « " + t + " »", false);
   const sayR = (text, ...extra) => say(text, ...extra);
   const go = (v, sel) => { closeTalk(); show(v); if (sel) setTimeout(() => $(sel)?.scrollIntoView({ behavior: "smooth", block: "center" }), 300); };
@@ -4124,8 +4139,14 @@ function runTalk(raw) {
     return sayR(names.length ? `🛒 Ajouté à ta liste de courses : ${names.join(", ")}` : "Je n'ai pas compris quoi ajouter.",
       ...(names.length ? [undoBtn(() => { shop = shop.filter(x => !added.includes(x)); saveShop(); })] : []), el("button", { class: "btn", type: "button", text: "Voir la liste", onclick: () => go("home2") }));
   }
-  if ((m = /(?:itin[ée]raire|aller|chemin|trajet|route)\s+(?:vers|à|a|jusqu'à|pour aller à|pour)?\s*(.+)$/i.exec(t)) || (m = /^(?:comment )?(?:je vais|on va|aller) (?:à|a|au|aux|en) (.+)$/i.exec(t))) {
-    const dest = m[1].replace(/^(la|le|les|l')\s+/i, "");
+  // 🏨 un lieu à trouver (hôtel, restaurant, pharmacie…) : on ouvre la carte avec ce qu'elle a dit
+  if (/\b(?:h[ôo]tels?|restaurants?|pharmacies?|garages?|stations?[- ]service|boulangeries?|supermarch[ée]s?|m[ée]decins?|dentistes?)\b/.test(low) && !/itin[ée]raire|guide[- ]moi|emm[eè]ne|conduis|dirige/.test(low)) {
+    const q = t.replace(/^(?:cherche|trouve(?:[- ]moi)?|o[uù] (?:y a[- ]t[- ]il|est)|y a[- ]t[- ]il)\s*/i, "");
+    return sayR(`🗺️ Je te montre « ${q} » sur la carte`, el("a", { class: "btn primary", href: "https://maps.apple.com/?q=" + encodeURIComponent(q), target: "_blank", rel: "noopener", text: "🗺️ Plans" }),
+      el("a", { class: "btn", href: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q), target: "_blank", rel: "noopener", text: "📍 Google Maps" }));
+  }
+  if ((m = /(?:itin[ée]raire|aller|chemin|trajet|route|guide[- ]moi|dirige[- ]moi|emm[eè]ne[- ]moi|conduis[- ]moi)\s+(?:vers|à|a|au|aux|jusqu'à|pour aller à|pour)?\s*(.+)$/i.exec(t)) || (m = /^(?:comment )?(?:je vais|on va|aller) (?:à|a|au|aux|en) (.+)$/i.exec(t))) {
+    const dest = m[1].replace(/^(?:la|le|les|l')\s*/i, "");
     closeTalk(); show("move");
     setTimeout(() => { $("#tr-to").value = dest; $("#tr-go").click(); $("#tr-to").scrollIntoView({ block: "center" }); }, 300);
     return;
@@ -4134,8 +4155,9 @@ function runTalk(raw) {
   if (/agenda|rendez-vous|rdv/.test(low)) { closeTalk(); show("agenda"); return; }
   if (/courses|liste/.test(low)) { closeTalk(); show("home2"); return; }
   if (/train|gare/.test(low)) { closeTalk(); show("move"); $('[data-sec="rail"]')?.scrollIntoView({ behavior: "smooth" }); return; }
+  if (/\b(?:bus|tram|tramway|m[ée]tro|horaires?)\b/.test(low)) return sayR("🚌 Dis-moi où tu vas, par exemple « itinéraire vers Lyon Part-Dieu » : je te donne les horaires de bus, tram et train.", el("button", { class: "btn", type: "button", text: "Ouvrir Trajets", onclick: () => go("move") }));
   const q = t.replace(/^(?:cherche|recherche|demande à claude|claude)\s*/i, "");
-  sayR(`🔎 Je ne sais pas le faire moi-même. Tu veux chercher « ${q} » ?`, askClaude(q), askGoogle(q));
+  sayR(`🔎 Ça, je ne sais pas le faire dans l'appli. Tu veux chercher « ${q} » ?`, askClaude(q), askGoogle(q));
 }
 const FIREBASE_CONFIG = { apiKey: "AIzaSyA-n1BG9p4nTX98nTtNoTVd6PzDwBn65Do", authDomain: "mon-quotidien-d86c1.firebaseapp.com", projectId: "mon-quotidien-d86c1", storageBucket: "mon-quotidien-d86c1.firebasestorage.app", messagingSenderId: "563933042145", appId: "1:563933042145:web:7fd0df1378d3ea8d4b2ea0" };
 const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
