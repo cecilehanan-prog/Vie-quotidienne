@@ -2773,8 +2773,8 @@ const RAYONS = [
   ["Surgelés", /surgel|glace|petits pois surgel/],
   ["Animaux", /croquette|litière|pour chat|pour chien|graines de poulet|phéromone/],
   ["Bricolage et jardin", /peinture|barillet|serrure|ampoule|brique|œil de sécurité|oeil de sécurité|enceinte|casto|bignone|jasmin|terreau|plante|déménagement/],
-  ["Hygiène et santé", /shampo|savon|dentifrice|gel douche|fleur de douche|déodorant|pince cheveux|coton|imigrane|doliprane|pansement|brosse à dents/],
-  ["Entretien et maison", /lessive|éponge|papier toilette|essuie|sac poubelle|liquide vaisselle|encens|bougie|javel|mouchoir/],
+  ["Hygiène et santé", /shampo|savon|dentifrice|gel douche|fleur de douche|déodorant|pince cheveux|coton|imigrane|doliprane|pansement|brosse à dents|papier toilette|papier hygiénique|\bpq\b|mouchoir|lingette|rasoir|tampon|serviette hygiénique|protège|après-shampoing|crème solaire|démaquillant|vernis|dentaire|ibuprofène|paracétamol|spasfon|sérum physiologique/],
+  ["Entretien et maison", /lessive|éponge|essuie|sac poubelle|liquide vaisselle|encens|bougie|javel|adoucissant|nettoyant|produit vaisselle|tablette lave|papier alu|film alimentaire|papier cuisson/],
   ["Produits du monde", /tamarin|chutney|msemmen|datte|barazek|harissa|couscous|lait de coco|tortilla|falafel|houmous|pita|sauce soja/],
   ["Boissons", /\beau\b|jus|vin\b|bière|soda|sirop|cranberry/],
   ["Épicerie salée", /pâtes|riz|sauce|coulis|pesto|soupe|conserve|ratatouille|haricot|lentille|pois chiche|maïs|huile|sel\b|poivre|gnocchi|ravioles|cornichon|artichaut|olive|épice|curry|lasagne|pâte à pizza|pâte brisée|tomates concassées|patates rissolées/],
@@ -2784,7 +2784,11 @@ const RAYONS = [
   ["Boucherie et poisson", /viande|poulet|jambon|steak|poisson|saumon|thon|saucisse|lardon|dinde|boeuf|bœuf|porc/],
   ["Fruits et légumes", /salade|mâche|tomate|pomme|banane|carotte|oignon|courgette|poire|orange|citron|légume|fruit|avocat|patate|ail\b|concombre|raisin|menthe|persil|basilic|épinard|poireau|poivron|aubergine|brocoli|potimarron|champignon|abricot|myrtille|fraise|pêche/],
 ];
-const rayonOf = n => (RAYONS.find(([, re]) => re.test(n.toLowerCase())) || ["Autre"])[0];
+/* Reconnaissance sans tenir compte des accents ni des majuscules (« creme », « Papier TOILETTE »…) */
+const sansAccent = t => (t || "").toLowerCase().replace(/œ/g, "oe").normalize("NFD").replace(/[̀-ͯ]/g, "");
+const RAYONS_F = RAYONS.map(([nom, re]) => [nom, new RegExp(sansAccent(re.source))]);
+const rayonReconnu = n => { const t = sansAccent(n); const r = RAYONS_F.find(([, re]) => re.test(t)); return r ? r[0] : null; };
+const rayonOf = n => rayonReconnu(n) || "Autre";
 const STORES = {
   auchan: { name: "Auchan Tarare", emo: "🔴", re: /auchan/i, promo: "https://www.auchan.fr/",
     order: ["Fruits et légumes", "Boulangerie", "Boucherie et poisson", "Fromages et crèmerie", "Épicerie salée", "Épicerie sucrée", "Produits du monde", "Boissons", "Hygiène et santé", "Entretien et maison", "Animaux", "Bricolage et jardin", "Surgelés", "Autre"] },
@@ -2936,10 +2940,20 @@ function simpleList(key, emoList, fallback, emptyText) {
 }
 simpleList("wish", WISH_EMO, "🛍️", "Rien pour l'instant. Note ici ce que tu veux acheter un jour.");
 simpleList("pharma", PHARMA_EMO, "💊", "Rien à prendre à la pharmacie pour l'instant.");
-function addToList(name, qty = "", aisle = null) {
+function addToList(name, qty = "", aisle = null, force = false) {
   name = name.trim(); if (!name) return;
-  const ex = shop.find(i => i.name.toLowerCase() === name.toLowerCase());
+  const ex = force ? null : shop.find(i => fold(i.name) === fold(name));
   if (ex) { ex.done = false; if (qty) ex.qty = qty; if (aisle) ex.aisle = aisle; } else shop.push({ id: uid(), name, qty, cat: rayonOf(name), done: false, ...(aisle ? { aisle } : {}) });
+}
+/* Ajout par la personne : si l'article est déjà à prendre (majuscules et accents ignorés), on demande avant d'ajouter. Renvoie le nom ajouté, ou null si elle annule. */
+function tryAdd(name, qty = "", aisle = null) {
+  name = (name || "").trim(); if (!name) return null;
+  const ex = shop.find(i => !i.done && fold(i.name) === fold(name));
+  if (ex) {
+    if (!confirm(`« ${ex.name} » est déjà dans ta liste.\n\nOK : l'ajouter quand même\nAnnuler : ne rien ajouter`)) return null;
+    addToList(name, qty, aisle, true);
+  } else addToList(name, qty, aisle);
+  return name;
 }
 /* Import unique de l'ancienne liste « COURSES » (captures du 19/10/2026) */
 (function importAncienneListe() {
@@ -2967,14 +2981,24 @@ function addToList(name, qty = "", aisle = null) {
 })();
 /* Les tâches ne sont pas des courses : on les retire de la liste (elles sont dans « Mes choses à faire ») */
 { const avant = shop.length; shop = shop.filter(i => !TACHES_IMPORT.some(t => t.toLowerCase() === i.name.toLowerCase())); if (shop.length !== avant) store.set("shop", shop); }
-$("#shop-form").addEventListener("submit", e => { e.preventDefault(); addToList($("#shop-name").value, $("#shop-qty").value.trim()); e.target.reset(); saveShop(); $("#shop-name").focus(); });
+$("#shop-form").addEventListener("submit", e => { e.preventDefault(); tryAdd($("#shop-name").value, $("#shop-qty").value.trim()); e.target.reset(); saveShop(); $("#shop-name").focus(); });
 function addMany(lines, aisle = null) {
   const names = lines.flatMap(l => l.split(/,| et | puis /i))
     .map(l => l.replace(/^[\s\-•*◦○●☐✓✔\[\]]+/, "").replace(/[.!?]+$/, "").trim().replace(/^(du|de la|de l'|des|un|une|le|la|les|l')\s*/i, "")).filter(l => l && l.length < 60)
     .map(l => l[0].toUpperCase() + l.slice(1));
-  names.forEach(n => addToList(n, "", aisle)); saveShop();
-  $("#shop-msg").textContent = names.length ? `✅ Ajouté : ${names.join(", ")}` : "";
-  return names;
+  // Rangement automatique : si le mot est reconnu, il va dans son vrai rayon, même si elle a appuyé sur le « + » d'un autre
+  const moved = [];
+  const added = names.filter(n => {
+    const auto = aisle ? rayonReconnu(n) : null;
+    const dest = auto || aisle;
+    if (!tryAdd(n, "", dest)) return false;
+    if (auto && auto !== aisle) moved.push({ auto, txt: `« ${n} » rangé dans ${auto}` });
+    return true;
+  });
+  saveShop();
+  $("#shop-msg").textContent = added.length ? `✅ Ajouté : ${added.join(", ")}` : "";
+  if (moved.length) { const t = el("div", { class: "toast", text: `${AISLE_EMO[moved[0].auto] || "✅"} ${moved.map(m => m.txt).join(" · ")}` }); document.body.append(t); setTimeout(() => t.remove(), 4500); }
+  return added;
 }
 $("#shop-paste-go").addEventListener("click", () => { addMany($("#shop-paste").value.split(/\n|;/)); $("#shop-paste").value = ""; });
 /* Avant la caisse : l'appli vérifie ce qui n'est pas coché.
