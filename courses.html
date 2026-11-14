@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f9d55"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Courses">
+<link rel="icon" href="icon.svg"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Courses</title>
+<style>
+:root{--bg:#f1faf4;--fg:#12301f;--c:#1f9d55;--card:#fff}
+@media(prefers-color-scheme:dark){:root{--bg:#10231a;--fg:#e9f7ee;--card:#173326}}
+*{box-sizing:border-box}body{margin:0;font:18px/1.35 -apple-system,system-ui,sans-serif;background:var(--bg);color:var(--fg);padding:16px;padding-top:max(16px,env(safe-area-inset-top))}
+h1{margin:6px 0 4px;font-size:26px}p{margin:4px 0 12px;opacity:.8}
+form{display:flex;gap:8px;margin:12px 0}input{flex:1;font-size:20px;padding:12px;border-radius:14px;border:2px solid var(--c);background:var(--card);color:var(--fg);min-width:0}
+button{font-size:20px;padding:12px 16px;border-radius:14px;border:0;background:var(--c);color:#fff;font-weight:700}
+.q{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 16px}.q button{background:var(--card);color:var(--fg);border:2px solid var(--c);font-size:17px;padding:14px 4px}
+.ok{background:var(--card);border-radius:12px;padding:10px 12px;margin:6px 0}.who{margin-top:16px;font-size:15px}.who input{font-size:16px;padding:8px;width:60%;flex:none}
+#err{color:#c62828;font-weight:700}
+</style></head><body>
+<h1>🛒 C'est fini !</h1>
+<p>Un paquet est vide ? Écris-le ici : maman le voit tout de suite dans sa liste de courses.</p>
+<form id="f"><input id="n" placeholder="Ex. riz, œufs, gâteaux…" autocomplete="off" required aria-label="Ce qui est fini"><button type="submit">Ajouter</button></form>
+<div class="q" id="q"></div>
+<p id="err"></p>
+<div id="done"></div>
+<div class="who">Moi, c'est : <input id="who" placeholder="mon prénom" aria-label="Mon prénom"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+(function () {
+  const $ = s => document.querySelector(s);
+  const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+  const qs = new URLSearchParams(location.search);
+  if (qs.get("u") && qs.get("k")) { ls.set("kidsU", qs.get("u")); ls.set("kidsK", qs.get("k")); history.replaceState(null, "", location.pathname); }
+  const U = ls.get("kidsU"), K = ls.get("kidsK");
+  const err = $("#err"); $("#who").value = ls.get("kidsWho") || "";
+  $("#who").addEventListener("input", e => ls.set("kidsWho", e.target.value.trim().slice(0, 20)));
+  if (!U || !K) { err.textContent = "😕 Ce lien n'est pas complet. Demande à maman de te renvoyer le lien des courses."; $("#f").hidden = true; return; }
+  firebase.initializeApp({ apiKey: "AIzaSyA-n1BG9p4nTX98nTtNoTVd6PzDwBn65Do", authDomain: "mon-quotidien-d86c1.firebaseapp.com", projectId: "mon-quotidien-d86c1", appId: "1:563933042145:web:7fd0df1378d3ea8d4b2ea0" });
+  const inbox = firebase.firestore().collection("users").doc(U).collection("inbox");
+  let sent = []; try { sent = JSON.parse(ls.get("kidsSent") || "[]"); } catch (e) {}
+  const draw = () => { $("#done").replaceChildren(...sent.slice(0, 8).map(s => Object.assign(document.createElement("div"), { className: "ok", textContent: "✅ " + s.name + " : envoyé à maman" }))); };
+  function send(name) {
+    name = String(name || "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 60); if (!name) return;
+    err.textContent = "";
+    inbox.add({ name, who: (ls.get("kidsWho") || "").slice(0, 20), t: Date.now(), code: K }).catch(() => { err.textContent = "😕 Ça n'a pas marché. Dis-le à maman."; });
+    sent.unshift({ name }); sent = sent.slice(0, 8); ls.set("kidsSent", JSON.stringify(sent)); draw();
+  }
+  $("#f").addEventListener("submit", e => { e.preventDefault(); send($("#n").value); $("#n").value = ""; $("#n").focus(); });
+  $("#q").replaceChildren(...["🍚 Riz", "🥚 Œufs", "🥛 Lait", "🍞 Pain", "🍪 Gâteaux", "🍝 Pâtes", "🧀 Fromage", "🥣 Céréales", "🍫 Nutella"].map(t => Object.assign(document.createElement("button"), { type: "button", textContent: t, onclick: () => send(t.replace(/^\S+\s/, "")) })));
+  draw();
+})();
+</script></body></html>

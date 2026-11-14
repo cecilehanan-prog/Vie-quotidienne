@@ -666,6 +666,11 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       <div class="card-head"><h2>🔄 iMac ↔ iPhone ↔ iPad</h2><span class="pill" id="sync-state">pas encore</span></div>
       <p class="small muted" id="sync-msg">Connecte-toi une fois sur chaque appareil : tes listes, papiers et rendez-vous seront les mêmes partout.</p>
       <div class="row"><button class="btn primary" type="button" id="sync-in">Se connecter avec Google</button><button class="btn" type="button" id="sync-now" hidden>🔄 Synchroniser maintenant</button><button class="btn" type="button" id="sync-out" hidden>Se déconnecter</button></div>
+    <div id="kids-box" hidden style="margin-top:12px">
+        <div class="label">👧👦 Les courses des enfants</div>
+        <p class="small muted" id="kids-msg">⏳ …</p>
+        <div class="row"><button class="btn" type="button" id="kids-copy">📋 Copier le lien pour les enfants</button><button class="btn" type="button" id="kids-new">🔁 Nouveau code</button></div>
+      </div>
     </article>
   </section>
 
@@ -4285,6 +4290,7 @@ async function syncStart() {
     if (!user) { fbDoc = null; syncSay("pas encore", "Connecte-toi une fois sur chaque appareil : tes listes, papiers et rendez-vous seront les mêmes partout."); return; }
     syncSay("⏳ synchro…", "Connectée avec " + (user.email || "Google") + ". Tout ce que tu ajoutes ici apparaît sur ton autre appareil.");
     fbDoc = firebase.firestore().collection("users").doc(user.uid);
+    kidsStart(user.uid);
     // On n'agit que sur ce que dit vraiment le serveur (pas sur la copie gardée dans l'appareil), sinon une copie vide pourrait faire écraser le cloud
     fbDoc.onSnapshot({ includeMetadataChanges: true }, snap => { if (snap.metadata.fromCache) return; if (applyRemote(snap.data() || {})) reloadSoon(); }, () => syncSay("😕 erreur", "Je n'arrive pas à lire ton espace Firebase."));
   });
@@ -4302,6 +4308,36 @@ async function syncStart() {
     } catch { syncSay("😕 erreur", "Je n'arrive pas à joindre ton espace. Vérifie ta connexion et réessaie."); }
   };
 }
+/* 14/11 : les enfants ajoutent des articles via courses.html. Ils n'écrivent que dans « inbox » (avec un code), sans rien pouvoir lire.
+   Ici, on ramasse ce qui est arrivé, on l'ajoute à la liste, puis on vide la boîte. */
+let kidsCode = null, kidsUid = null, kidsOff = null;
+const kidsLink = () => `https://cecilehanan-prog.github.io/Vie-quotidienne/courses.html?u=${encodeURIComponent(kidsUid)}&k=${encodeURIComponent(kidsCode)}`;
+const kidsSay = t => { const m = $("#kids-msg"); if (m) m.textContent = t; };
+const newKidsCode = () => Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+async function kidsStart(uid) {
+  kidsUid = uid; $("#kids-box").hidden = false; if (kidsOff) { kidsOff(); kidsOff = null; }
+  const meta = fbDoc.collection("meta").doc("kids");
+  try {
+    const d = await meta.get({ source: "server" }); let c = d.exists && d.data().code;
+    if (!c) { c = newKidsCode(); await meta.set({ code: c }); }
+    kidsCode = c; kidsSay("✅ Prêt : copie le lien et envoie-le à tes enfants (ils l'ajoutent à leur écran d'accueil).");
+  } catch { kidsSay("⏳ Pas encore branché : il reste à ajouter la règle dans Firebase (je te guide dans le chat)."); return; }
+  kidsOff = fbDoc.collection("inbox").onSnapshot(snap => {
+    const got = []; snap.docs.forEach(d => { const x = d.data() || {}; const n = String(x.name || "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 60); if (n) got.push({ ref: d.ref, n, who: String(x.who || "").slice(0, 20) }); else d.ref.delete().catch(() => {}); });
+    if (!got.length) return;
+    got.forEach(g => { if (!shop.some(i => !i.done && fold(i.name) === fold(g.n))) addToList(g.n, ""); g.ref.delete().catch(() => {}); });
+    saveShop();
+    kidsSay("🛒 Ajouté par les enfants : " + got.map(g => (g.who ? g.who + " : " : "") + g.n).join(", "));
+  }, () => {});
+}
+$("#kids-copy").addEventListener("click", async () => {
+  if (!kidsCode) { kidsSay("⏳ Pas encore branché : il reste à ajouter la règle dans Firebase."); return; }
+  try { await navigator.clipboard.writeText(kidsLink()); kidsSay("✅ Lien copié. Colle-le dans un message à tes enfants."); } catch { prompt("Copie ce lien et envoie-le à tes enfants :", kidsLink()); }
+});
+$("#kids-new").addEventListener("click", async () => {
+  if (!fbDoc || !confirm("Un nouveau code rend l'ancien lien inutile : il faudra renvoyer le nouveau lien aux enfants. Continuer ?")) return;
+  try { kidsCode = newKidsCode(); await fbDoc.collection("meta").doc("kids").set({ code: kidsCode }); kidsSay("✅ Nouveau code. Copie le nouveau lien pour les enfants."); } catch { kidsSay("😕 Je n'ai pas pu changer le code."); }
+});
 /* Fusionne ce qu'il y a dans le cloud avec cet appareil. Le plus récent gagne, clé par clé.
    Premier branchement d'un appareil (ou d'une nouvelle adresse) : le cloud gagne toujours, pour qu'une liste neuve (créée par le démarrage) n'écrase pas celle de l'autre appareil. */
 function mergeShopRemote(r, m) {
