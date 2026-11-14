@@ -782,6 +782,8 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
         <summary id="aisle-title">🗺️ Ordre des rayons</summary>
         <p class="small muted">Range les rayons dans l'ordre où tu passes avec ⬆️ ⬇️. C'est gardé pour ce magasin : tu ne le fais qu'une fois, ensuite ta liste se range toute seule quand tu touches son nom.</p>
         <div class="list" id="aisle-list"></div>
+        <button class="btn primary" type="button" id="aisle-ok" style="margin-top:8px">✅ Valider cet ordre</button>
+        <p class="small" id="aisle-ok-msg" role="status"></p>
         <div id="store-del"></div>
       </details>
       <details id="shop-online">
@@ -2851,19 +2853,23 @@ const AISLE_LABEL = { "Animaux": "Produits animaux" };
 const aisleName = c => AISLE_LABEL[c] || c;
 // Ordre de reconnaissance : du plus précis au plus général
 const RAYONS = [
+  ["Épicerie sucrée", /pain d.?épice|sauce (?:chocolat|caramel)|after eight/],
+  ["Boissons", /thé glacé|ice ?tea/],
+  ["Épicerie salée", /biscuits? apéritif|crackers?|chips/],
+  ["Boulangerie", /pains? au chocolat|pains? aux raisins|chocolatine|pains? au lait|brioche/],
   ["Surgelés", /surgel|congel|glace|petits pois surgel/],
   ["Animaux", /croquette|litière|pâtée|pour chat|pour chien|\bchats?\b|\bchiens?\b|friandise|os à mâcher|gamelle|vermifuge|antipuce|pipette|graines de poulet|graines pour oiseaux|graines oiseaux|phéromone|animaux|aquarium|poisson rouge/],
   ["Bricolage et jardin", /peinture|barillet|serrure|ampoule|brique|œil de sécurité|oeil de sécurité|enceinte|casto|bignone|jasmin|terreau|plante|déménagement/],
-  ["Hygiène et santé", /shampo|savon|dentifrice|gel douche|fleur de douche|déodorant|pince cheveux|coton|imigrane|doliprane|pansement|brosse à dents|papier toilette|papier hygiénique|\bpq\b|mouchoir|lingette|rasoir|tampon|serviette hygiénique|protège|après-shampoing|crème solaire|démaquillant|vernis|dentaire|ibuprofène|paracétamol|spasfon|sérum physiologique|cheveu|baume|masque (?:cheveux|visage)|visage|\byeux\b|lèvre|\bpeau\b|soin |soin$|hydratant|gommage|lotion|tonique|sérum|crème (?:pour|de jour|de nuit|visage|mains|corps|hydratante|solaire)|lait (?:corporel|démaquillant|de toilette)|maquillage|mascara|fond de teint|rouge à lèvres|gloss|dissolvant|ongle|parfum|eau de toilette|coton-tige|disque|bain de bouche|fil dentaire|épilation|\bdéo\b|huile (?:corps|pour cheveux|de massage)/],
-  ["Entretien et maison", /lessive|éponge|essuie|sac poubelle|liquide vaisselle|encens|bougie|javel|adoucissant|nettoyant|produit vaisselle|tablette lave|papier alu|film alimentaire|papier cuisson/],
+  ["Hygiène et santé", /shampo|savon|dentifrice|gel douche|fleur de douche|déodorant|pince cheveux|coton|imigrane|doliprane|pansement|brosse à dents|papier toilette|papier hygiénique|\bpq\b|mouchoir|lingette|rasoir|tampon|serviette hygiénique|protège|après-shampoing|crème solaire|démaquillant|vernis|dentaire|ibuprofène|paracétamol|spasfon|sérum physiologique|cheveu|baume|masque (?:cheveux|visage)|visage|\byeux\b|lèvre|\bpeau\b|soin |soin$|hydratant|gommage|lotion|tonique|sérum|crème (?:pour|de jour|de nuit|visage|mains|corps|hydratante|solaire)|lait (?:corporel|démaquillant|de toilette)|maquillage|mascara|fond de teint|rouge à lèvres|gloss|dissolvant|ongle|parfum|eau de toilette|coton-tige|disque|bain de bouche|fil dentaire|épilation|\bdéo\b|huile (?:corps|pour cheveux|de massage)|hydroalcoolique|préservatif|vitamine|magnésium|complément|brosse|mousse à raser|\bcire\b|rasoir|crème dépilatoire|talc|cotons/],
+  ["Entretien et maison", /lessive|éponge|essuie|sacs? poubelle|poubelle|liquide vaisselle|encens|bougie|javel|adoucissant|nettoyant|produit vaisselle|tablette lave|papier alu|film alimentaire|papier cuisson|sopalin|papier absorbant|\bgants?\b|serpillière|balai|détergent|désinfectant|lave-vaisselle|sel régénérant|anticalcaire|dégraissant|vitres|ménage|insecticide|désodorisant|\bpiles?\b|allumette|bouteille de gaz|vaisselle|spray|multi-?usage|pastille|wc\b|toilettes? (?:bloc|gel)|lave-linge|assouplissant|ampoules?/],
   ["Produits du monde", /tamarin|chutney|msemmen|datte|barazek|harissa|couscous|lait de coco|tortilla|falafel|houmous|pita|sauce soja/],
-  ["Boissons", /\beau\b|jus|vin\b|bière|soda|sirop|cranberry/],
-  ["Épicerie salée", /pâtes|riz|sauce|coulis|pesto|soupe|conserve|ratatouille|haricot|lentille|pois chiche|maïs|huile|sel\b|poivre|gnocchi|ravioles|cornichon|artichaut|olive|épice|curry|lasagne|pâte à pizza|pâte brisée|tomates concassées|patates rissolées/],
-  ["Épicerie sucrée", /nutella|confiture|céréale|biscuit|gâteau|chocolat|smarties|compote|miel|sucre|farine|café|thé\b|thé |dessert|noix|cuillère/],
+  ["Boissons", /\beau\b|jus|vin\b|bière|soda|sirop|cranberry|\bcoca\b|limonade|orangina|schweppes|perrier|badoit|evian|volvic|champagne|cidre|whisky|rhum|vodka|boisson|thé glacé|ice ?tea|lait de soja boisson|multivitamin/],
+  ["Épicerie salée", /pâtes|riz|sauce|coulis|pesto|soupe|conserve|ratatouille|haricot|lentille|pois chiche|maïs|huile|sel\b|poivre|gnocchi|ravioles|cornichon|artichaut|olive|épice|curry|lasagne|pâte à pizza|pâte brisée|tomates concassées|patates rissolées|chips|cracker|moutarde|ketchup|mayonnaise|vinaigre|bouillon|semoule|boulgour|quinoa|polenta|purée|nouille|vermicelle|spaghetti|tagliatelle|macaroni|penne|fusilli|coquillette|chapelure|tapenade|sardine|maquereau|cacahuète|pistache|noisette|biscuits? apéritif|tuc\b|pringles/],
+  ["Épicerie sucrée", /nutella|confiture|céréale|biscuit|gâteau|chocolat|smarties|compote|miel|sucre|farine|café|thé\b|thé |dessert|noix|cuillère|after eight|bonbon|confiserie|sucette|chewing|caramel|nougat|praline|truffe|bounty|snickers|\bmars\b|twix|kinder|kit ?kat|m&m|haribo|dragibus|guimauve|speculoos|spéculoos|madeleine|cookie|gaufre|crêpe|pâte à tartiner|pâte d'amande|pain d.?épice|sauce (?:chocolat|caramel)|levure|vanille|muesli|granola|flocons? d'avoine|\bbarres?\b|cacao|raisins? secs?|pruneau|figue|tablette|snack|ferrero|raffaello|lindt|toblerone|oreo|\bprince\b|\blu\b|petit[- ]beurre/],
   ["Boulangerie", /pain|brioche|baguette|croissant|viennoiserie|biscotte|radegonde/],
-  ["Fromages et crèmerie", /fromage|lait|yaourt|beurre|crème|oeuf|œuf|comté|emmental|chèvre|camembert|raclette|mozzarella|feta|ricotta|parmesan|moret|cheddar/],
-  ["Boucherie et poisson", /viande|poulet|jambon|steak|poisson|saumon|thon|saucisse|lardon|dinde|boeuf|bœuf|porc/],
-  ["Fruits et légumes", /salade|mâche|tomate|pomme|banane|carotte|oignon|courgette|poire|orange|citron|légume|fruit|avocat|patate|ail\b|concombre|raisin|menthe|persil|basilic|épinard|poireau|poivron|aubergine|brocoli|potimarron|champignon|abricot|myrtille|fraise|pêche/],
+  ["Fromages et crèmerie", /fromage|lait|yaourt|beurre|crème|oeuf|œuf|comté|emmental|chèvre|camembert|raclette|mozzarella|feta|ricotta|parmesan|moret|cheddar|fromage blanc|faisselle|petit suisse|skyr|gruy[eè]re|\bbrie\b|reblochon|roquefort|mascarpone|margarine|danette|flan\b|crème dessert|kéfir|munster|maroilles|babybel|vache qui rit|boursin|saint[- ]nectaire|cantal|tomme|bleu\b/],
+  ["Boucherie et poisson", /viande|poulet|jambon|steak|poisson|saumon|thon|saucisse|lardon|dinde|boeuf|bœuf|porc|chorizo|merguez|knacki|saucisson|cordon bleu|nuggets|escalope|cabillaud|crevette|rôti|gigot|agneau|\bveau\b|canard|bacon|salami|surimi|coquille|moule|steak haché|haché|blanc de poulet|cuisse|jambonneau|andouillette|boudin|pâté/],
+  ["Fruits et légumes", /salade|mâche|tomate|pomme|banane|carotte|oignon|courgette|poire|orange|citron|légume|fruit|avocat|patate|ail\b|concombre|raisin|menthe|persil|basilic|épinard|poireau|poivron|aubergine|brocoli|potimarron|champignon|abricot|myrtille|fraise|pêche|clémentine|mandarine|kiwi|ananas|mangue|melon|pastèque|cerise|\bprunes?\b|haricots verts|\bchou|navet|radis|betterave|céleri|fenouil|endive|laitue|roquette|coriandre|gingembre|échalote|citrouille|butternut|framboise|mûre|pamplemousse|noix de coco|courge|panais|petits pois|maïs doux|champignon|herbes|ciboulette|thym|romarin|laurier/],
 ];
 /* Reconnaissance sans tenir compte des accents ni des majuscules (« creme », « Papier TOILETTE »…) */
 const sansAccent = t => (t || "").toLowerCase().replace(/œ/g, "oe").normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -2934,11 +2940,20 @@ async function detectStore(manual) {
   }, () => { if (manual) $("#store-msg").textContent = "Localisation refusée. Choisis le magasin ci-dessus 👆"; }, { maximumAge: 120000, timeout: 10000, enableHighAccuracy: true });
 }
 function renderAisles() {
+  const am = $("#aisle-ok-msg"); if (am) am.textContent = "";
   const o = getAisleOrder();
   $("#aisle-list").replaceChildren(...o.map((n, i) => el("div", { class: "aisle" }, el("span", { text: `${i + 1}. ${AISLE_EMO[n]} ${aisleName(n)}` }),
     el("button", { class: "icon-btn", type: "button", "aria-label": "Monter " + n, text: "⬆️", disabled: i === 0, onclick: () => moveAisle(i, -1) }),
     el("button", { class: "icon-btn", type: "button", "aria-label": "Descendre " + n, text: "⬇️", disabled: i === o.length - 1, onclick: () => moveAisle(i, 1) }))));
 }
+/* « Valider » : enregistre l'ordre de ce magasin, le renvoie aux autres appareils, puis relit ce qui est gardé pour confirmer */
+$("#aisle-ok").addEventListener("click", () => {
+  const o = getAisleOrder(); aisleOrders[curStore] = o.slice(); store.set("aisleOrders", aisleOrders); syncPush?.("aisleOrders");
+  let back = null; try { back = (JSON.parse(localStorage.getItem("mq:aisleOrders") || "{}") || {})[curStore]; } catch {}
+  const ok = back && back.length === o.length && back.every((x, i) => x === o[i]);
+  $("#aisle-ok-msg").textContent = ok ? `✅ Ordre enregistré pour ${STORES[curStore].name} : il ne bougera plus tout seul.` : "😕 Je n'ai pas pu l'enregistrer, réessaie.";
+  const b = $("#aisle-ok"); b.textContent = ok ? "✅ Enregistré" : "✅ Valider cet ordre"; setTimeout(() => { b.textContent = "✅ Valider cet ordre"; }, 3000);
+});
 function moveAisle(i, d) { const o = getAisleOrder(); [o[i], o[i + d]] = [o[i + d], o[i]]; aisleOrders[curStore] = o; store.set("aisleOrders", aisleOrders); renderAisles(); renderShop(); }
 const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const euro = v => v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
