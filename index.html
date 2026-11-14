@@ -460,7 +460,7 @@ details summary { cursor: pointer; font-weight: 700; }
 :is(.tile, nav.tabbar button)[data-sec=shop] { --sec: #d32f2f; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is([data-sec=shop]) { --sec: #ef6b6b; } :root:not([data-theme="light"]) [data-sec=chores] { --sec: #9aa1ac; } :root:not([data-theme="light"]) .tile[data-sec=shop] { --sec: #d32f2f; } }
 /* Trajets : couleurs choisies par CéHa */
-[data-sec=traf] { --sec: #6b7280; } [data-sec=drive] { --sec: #2747c9; } [data-sec=metro] { --sec: #d32f2f; } [data-sec=rail] { --sec: #0e9fc0; } [data-sec=near] { --sec: #ffcc00; --on-sec: #2a1f00; }
+[data-sec=traf] { --sec: #6b7280; } [data-sec=drive] { --sec: #2747c9; } [data-sec=metro], [data-sec=mybus] { --sec: #d32f2f; } [data-sec=rail] { --sec: #0e9fc0; } [data-sec=near] { --sec: #ffcc00; --on-sec: #2a1f00; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) [data-sec=traf] { --sec: #9aa1ac; } :root:not([data-theme="light"]) [data-sec=drive] { --sec: #5470d6; } :root:not([data-theme="light"]) [data-sec=metro] { --sec: #ef6b6b; } }
 /* Tuiles : couleurs choisies par CéHa (25/10) */
 :is(.tile, nav.tabbar button)[data-sec=meals] { --sec: #f5c400; } .tile[data-sec=meals] { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
@@ -909,6 +909,11 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       </div>
       <div class="seg" role="group" id="fuel-kind" aria-label="Carburant" style="margin-top:12px"></div>
       <div id="fuel-body" class="small"></div>
+    </article>
+    <article class="card" data-sec="mybus">
+      <div class="card-head"><h2>🚌 Mes bus TCL</h2><button class="btn" id="mybus-refresh" type="button">🔄</button></div>
+      <p class="small muted">Lignes 10E et 89E : les prochains passages, aller et retour.</p>
+      <div id="mybus-body"></div>
     </article>
     <article class="card" data-sec="metro">
       <div class="card-head"><h2>Bus, tram, métro</h2><button class="btn" id="locate-btn" type="button">📍 Géoloc'</button></div>
@@ -2184,6 +2189,52 @@ async function loadStops() {
   } catch { msg.textContent = "😕 Les horaires ne répondent pas pour l'instant."; res.replaceChildren(); }
 }
 const locate = () => loadStops();
+/* 14/11 : mes lignes TCL (10E Dardilly ↔ Gare de Vaise, 89E Gare de Vaise ↔ Porte de Lyon, départ de la Maison Carrée). Horaires lus en direct (Transitous, gratuit).
+   L'appli cherche l'arrêt par son nom, garde celui où la ligne passe vraiment, et CéHa peut en choisir un autre (retenu sur l'appareil). */
+const MYBUS = [
+  { id: "10e-aller", line: "10E", title: "10E Dardilly ➜ Gare de Vaise", q: "Dardilly", to: /vaise/i },
+  { id: "10e-retour", line: "10E", title: "10E Gare de Vaise ➜ Dardilly", q: "Gare de Vaise", to: /dardilly|limonest|porte de lyon/i },
+  { id: "89e-aller", line: "89E", title: "89E Maison Carrée (covoiturage) ➜ Gare de Vaise", q: "Maison Carrée Limonest", to: /vaise/i },
+  { id: "89e-retour", line: "89E", title: "89E Gare de Vaise ➜ Porte de Lyon", q: "Gare de Vaise", to: /porte de lyon|dardilly|limonest|carr/i },
+];
+let myBusPick = store.get("mybusPick", {});
+async function busRow(b) {
+  const box = el("div", { class: "mybus-row", style: "margin-top:12px" });
+  const head = el("div", { style: "font-weight:700" }, b.title), sub = el("div", { class: "small muted", text: "⏳ Je cherche les horaires…" }), list = el("div");
+  box.append(head, sub, list);
+  const times = async stop => {
+    const j = await getJSON(`https://api.transitous.org/api/v1/stoptimes?stopId=${encodeURIComponent(stop.id)}&n=80&radius=150&time=${new Date().toISOString()}`, 15000);
+    return (j.stopTimes || []).filter(t => String(t.routeShortName || "").toUpperCase() === b.line && b.to.test((t.headsign || t.tripTo?.name || "") + " " + (t.routeLongName || "")))
+      .sort((x, y) => new Date(x.place?.departure || x.place?.scheduledDeparture) - new Date(y.place?.departure || y.place?.scheduledDeparture)).slice(0, 5);
+  };
+  const show = (stop, rows) => {
+    sub.textContent = `🚏 Arrêt : ${stop.name}`;
+    list.replaceChildren(...rows.map(t => {
+      const p = t.place || {}, d = new Date(p.departure || p.scheduledDeparture), s = new Date(p.scheduledDeparture || p.departure), mins = Math.round((d - Date.now()) / 60000), late = Math.round((d - s) / 60000), day = dayWord(d);
+      return el("div", { class: "route", style: "--mc:#d32f2f;padding:8px 12px;margin-top:6px" }, el("div", { class: "top" },
+        el("span", { class: "hours", text: day ? day + " " + hm(d) : hm(d) }), el("span", { class: "muted", text: mins <= 0 ? "maintenant" : mins < 60 ? `dans ${mins} min` : "" }),
+        (t.headsign ? el("span", { class: "muted", text: "➜ " + t.headsign }) : null), (t.cancelled || p.cancelled) ? el("span", { class: "pill warn", text: "❌ supprimé" }) : late >= 2 ? el("span", { class: "pill soon", text: `⏱️ +${late} min` }) : null));
+    }));
+  };
+  const change = el("details", { style: "margin-top:6px" }, el("summary", { class: "small", text: "Ce n'est pas le bon arrêt ?" }),
+    el("form", { class: "inline", onsubmit: e => { e.preventDefault(); const v = e.target.elements.n.value.trim(); if (v) { myBusPick[b.id] = { q: v }; store.set("mybusPick", myBusPick); box.replaceWith(Object.assign(document.createElement("div"), {})); loadMyBus(); } } },
+      el("input", { type: "text", name: "n", placeholder: "Nom de l'arrêt (ex. Dardilly Les Maisons Neuves)", "aria-label": "Nom de l'arrêt" }), el("button", { class: "btn", type: "submit", text: "Chercher" })));
+  box.append(change);
+  try {
+    const q = (myBusPick[b.id] && myBusPick[b.id].q) || b.q;
+    const g = await getJSON(`https://api.transitous.org/api/v1/geocode?text=${encodeURIComponent(q)}&type=STOP&language=fr`, 12000);
+    const stops = (Array.isArray(g) ? g : []).filter(x => x.id).slice(0, 6);
+    for (const st of stops) { const rows = await times(st); if (rows.length) { show(st, rows); return box; } }
+    sub.textContent = stops.length ? `😕 Pas de ${b.line} annoncé pour l'instant près de « ${q} » (${stops[0].name}).` : `😕 Je ne trouve pas d'arrêt « ${q} ».`;
+  } catch { sub.textContent = "😕 Les horaires ne répondent pas pour l'instant."; }
+  return box;
+}
+async function loadMyBus() {
+  const body = $("#mybus-body"); if (!body) return;
+  body.replaceChildren(el("p", { class: "small muted", text: "⏳ …" }));
+  const boxes = await Promise.all(MYBUS.map(busRow)); body.replaceChildren(...boxes);
+}
+$("#mybus-refresh").addEventListener("click", loadMyBus);
 $("#locate-btn").addEventListener("click", () => locate(false));
 
 
@@ -2236,7 +2287,7 @@ async function refreshMove(force) {
   const me = await hereOnce();
   if (!force && moveAt && Date.now() - moveAt < 300000 && (!me || (movePos && distKm(me, movePos) < 1))) return;
   movePos = me; moveAt = Date.now();
-  loadFuel(); loadStops(); loadDepartures();
+  loadFuel(); loadStops(); loadDepartures(); loadMyBus();
   if (me) { renderAround(me); $("#around-msg").textContent = "📍 Les boutons montrent ce qui est près de toi."; alertsHere(true); }
 }
 /* ---------- voyage ---------- */
