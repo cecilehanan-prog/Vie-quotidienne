@@ -2860,14 +2860,17 @@ const RAYONS = [
   ["Épicerie salée", /pâtes|riz|sauce|coulis|pesto|soupe|conserve|ratatouille|haricot|lentille|pois chiche|maïs|huile|sel\b|poivre|gnocchi|ravioles|cornichon|artichaut|olive|épice|curry|lasagne|pâte à pizza|pâte brisée|tomates concassées|patates rissolées|chips|cracker|moutarde|ketchup|mayonnaise|vinaigre|bouillon|semoule|boulgour|quinoa|polenta|purée|nouille|vermicelle|spaghetti|tagliatelle|macaroni|penne|fusilli|coquillette|chapelure|tapenade|sardine|maquereau|cacahuète|pistache|noisette|biscuits? apéritif|tuc\b|pringles/],
   ["Épicerie sucrée", /nutella|confiture|céréale|biscuit|gâteau|chocolat|smarties|compote|miel|sucre|farine|café|thé\b|thé |dessert|noix|cuillère|after eight|bonbon|confiserie|sucette|chewing|caramel|nougat|praline|truffe|bounty|snickers|\bmars\b|twix|kinder|kit ?kat|m&m|haribo|dragibus|guimauve|speculoos|spéculoos|madeleine|cookie|gaufre|crêpe|pâte à tartiner|pâte d'amande|pain d.?épice|sauce (?:chocolat|caramel)|levure|vanille|muesli|granola|flocons? d'avoine|\bbarres?\b|cacao|raisins? secs?|pruneau|figue|tablette|snack|ferrero|raffaello|lindt|toblerone|oreo|\bprince\b|\blu\b|petit[- ]beurre/],
   ["Boulangerie", /pain|brioche|baguette|croissant|viennoiserie|biscotte|radegonde/],
-  ["Fromages et crèmerie", /fromage|lait|yaourt|beurre|crème|oeuf|œuf|comté|emmental|chèvre|camembert|raclette|mozzarella|feta|ricotta|parmesan|moret|cheddar|fromage blanc|faisselle|petit suisse|skyr|gruy[eè]re|\bbrie\b|reblochon|roquefort|mascarpone|margarine|danette|flan\b|crème dessert|kéfir|munster|maroilles|babybel|vache qui rit|boursin|saint[- ]nectaire|cantal|tomme|bleu\b/],
+  ["Fromages et crèmerie", /fromage|lait|yaourt|beurre|crème|oeuf|œuf|comté|emmental|chèvre|camembert|raclette|mozzarella|feta|ricotta|parmesan|moret|cheddar|fromage blanc|faisselle|petit suisse|skyr|gruy[eè]re|\bbrie\b|reblochon|roquefort|mascarpone|margarine|danette|flan\b|crème dessert|kéfir|munster|maroilles|babybel|vache qui rit|boursin|saint[- ]nectaire|cantal|tomme|bleu\b|parmigiano|parmesan|grana|pecorino|gorgonzola|provolone|burrata|halloumi|scamorza|manchego|edam|gouda|mimolette|stracciatella/],
   ["Boucherie et poisson", /viande|poulet|jambon|steak|poisson|saumon|thon|saucisse|lardon|dinde|boeuf|bœuf|porc|chorizo|merguez|knacki|saucisson|cordon bleu|nuggets|escalope|cabillaud|crevette|rôti|gigot|agneau|\bveau\b|canard|bacon|salami|surimi|coquille|moule|steak haché|haché|blanc de poulet|cuisse|jambonneau|andouillette|boudin|pâté/],
   ["Fruits et légumes", /salade|mâche|tomate|pomme|banane|carotte|oignon|courgette|poire|orange|citron|légume|fruit|avocat|patate|ail\b|concombre|raisin|menthe|persil|basilic|épinard|poireau|poivron|aubergine|brocoli|potimarron|champignon|abricot|myrtille|fraise|pêche|clémentine|mandarine|kiwi|ananas|mangue|melon|pastèque|cerise|\bprunes?\b|haricots verts|\bchou|navet|radis|betterave|céleri|fenouil|endive|laitue|roquette|coriandre|gingembre|échalote|citrouille|butternut|framboise|mûre|pamplemousse|noix de coco|courge|panais|petits pois|maïs doux|champignon|herbes|ciboulette|thym|romarin|laurier/],
 ];
 /* Reconnaissance sans tenir compte des accents ni des majuscules (« creme », « Papier TOILETTE »…) */
 const sansAccent = t => (t || "").toLowerCase().replace(/œ/g, "oe").normalize("NFD").replace(/[̀-ͯ]/g, "");
 const RAYONS_F = RAYONS.map(([nom, re]) => [nom, new RegExp(sansAccent(re.source))]);
-const rayonReconnu = n => { const t = sansAccent(n); const r = RAYONS_F.find(([, re]) => re.test(t)); return r ? r[0] : null; };
+/* Rayons choisis par CéHa elle-même (✏️ Modifier) : ils passent avant le dictionnaire, et l'appli s'en souvient pour la prochaine fois */
+let rayonsPerso = store.get("rayonsPerso", {});
+const persoKey = n => sansAccent(n).trim().replace(/s$/, "");
+const rayonReconnu = n => { const pk = rayonsPerso[persoKey(n)]; if (pk) return pk; const t = sansAccent(n); const r = RAYONS_F.find(([, re]) => re.test(t)); return r ? r[0] : null; };
 const rayonOf = n => rayonReconnu(n) || "Autre";
 const STORES = {
   auchan: { name: "Auchan Tarare", emo: "🔴", re: /auchan/i, promo: "https://www.auchan.fr/",
@@ -3030,6 +3033,26 @@ function grpHead(text, key) {
   const form = el("form", { class: "grp-form", onsubmit: e => { e.preventDefault(); if (inp.value.trim()) add(inp.value); } }, inp, el("button", { class: "btn primary", type: "submit", text: "OK" }));
   return [head, form];
 }
+/* ✏️ Modifier un article : corriger l'orthographe (au clavier ou au micro) et le ranger dans le bon rayon. L'appli retient le rayon choisi pour ce mot. */
+let editId = null;
+const editBtn = i => el("button", { class: "icon-btn", type: "button", "aria-label": "Modifier " + i.name, text: "✏️", onclick: e => { e.preventDefault(); editId = i.id; renderShop(); setTimeout(() => $(".shop-edit input[name=n]")?.focus(), 30); } });
+function editRow(i) {
+  const cur = i.aisle || rayonOf(i.name);
+  const inN = el("input", { type: "text", name: "n", value: i.name, required: true, autocomplete: "off", "aria-label": "Nom de l'article" });
+  const inQ = el("input", { type: "text", name: "q", value: i.qty || "", placeholder: "Qté", class: "num", "aria-label": "Quantité" });
+  const sel = el("select", { name: "a", "aria-label": "Rayon" }, ...AISLES.map(([n, e]) => el("option", { value: n, text: `${e} ${aisleName(n)}`, ...(n === cur ? { selected: true } : {}) })));
+  let touched = false; sel.addEventListener("change", () => { touched = true; });
+  const mic = SpeechRec ? el("button", { class: "btn mic", type: "button", "aria-label": "Dicter le nom", text: "🎤", onclick: () => dictate(mic, t => { t = t.trim().replace(/[.!?]+$/, ""); inN.value = t ? t[0].toUpperCase() + t.slice(1) : t; if (!touched) { const r = rayonReconnu(inN.value); if (r) sel.value = r; } }) }) : null;
+  const done = e => { e.preventDefault(); const nm = inN.value.trim(); if (!nm) return; const was = i.name;
+    i.name = NOMS_FIXES[fold(nm)] || nm; i.qty = inQ.value.trim(); i.cat = rayonOf(i.name);
+    const auto = rayonReconnu(i.name) || "Autre";
+    if (sel.value !== auto || touched) { i.aisle = sel.value; rayonsPerso[persoKey(i.name)] = sel.value; store.set("rayonsPerso", rayonsPerso); } else delete i.aisle;
+    editId = null; saveShop(); };
+  return el("form", { class: "shop-item shop-edit", style: "flex-wrap:wrap;gap:6px", onsubmit: done },
+    inN, mic, inQ, sel,
+    el("button", { class: "btn primary", type: "submit", text: "✅ Enregistrer" }),
+    el("button", { class: "btn", type: "button", text: "Annuler", onclick: () => { editId = null; renderShop(); } }));
+}
 function renderShop() {
   const left = shop.filter(i => !i.done).length;
   $("#shop-count").textContent = shop.length ? `${left} à prendre` : "";
@@ -3037,10 +3060,10 @@ function renderShop() {
   for (const i of shop) if (!isFav(i.name)) { const g = i.aisle || rayonOf(i.name); (groups[g] = groups[g] || []).push(i); }
   const order = getAisleOrder();
   const delBtn = i => el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + i.name, text: "✕", onclick: e => { e.preventDefault(); shop = shop.filter(x => x !== i); saveShop(); } });
-  const row = i => el("label", { class: "shop-item" + (i.done ? " done" : "") },
+  const row = i => editId === i.id ? editRow(i) : el("label", { class: "shop-item" + (i.done ? " done" : "") },
     el("input", { type: "checkbox", checked: !!i.done, onchange: e => { i.done = e.target.checked; saveShop(); if (i.done) caisseWatch(i); } }),
     el("span", { class: "what" }, i.name, i.qty ? el("span", { class: "muted", text: " × " + i.qty }) : null),
-    favBtn(i.name), delBtn(i));
+    favBtn(i.name), editBtn(i), delBtn(i));
   // ⭐ Mes favoris, toujours en tête : cochables s'ils sont sur la liste, sinon un « + » pour les ajouter
   const star = [el("div", { class: "shop-group habits-top" }, ...grpHead("⭐ Mes favoris", "⭐"),
     ...(habits.length ? [...habits].sort((a, b) => (onList(b.name) - onList(a.name)) || (habitDue(b) - habitDue(a))).map(h => {
