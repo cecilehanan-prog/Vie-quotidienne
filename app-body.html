@@ -748,6 +748,11 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
         <button class="btn primary" type="button" id="shop-done">✅ Courses finies</button>
         <button class="btn" type="button" id="shop-habits-add">⭐ Ajouter les habituels à racheter</button>
       </div>
+      <details id="shop-back">
+        <summary>🕘 Retrouver une ancienne version de ma liste</summary>
+        <p class="small muted">Ton appareil garde des copies de ta liste. Touche « Remettre » : les articles qui manquent reviennent, rien d'autre ne bouge.</p>
+        <div class="list" id="shop-back-list"></div>
+      </details>
       <details id="habit-manage">
         <summary>⭐ Gérer mes produits habituels</summary>
         <p class="small muted" id="habit-spend"></p>
@@ -1302,7 +1307,7 @@ const el = (tag, attrs = {}, ...kids) => {
   return n;
 };
 /* Synchro iMac ↔ iPhone (CéHa, 26/10) : chaque clé modifiée est datée, puis envoyée dans son espace Firebase privé */
-const SYNC_SKIP = /^(fired|paperAlerted|fuelBrands|view|hereCity|placeGeo|rappels|dhikrData|permitDoc|adminRefV|_t|wx:|feed:|quran:)/;
+const SYNC_SKIP = /^(fired|paperAlerted|fuelBrands|view|hereCity|placeGeo|rappels|dhikrData|permitDoc|adminRefV|shop$|shopDel|shopSnap|shopBackups|_t|wx:|feed:|quran:)/;
 const syncMeta = () => { try { return JSON.parse(localStorage.getItem("mq:_t") || "{}"); } catch { return {}; } };
 let syncPush = null;
 const store = {
@@ -2877,9 +2882,45 @@ const euro = v => v.toLocaleString("fr-FR", { style: "currency", currency: "EUR"
 const parseNum = v => { const n = parseFloat(String(v).replace(",", ".").replace(/[^\d.]/g, "")); return isNaN(n) ? null : n; };
 
 let shop = store.get("shop", []);
-let habits = store.get("habits", null) || [["Brioche", 7, 2.5], ["Nutella", 7, 4.2], ["Café viennois", 7, 3.5], ["Salade", 7, 1.3], ["Fromages", 7, 4]].map(([name, every, price]) => ({ id: uid(), name, every, price }));
+/* 14/11 : la liste de courses ne bouge JAMAIS toute seule. Elle est synchronisée article par article (clé « shop2 ») :
+   chaque article a sa date de dernière modification, et chaque article retiré laisse une « pierre tombale » pour ne jamais revenir.
+   Plus de liste par défaut au démarrage, et un appareil qui arrive ne peut plus écraser la liste d'un autre. */
+let shopDel = store.get("shopDel", {});
+const shopSig = i => JSON.stringify([i.name, i.qty || "", !!i.done, i.aisle || "", i.cat || ""]);
+function shopStamp() {
+  const now = Date.now(); let snap = store.get("shopSnap", null); const first = snap === null; snap = snap || {}; const ids = {};
+  shop.forEach(i => { if (!i.id) i.id = uid(); ids[i.id] = 1; const g = shopSig(i); if (snap[i.id] !== g) { i.t = first ? (i.t || 1) : now; snap[i.id] = g; } else if (!i.t) i.t = 1; });
+  for (const id in snap) if (!ids[id]) { if (!first) shopDel[id] = now; delete snap[id]; }
+  for (const id in shopDel) if (now - shopDel[id] > 90 * DAY) delete shopDel[id];
+  return snap;
+}
+function shopBackup(force) {
+  try {
+    if (!shop.length) return;
+    const b = store.get("shopBackups", []), last = b.length ? b[b.length - 1] : null;
+    if (!force && last && Date.now() - last.t < 3 * 3600e3) return;
+    b.push({ t: Date.now(), items: JSON.parse(JSON.stringify(shop)) }); while (b.length > 12) b.shift();
+    quietSet("shopBackups", b);
+  } catch {}
+}
+function persistShop() {
+  const snap = shopStamp();
+  quietSet("shop", shop); quietSet("shopDel", shopDel); quietSet("shopSnap", snap);
+  store.set("shop2", { items: shop, del: shopDel });
+  shopBackup(false);
+}
+/* Fusion article par article : le plus récent gagne pour chaque article, un article retiré (plus ancien que sa pierre tombale) reste retiré */
+function shopMerge(rem) {
+  const del = Object.assign({}, rem.del || {});
+  for (const id in shopDel) del[id] = Math.max(del[id] || 0, shopDel[id]);
+  const by = {}, order = [];
+  [...(rem.items || []), ...shop].forEach(it => { if (!it || !it.id) return; const c = by[it.id]; if (!c) order.push(it.id); if (!c || (it.t || 0) > (c.t || 0)) by[it.id] = it; });
+  const loc = shop.map(i => i.id), ord = loc.concat(order.filter(id => loc.indexOf(id) < 0));
+  const items = ord.filter(id => by[id] && !(del[id] && del[id] >= (by[id].t || 0))).map(id => by[id]);
+  return { items, del };
+}let habits = store.get("habits", null) || [["Brioche", 7, 2.5], ["Nutella", 7, 4.2], ["Café viennois", 7, 3.5], ["Salade", 7, 1.3], ["Fromages", 7, 4]].map(([name, every, price]) => ({ id: uid(), name, every, price }));
 let purchases = store.get("purchases", []);
-const saveShop = () => { store.set("shop", shop); try { renderLeclerc(); } catch {} store.set("habits", habits); store.set("purchases", purchases); renderShop(); renderHabits(); renderHouseHome(); };
+const saveShop = () => { persistShop(); try { renderLeclerc(); } catch {} store.set("habits", habits); store.set("purchases", purchases); renderShop(); renderHabits(); renderHouseHome(); };
 const lastBought = name => purchases.filter(p => p.name.toLowerCase() === name.toLowerCase()).map(p => p.date).sort().pop();
 const habitDue = h => { const l = lastBought(h.name); return !l || -daysUntil(l) >= h.every - 1; };
 const onList = name => shop.some(i => i.name.toLowerCase() === name.toLowerCase());
@@ -2993,32 +3034,9 @@ function tryAdd(name, qty = "", aisle = null) {
   } else addToList(name, qty, aisle);
   return name;
 }
-/* Import unique de l'ancienne liste « COURSES » (captures du 19/10/2026) */
-(function importAncienneListe() {
-  const K = "import-courses-2026-10-19";
-  if (store.get(K, false)) return;
-  const items = [
-    ["Barazek"], ["Radegonde"], ["Miroir abricot"], ["Casto déménagement"], ["Barillet serrure porte d'entrée"], ["Peinture 807"], ["Enceinte 807"],
-    ["Pâtes de dattes"], ["Tamarin pâte sans noyau"], ["Chutney de mangue"], ["Jus de myrtille"], ["Huile d'olive", "6 l par an"],
-    ["Encens Dubai Center"], ["Œil de sécurité 12, 6 et 2,5 mm"], ["Thé rose (bio)"], ["Thé choco chili (bio)"],
-    ["Essence", "10 l"], ["Imigrane maux de tête"], ["Bignone jasmin de Virginie"],
-    ["Peinture grise radiateur et encadrement de fenêtre"], ["Briques piscine", "10"], ["Soupe Miseau aux oignons"],
-    ["Riz"], ["Lait de vache"], ["Flasque Décathlon 250 ml"], ["Smarties"], ["Biscuits à la cuillère"],
-    ["Phéromones calmantes pour chat"], ["Graines de poulet"], ["Msemmen"], ["Menthe fraîche"],
-    ["Tablettes Nestlé dessert chocolat", "2"], ["Sauce tomate"], ["Fleur de douche"], ["Pesto verde et rosso"],
-    ["Gnocchi au fromage"], ["Patates rissolées"], ["Pince cheveux noire"], ["Lait d'amandes"], ["Pain de mie"],
-    ["Ravioles"], ["Ortho fruits"], ["Yaourt aux fruits"], ["Mozzarella"], ["Cœur d'artichaut"], ["Mâche"],
-    ["Jus de pomme"], ["Crème d'amande cuisine"], ["Jus de cranberry"], ["Ratatouille"], ["Haricots blancs à la tomate"],
-    ["Soupe"], ["Coulis de tomate"], ["Céréales de petit-déjeuner"], ["Nutella"], ["Compote de pêches"],
-    ["Compote de fraises"], ["Croquettes pour chat", "2"], ["Brioche"], ["Gâteaux"], ["Emmental"], ["Noix"], ["Rainbow Peak"],
-    ["Fromage de chèvre"], ["Camembert"], ["St Moret"],
-  ];
-  items.forEach(([n, q]) => addToList(n, q || ""));
-  store.set("shop", shop);
-  store.set(K, true);
-})();
 /* Les tâches ne sont pas des courses : on les retire de la liste (elles sont dans « Mes choses à faire ») */
-{ const avant = shop.length; shop = shop.filter(i => !TACHES_IMPORT.some(t => t.toLowerCase() === i.name.toLowerCase())); if (shop.length !== avant) store.set("shop", shop); }
+{ const avant = shop.length; shop = shop.filter(i => !TACHES_IMPORT.some(t => t.toLowerCase() === i.name.toLowerCase())); if (shop.length !== avant) persistShop(); }
+if (!localStorage.getItem("mq:shop2")) persistShop(); else shopBackup(false);
 $("#shop-form").addEventListener("submit", e => { e.preventDefault(); tryAdd($("#shop-name").value, $("#shop-qty").value.trim()); e.target.reset(); saveShop(); $("#shop-name").focus(); });
 function addMany(lines, aisle = null) {
   const names = lines.flatMap(l => l.split(/,| et | puis /i))
@@ -3077,6 +3095,16 @@ $("#shop-done").addEventListener("click", () => {
   $("#shop-msg").textContent = `${bought.length} article${bought.length > 1 ? "s" : ""} enregistré${bought.length > 1 ? "s" : ""} dans ton historique.`;
   saveShop();
 });
+function renderBackups() {
+  const box = $("#shop-back-list"); if (!box) return; const b = store.get("shopBackups", []).slice().reverse();
+  box.replaceChildren(...(b.length ? b.map(x => {
+    const miss = x.items.filter(i => !shop.some(y => y.id === i.id));
+    return el("div", { class: "row", style: "align-items:center;gap:8px;margin:6px 0" },
+      el("span", { class: "small", text: `${new Date(x.t).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} : ${x.items.length} articles` + (miss.length ? `, dont ${miss.length} qui manquent` : "") }),
+      miss.length ? el("button", { class: "btn", type: "button", text: "Remettre", onclick: () => { const t = Date.now(); miss.forEach(i => { delete shopDel[i.id]; shop.push(Object.assign({}, i, { t, done: false })); }); saveShop(); renderBackups(); } }) : el("span", { class: "small muted", text: "✅ déjà tous là" }));
+  }) : [el("p", { class: "small muted", text: "Pas encore de copie : la première arrive dès que ta liste change." })]));
+}
+$("#shop-back")?.addEventListener("toggle", renderBackups);
 $("#shop-habits-add").addEventListener("click", () => {
   const due = habits.filter(h => habitDue(h) && !onList(h.name));
   due.forEach(h => addToList(h.name));
@@ -4164,12 +4192,12 @@ function runTalk(raw) {
 const FIREBASE_CONFIG = { apiKey: "AIzaSyA-n1BG9p4nTX98nTtNoTVd6PzDwBn65Do", authDomain: "mon-quotidien-d86c1.firebaseapp.com", projectId: "mon-quotidien-d86c1", storageBucket: "mon-quotidien-d86c1.firebasestorage.app", messagingSenderId: "563933042145", appId: "1:563933042145:web:7fd0df1378d3ea8d4b2ea0" };
 const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
 const loadJs = src => new Promise((ok, ko) => { const t = document.createElement("script"); t.src = src; t.onload = ok; t.onerror = ko; document.head.append(t); });
-let fbDoc = null, pending = new Set(), pushTimer = 0, wantReload = false;
+let fbDoc = null, pending = new Set(), pushTimer = 0, wantReload = false, remoteSeen = false;
 const syncSay = (state, msg) => { $("#sync-state").textContent = state; if (msg != null) $("#sync-msg").textContent = msg; };
 const reloadSoon = () => { const a = document.activeElement; if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) { wantReload = true; return; } location.reload(); };
 document.addEventListener("focusout", () => setTimeout(() => { if (wantReload) reloadSoon(); }, 300));
 function flush() {
-  if (!fbDoc || !pending.size) return;
+  if (!fbDoc || !remoteSeen || !pending.size) return;
   const m = syncMeta(), up = {};
   for (const k of pending) { const v = localStorage.getItem("mq:" + k); if (v != null) up[k] = { v, t: m[k] || Date.now() }; }
   pending.clear();
@@ -4208,7 +4236,8 @@ async function syncStart() {
     try {
       const remote = (await fbDoc.get({ source: "server" })).data() || {};
       const count = s => { try { return JSON.parse(s || "[]").length; } catch { return "?"; } };
-      const ici = count(localStorage.getItem("mq:shop")), la = count(remote.shop && remote.shop.v);
+      const cnt2 = s => { try { return JSON.parse(s).items.length; } catch { return 0; } };
+      const ici = count(localStorage.getItem("mq:shop")), la = cnt2(remote.shop2 && remote.shop2.v);
       const changed = applyRemote(remote);
       syncSay("✅ synchronisé", `Liste de courses : ${ici} articles ici, ${la} dans ton espace. ` + (changed ? "Je mets ton appareil à jour…" : "Tout est pareil."));
       if (changed) reloadSoon();
@@ -4217,10 +4246,28 @@ async function syncStart() {
 }
 /* Fusionne ce qu'il y a dans le cloud avec cet appareil. Le plus récent gagne, clé par clé.
    Premier branchement d'un appareil (ou d'une nouvelle adresse) : le cloud gagne toujours, pour qu'une liste neuve (créée par le démarrage) n'écrase pas celle de l'autre appareil. */
+function mergeShopRemote(r, m) {
+  let rem; try { rem = JSON.parse(r.v); } catch { return false; }
+  if (!rem || !Array.isArray(rem.items)) return false;
+  const mg = shopMerge(rem), sigs = a => JSON.stringify(a.map(i => [i.id, i.t || 0, shopSig(i)]));
+  const same = sigs(mg.items) === sigs(shop) && Object.keys(mg.del).length === Object.keys(shopDel).length;
+  if (!same) {
+    shopBackup(true);
+    shop = mg.items; shopDel = mg.del; const snap = {}; shop.forEach(i => { snap[i.id] = shopSig(i); });
+    quietSet("shop", shop); quietSet("shopDel", shopDel); quietSet("shopSnap", snap);
+  }
+  const out = JSON.stringify({ items: mg.items, del: mg.del });
+  if (sigs(mg.items) !== sigs(rem.items) || Object.keys(mg.del).length !== Object.keys(rem.del || {}).length) {
+    localStorage.setItem("mq:shop2", out); m.shop2 = Date.now(); pending.add("shop2");
+  } else { localStorage.setItem("mq:shop2", r.v); m.shop2 = r.t || 1; }
+  return !same;
+}
 function applyRemote(remote) {
+  remoteSeen = true;
   const first = !localStorage.getItem("mq:_tjoined"), m = syncMeta(); let changed = false;
   for (const [k, r] of Object.entries(remote)) {
     if (SYNC_SKIP.test(k) || !r || typeof r.v !== "string") continue;
+    if (k === "shop2") { if (mergeShopRemote(r, m)) changed = true; continue; }
     const newer = (r.t || 0) > (m[k] || 0);
     if ((first || newer) && localStorage.getItem("mq:" + k) !== r.v) { localStorage.setItem("mq:" + k, r.v); changed = true; }
     if (first || newer) m[k] = r.t || 1;
