@@ -2343,9 +2343,28 @@ function guideSections(txt) {
   return out;
 }
 const guideCut = (t, n) => { t = (t || "").replace(/\n{3,}/g, "\n\n").trim(); return t.length > n ? t.slice(0, t.lastIndexOf(" ", n)) + "…" : t; };
+const GEMO = [[/mosqu|médersa|madrasa|minaret|zaou/i, "🕌"], [/église|cathédrale|basilique|chapelle|abbaye|monastère/i, "⛪"], [/château|fort\b|forteresse|citadelle|remparts?|palais/i, "🏰"], [/musée|galerie|exposition/i, "🖼️"],
+  [/vue|panoram|belvédère|colline|coucher/i, "🌅"], [/jardin|parc|forêt|nature/i, "🌿"], [/marché|souk|bazar|boutique|shopping/i, "🧺"], [/plage|mer\b|lac|rivière|fleuve|île/i, "🌊"],
+  [/restaurant|manger|cuisine|café|pâtisserie|gastronom/i, "🍽️"], [/hammam|spa\b|bain/i, "🧖"], [/musique|concert|théâtre|opéra/i, "🎶"], [/pont|tour\b|monument|statue|place\b|rue\b|quartier|ruelle/i, "🏛️"],
+  [/bus|métro|tram|train|taxi|vélo|aéroport|gare/i, "🚌"], [/sécurité|vol\b|arnaque|danger|santé|eau potable/i, "🛡️"], [/histoire|fond[ée]e?|siècle|ans\b|époque/i, "📖"]];
+function guideBullets(text, max) {
+  const items = []; let head = null;
+  for (let ln of (text || "").split("\n")) {
+    ln = ln.trim(); if (!ln) continue;
+    if (/^•\s*/.test(ln)) { head = ln.replace(/^•\s*/, "").trim(); items.push({ head }); continue; }
+    ln = ln.replace(/^[-*]\s+/, ""); let nm = "", rest = ln; const m = /^(.{3,45}?)\s*(?::|–|—| - )\s+(.+)$/.exec(ln); if (m) { nm = m[1]; rest = m[2]; }
+    const sent = (rest.match(/^.{20,170}?[.!?](?=\s|$)/) || [rest.slice(0, 150)])[0].trim();
+    items.push({ nm, txt: sent + (sent.length < rest.length && !/[.!?]$/.test(sent) ? "…" : ""), emo: (GEMO.find(([re]) => re.test(ln)) || [0, "📍"])[1] });
+  }
+  const ul = el("ul", { style: "list-style:none;padding:0;margin:6px 0" }); let n = 0;
+  for (const it of items) { if (n >= max) break;
+    if (it.head) { ul.append(el("li", { class: "small", style: "margin:10px 0 2px;font-weight:700;opacity:.85", text: it.head })); continue; }
+    n++; ul.append(el("li", { class: "small", style: "display:flex;gap:8px;margin:6px 0;line-height:1.35" }, el("span", { text: it.emo, "aria-hidden": "true" }), el("span", {}, it.nm ? el("strong", { text: it.nm + " : " }) : null, it.txt))); }
+  return ul;
+}
 function guideDetails(title, text, link, open) {
-  return el("details", open ? { open: true } : {}, el("summary", { text: title }), el("p", { class: "small", style: "white-space:pre-line", text: guideCut(text, 1500) }),
-    link ? el("a", { class: "small", href: link, target: "_blank", rel: "noopener", text: "📚 Lire la suite sur Wikivoyage" }) : null);
+  return el("details", open ? { open: true } : {}, el("summary", { text: title }), guideBullets(text, 12),
+    link ? el("a", { class: "small", href: link, target: "_blank", rel: "noopener", text: "📚 Voir tout sur Wikivoyage" }) : null);
 }
 async function guideMonths(lat, lon) {
   const y = new Date().getFullYear() - 1;
@@ -2421,7 +2440,7 @@ async function loadGuide(name) {
     const used = [];
     const hl = []; for (const k of Object.keys(S)) { if (!/^(voir|faire|manger|se restaurer|se loger|comprendre|se déplacer)/i.test(k)) continue; for (const ln of S[k].split("\n")) { const t = ln.replace(/^[•\s]+/, "").trim(); if (t.length > 25 && FORYOU_RE.test(t) && !/alcool|bi[èe]re|\bvin\b|viande|poisson|cigar/i.test(t) && hl.length < 8) hl.push(t); } }
     if (hl.length) forYouWv.append(el("p", { class: "small", style: "margin-top:8px", text: "⭐ Dans le guide, ça devrait te plaire :" }), ...hl.map(t => el("p", { class: "small", style: "margin:4px 0", text: "• " + guideCut(t, 200) })));
-    if (S.intro) wvBox.append(el("p", { class: "small", style: "margin-top:12px;white-space:pre-line", text: guideCut(S.intro, 700) }));
+    if (S.intro) wvBox.append(el("p", { class: "small", style: "margin-top:12px", text: guideCut(S.intro.split("\n")[0], 260) }));
     for (const [k, title, re] of GUIDE_SECTIONS) { const key = Object.keys(S).find(x => x !== "intro" && !used.includes(x) && re.test(x)); if (key && S[key].length > 30) { used.push(key); wvBox.append(guideDetails(title, S[key], link, k === "Voir")); } }
   });
   safe2(async () => {
