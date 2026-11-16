@@ -201,7 +201,7 @@ input.num { width: 7.5em; flex: 0 1 auto !important; }
 [data-sec=wx] { --sec: var(--c-wx); } [data-sec=news] { --sec: var(--c-news); } [data-sec=good] { --sec: var(--c-good); }
 [data-sec=agenda] { --sec: var(--c-agenda); } [data-sec=meals] { --sec: #e8590c; } [data-sec=house], [data-sec=shop], [data-sec=habits] { --sec: var(--c-house); }
 [data-sec=energy] { --sec: var(--c-energy); } [data-sec=chores] { --sec: var(--c-chores); } [data-sec=car] { --sec: var(--c-car); }
-[data-sec=transit] { --sec: var(--c-transit); } [data-sec=trip] { --sec: var(--c-trip); } [data-sec=admin], [data-sec=links] { --sec: var(--c-admin); }
+[data-sec=transit] { --sec: var(--c-transit); } [data-sec=trip] { --sec: var(--c-trip); } [data-sec=guide] { --sec: #6c4ed8; } [data-sec=admin], [data-sec=links] { --sec: var(--c-admin); }
 [data-sec=papers] { --sec: var(--c-papers); } [data-sec=todo] { --sec: #7a4fd0; } [data-sec=wish] { --sec: #e2508a; } [data-sec=pharma] { --sec: #0f9d8a; }
 /* Pensée du jour : pas de cadre, écriture dorée, poétique */
 .quote { --g1: #8a5a00; --g2: #b8860b; --g3: #7a4e00; margin: 4px 4px 14px; padding: 18px 10px 14px; text-align: center; position: relative;
@@ -968,6 +968,17 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
 
   <!-- ===== VOYAGE ===== -->
   <section class="view" id="view-trip" hidden>
+    <article class="card" data-sec="guide">
+      <h2>🧭 Visiter une ville</h2>
+      <p class="small muted">Écris une ville du monde : l'appli prépare ta fiche (à voir, météo, meilleurs mois, plan, où dormir, comment y aller).</p>
+      <form class="inline" id="guide-form">
+        <input type="text" id="guide-q" placeholder="Ex. Rome, Lisbonne, Tokyo…" required aria-label="Ville à visiter" autocomplete="off">
+        <button class="btn mic" type="button" id="guide-mic" aria-label="Dicter la ville" hidden>🎤</button>
+        <button class="btn primary" type="submit">Préparer</button>
+      </form>
+      <div class="tabs" id="guide-recent"></div>
+      <div id="guide-body"></div>
+    </article>
     <article class="card" data-sec="trip">
       <h2>✈️ Préparer un voyage</h2>
       <div class="label">1️⃣ Je réserve où dormir</div>
@@ -2303,6 +2314,120 @@ async function refreshMove(force) {
   if (me) { renderAround(me); $("#around-msg").textContent = "📍 Les boutons montrent ce qui est près de toi."; alertsHere(true); }
 }
 /* ---------- voyage ---------- */
+
+/* ---------- 🧭 Visiter une ville (14/11 : sources gratuites en direct, rien de payant) ----------
+   Wikivoyage + Wikipédia (à voir), Open-Meteo (météo du moment et meilleurs mois), OpenStreetMap (plan, auberges), REST Countries (monnaie, langue),
+   et des liens déjà remplis vers les sites de réservation (les prix, eux, sont lus en direct sur ces sites). */
+const GUIDE_SECTIONS = [
+  ["Voir", "🏛️ À voir absolument", /^voir$|^à voir/i], ["Faire", "🎟️ À faire", /^faire$/i],
+  ["Manger", "🍽️ Manger", /^(manger|se restaurer|restaurants?)/i], ["Loger", "🛏️ Où dormir", /^(se loger|dormir|loger)/i],
+  ["Se déplacer", "🚌 Se déplacer sur place", /^(se déplacer|circuler|transports?|se déplacer)/i], ["Comprendre", "📖 Comprendre", /^comprendre/i],
+  ["Sécurité", "🛡️ Sécurité et santé", /^(sécurité|santé|rester en sécurité|rester en bonne santé)/i], ["Argent", "💶 Argent", /^(acheter|argent)/i],
+];
+const GMOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+let guideRecent = store.get("guideCities", []);
+function guideSections(txt) {
+  const parts = (txt || "").split(/\n==\s*([^=\n]+?)\s*==\s*\n/); const out = { intro: (parts[0] || "").trim() };
+  for (let i = 1; i < parts.length; i += 2) out[parts[i].trim()] = ("\n" + (parts[i + 1] || "")).replace(/\n=== ([^=\n]+) ===\n/g, "\n• $1\n").trim();
+  return out;
+}
+const guideCut = (t, n) => { t = (t || "").replace(/\n{3,}/g, "\n\n").trim(); return t.length > n ? t.slice(0, t.lastIndexOf(" ", n)) + "…" : t; };
+function guideDetails(title, text, link, open) {
+  return el("details", open ? { open: true } : {}, el("summary", { text: title }), el("p", { class: "small", style: "white-space:pre-line", text: guideCut(text, 1500) }),
+    link ? el("a", { class: "small", href: link, target: "_blank", rel: "noopener", text: "📚 Lire la suite sur Wikivoyage" }) : null);
+}
+async function guideMonths(lat, lon) {
+  const y = new Date().getFullYear() - 1;
+  const j = await getJSON(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${y}-01-01&end_date=${y}-12-31&daily=temperature_2m_max,precipitation_sum&timezone=auto`, 20000);
+  const t = j.daily.time, mx = j.daily.temperature_2m_max, pr = j.daily.precipitation_sum, m = GMOIS.map(() => ({ t: 0, n: 0, rain: 0 }));
+  t.forEach((d, i) => { const k = +d.slice(5, 7) - 1; if (mx[i] != null) { m[k].t += mx[i]; m[k].n++; } if ((pr[i] || 0) >= 1) m[k].rain++; });
+  const res = m.map((x, k) => { const avg = x.n ? x.t / x.n : null; return { k, avg, rain: x.rain, score: avg == null ? -99 : -Math.abs(avg - 24) - x.rain * 0.6 }; });
+  const best = [...res].sort((a, b) => b.score - a.score).slice(0, 3).map(x => x.k);
+  return { res, best, y };
+}
+async function loadGuide(name) {
+  const body = $("#guide-body"); name = (name || "").trim(); if (!name) return;
+  body.replaceChildren(el("p", { class: "small muted", text: "⏳ Je prépare ta fiche pour « " + name + " »…" }));
+  let g;
+  try {
+    const r = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=fr&format=json`, 12000);
+    g = r.results && r.results[0];
+  } catch { body.replaceChildren(el("p", { text: "😕 Pas de connexion pour le moment. Réessaie dans un instant." })); return; }
+  if (!g) { body.replaceChildren(el("p", { text: `😕 Je ne trouve pas « ${name} ». Essaie avec le nom de la ville seul (ex. Rome).` })); return; }
+  const city = g.name, lat = g.latitude, lon = g.longitude, E = encodeURIComponent, cc = (g.country_code || "").toUpperCase();
+  guideRecent = [city, ...guideRecent.filter(c => c !== city)].slice(0, 6); store.set("guideCities", guideRecent); drawGuideRecent();
+  const sec = (title, ...kids) => el("div", { style: "margin-top:14px" }, el("div", { class: "label", text: title }), ...kids);
+  const box = el("div");
+  box.append(el("h3", { style: "margin:10px 0 2px", text: `📍 ${city}${g.admin1 && g.admin1 !== city ? ", " + g.admin1 : ""}, ${g.country || ""}` }));
+  const nowBox = el("p", { class: "small", text: "⏳ Météo du moment…" }), infoBox = el("p", { class: "small muted" });
+  box.append(nowBox, infoBox);
+  const monthsBox = sec("📆 Meilleurs moments pour y aller", el("p", { class: "small muted", text: "⏳ …" }));
+  const seeBox = sec("📸 Les lieux les plus célèbres, avec photos", el("p", { class: "small muted", text: "⏳ …" }));
+  const wvBox = el("div"), lodgeBox = sec("🛏️ Hébergements pas chers (auberges, chambres d'hôtes)", el("p", { class: "small muted", text: "⏳ …" }));
+  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lon - 0.05}%2C${lat - 0.03}%2C${lon + 0.05}%2C${lat + 0.03}&layer=mapnik&marker=${lat}%2C${lon}`;
+  const mapBox = sec("🗺️ Plan de la ville", el("iframe", { src: mapUrl, title: "Plan de " + city, loading: "lazy", style: "width:100%;height:260px;border:0;border-radius:12px" }),
+    el("div", { class: "row" }, ext(`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=13/${lat}/${lon}`, "🗺️ Plan plein écran", "btn"), ext(`https://www.google.com/maps/search/?api=1&query=${E(city + " " + (g.country || ""))}`, "📍 Google Maps", "btn")));
+  const L = (href, e, t) => lb(href, e, t);
+  const go = sec("🚆 Y aller, au meilleur prix",
+    el("div", { class: "grid2" }, el("button", { class: "linkbox", type: "button", onclick: () => { $("#trip-to").value = city; $("#trip-to").scrollIntoView({ block: "center" }); $("#trip-go").click(); } }, el("i", { class: "emo", text: "🔎" }), el("strong", { text: "Trajet depuis Tarare (dans l'appli)" })),
+      L(`https://www.rome2rio.com/map/Tarare/${E(city)}`, "🧭", "Tous les moyens et prix (Rome2Rio)"), L(`https://www.google.com/travel/flights?q=${E("Vols de Lyon vers " + city)}`, "✈️", "Avions (Google Vols)"),
+      L("https://www.thetrainline.com/fr", "🚆", "Trains (Trainline)"), L(`https://www.google.com/maps/dir/?api=1&origin=Tarare&destination=${E(city)}&travelmode=driving`, "🚗", "Voiture (itinéraire)"),
+      L(`https://www.blablacar.fr/search?fn=Tarare&tn=${E(city)}`, "🤝", "Covoiturage (BlaBlaCar)")));
+  const stay = sec("🛏️ Dormir et manger pas cher",
+    el("div", { class: "grid2" }, L(`https://www.booking.com/searchresults.fr.html?ss=${E(city)}&order=price`, "🏨", "Hôtels, du moins cher (Booking)"), L(`https://www.hostelworld.com/s?q=${E(city)}`, "🛌", "Auberges de jeunesse"),
+      L(`https://www.airbnb.fr/s/${E(city)}/homes`, "🏠", "Locations (Airbnb)"), L(`https://www.google.com/maps/search/${E("restaurants pas chers " + city)}`, "🍜", "Restos pas chers (Maps)"),
+      L(`https://www.thefork.fr/search?cityId=&queryText=${E(city)}`, "🍴", "Réserver un resto (TheFork)"), L(`https://www.getyourguide.fr/s/?q=${E(city)}`, "🎟️", "Visites et billets")));
+  const safe = sec("🛡️ Infos importantes", el("div", { class: "grid2" }, L("https://www.diplomatie.gouv.fr/fr/conseils-aux-voyageurs/conseils-par-pays-destination/", "🇫🇷", "Conseils aux voyageurs (État)"),
+    L(`https://fr.wikivoyage.org/wiki/Special:Search?search=${E(city)}`, "📚", "Guide complet (Wikivoyage)")));
+  box.append(monthsBox, seeBox, wvBox, mapBox, go, stay, lodgeBox, safe,
+    el("p", { class: "small muted", style: "margin-top:12px", text: "ℹ️ En direct : la météo, le plan et les adresses. Les prix des vols, trains et hôtels se lisent en direct sur les sites qui s'ouvrent (je ne peux pas les afficher ici sans abonnement). Les guides viennent de Wikivoyage et Wikipédia, écrits par des voyageurs." }));
+  body.replaceChildren(box);
+  const safe2 = fn => fn().catch(() => {});
+  safe2(async () => {
+    const f = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`, 12000);
+    const c = f.current, lt = (c.time || "").slice(11, 16).replace(":", "h");
+    nowBox.textContent = `🌡️ Là-bas maintenant : ${Math.round(c.temperature_2m)} °C · 🕐 il est ${lt}`;
+  });
+  safe2(async () => {
+    if (!cc) return; const c = (await getJSON(`https://restcountries.com/v3.1/alpha/${cc}?fields=currencies,languages,capital`, 12000)); const d = Array.isArray(c) ? c[0] : c;
+    const cur = Object.values(d.currencies || {}).map(x => `${x.name}${x.symbol ? " (" + x.symbol + ")" : ""}`).join(", "), lang = Object.values(d.languages || {}).join(", ");
+    infoBox.textContent = `💱 Monnaie : ${cur || "?"} · 🗣️ Langue : ${lang || "?"}`;
+  });
+  safe2(async () => {
+    const m = await guideMonths(lat, lon);
+    monthsBox.replaceChildren(monthsBox.firstChild, el("p", { class: "small", text: `⭐ Les meilleurs mois : ${m.best.sort((a, b) => a - b).map(k => GMOIS[k]).join(", ")}` }),
+      el("div", { style: "display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:6px 0" }, ...m.res.map(x => el("div", { class: "small", style: "text-align:center;padding:4px 0;border-radius:8px;background:var(--surface-2)" + (m.best.includes(x.k) ? ";outline:2px solid var(--sec)" : ""), title: `${GMOIS[x.k]} : ${x.avg == null ? "?" : Math.round(x.avg)} °C, ${x.rain} jours de pluie` },
+        el("div", { text: ["janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc"][x.k] }), el("div", { text: x.avg == null ? "?" : Math.round(x.avg) + "°" }), el("div", { text: "💧" + x.rain })))),
+      el("p", { class: "small muted", text: `Calculé avec la météo réelle de ${m.y} : températures douces (autour de 24 °C) et peu de jours de pluie. 💧 = jours de pluie dans le mois.` }));
+  });
+  safe2(async () => {
+    const w = await getJSON(`https://fr.wikivoyage.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch=${E(city)}&gsrlimit=1&redirects=1&prop=extracts&explaintext=1&exsectionformat=wiki`, 20000);
+    const pg = Object.values((w.query && w.query.pages) || {})[0]; if (!pg || !pg.extract) return;
+    const S = guideSections(pg.extract), link = "https://fr.wikivoyage.org/wiki/" + E((pg.title || city).replace(/ /g, "_"));
+    const used = [];
+    if (S.intro) wvBox.append(el("p", { class: "small", style: "margin-top:12px;white-space:pre-line", text: guideCut(S.intro, 700) }));
+    for (const [k, title, re] of GUIDE_SECTIONS) { const key = Object.keys(S).find(x => x !== "intro" && !used.includes(x) && re.test(x)); if (key && S[key].length > 30) { used.push(key); wvBox.append(guideDetails(title, S[key], link, k === "Voir")); } }
+  });
+  safe2(async () => {
+    const w = await getJSON(`https://fr.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=geosearch&ggscoord=${lat}%7C${lon}&ggsradius=8000&ggslimit=12&prop=extracts%7Cpageimages&exintro=1&explaintext=1&exsentences=2&exlimit=12&piprop=thumbnail&pithumbsize=160`, 15000);
+    const pgs = Object.values((w.query && w.query.pages) || {}).sort((a, b) => (a.index || 0) - (b.index || 0));
+    if (!pgs.length) { seeBox.replaceChildren(seeBox.firstChild, el("p", { class: "small muted", text: "Pas de lieu célèbre trouvé : regarde le guide ci-dessous." })); return; }
+    seeBox.replaceChildren(seeBox.firstChild, el("p", { class: "small muted", text: "Les lieux les plus connus près du centre (Wikipédia) :" }), ...pgs.map(p => el("a", { class: "item", href: "https://fr.wikipedia.org/wiki/" + E((p.title || "").replace(/ /g, "_")), target: "_blank", rel: "noopener", style: "display:flex;gap:10px;align-items:center;text-decoration:none;color:inherit;margin-top:6px" },
+      p.thumbnail ? el("img", { src: p.thumbnail.source, alt: "", width: 56, height: 56, style: "object-fit:cover;border-radius:10px;flex:none" }) : el("span", { text: "📍" }),
+      el("span", { class: "small" }, el("strong", { text: p.title }), el("br"), guideCut(p.extract || "", 110)))));
+  });
+  safe2(async () => {
+    const q = `[out:json][timeout:20];nwr(around:3500,${lat},${lon})[tourism~"^(hostel|guest_house|motel)$"][name];out center 12;`;
+    const o = await getJSON("https://overpass-api.de/api/interpreter?data=" + E(q), 25000);
+    const els = (o.elements || []).filter(x => x.tags && x.tags.name).slice(0, 8);
+    lodgeBox.replaceChildren(lodgeBox.firstChild, ...(els.length ? [el("p", { class: "small muted", text: "Adresses trouvées sur OpenStreetMap (touche pour voir sur la carte et les prix) :" }), ...els.map(x => el("a", { class: "item", href: `https://www.google.com/maps/search/?api=1&query=${E(x.tags.name + " " + city)}`, target: "_blank", rel: "noopener", style: "display:block;text-decoration:none;color:inherit;margin-top:6px", text: `${x.tags.tourism === "hostel" ? "🛌" : "🏡"} ${x.tags.name}` }))]
+      : [el("p", { class: "small muted", text: "Pas d'adresse trouvée : utilise les boutons Booking et Auberges ci-dessus." })]));
+  });
+}
+const drawGuideRecent = () => { const b = $("#guide-recent"); if (b) b.replaceChildren(...guideRecent.map(c => el("button", { class: "btn", type: "button", text: c, onclick: () => { $("#guide-q").value = c; loadGuide(c); } }))); };
+drawGuideRecent();
+$("#guide-form").addEventListener("submit", e => { e.preventDefault(); loadGuide($("#guide-q").value); });
+if (window.SpeechRecognition || window.webkitSpeechRecognition) { const gm = $("#guide-mic"); gm.hidden = false; gm.addEventListener("click", () => dictate(gm, t => { t = t.trim().replace(/[.!?]+$/, "").replace(/^(?:visiter|visite de|visite|voyage à|voyage en|à|au|en)\s+/i, ""); $("#guide-q").value = t; loadGuide(t); })); }
 /* ----- trajet calculé par l'appli ----- */
 const QUICK = ["Lyon Part-Dieu", "Lyon Perrache", "Tarare", "Paris"];
 $("#trip-quick").replaceChildren(...QUICK.map(c => el("button", { class: "btn", type: "button", text: c, onclick: () => { $("#trip-to").value = c; findTrip(); } })));
@@ -4286,6 +4411,9 @@ function runTalk(raw) {
     closeTalk(); show("move");
     setTimeout(() => { $("#tr-to").value = dest; $("#tr-go").click(); $("#tr-to").scrollIntoView({ block: "center" }); }, 300);
     return;
+  }
+  if ((m = /(?:pr[ée]pare|organise|guide)[- ]moi.*?(?:visite|voyage|s[ée]jour|week-?end)\s+(?:de|d'|à|a|au|en|aux|pour)\s+(.+)$/i.exec(t)) || (m = /^(?:je veux )?(?:visiter|partir à|partir en|aller visiter)\s+(.+)$/i.exec(t))) {
+    const c = m[1].replace(/^(?:la|le|les|l')\s*/i, "").trim(); closeTalk(); show("trip"); setTimeout(() => { $("#guide-q").value = c; loadGuide(c); $("#guide-q").scrollIntoView({ block: "center" }); }, 300); return;
   }
   if (/m[ée]t[ée]o|temps (fait|demain|aujourd)|quel temps|pleuvoir|pluie/.test(low)) { closeTalk(); show("home"); $('[data-sec="wx"]')?.scrollIntoView({ behavior: "smooth" }); return; }
   if (/agenda|rendez-vous|rdv/.test(low)) { closeTalk(); show("agenda"); return; }
