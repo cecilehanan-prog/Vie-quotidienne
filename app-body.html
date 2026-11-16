@@ -2444,12 +2444,31 @@ async function loadGuide(name) {
     for (const [k, title, re] of GUIDE_SECTIONS) { const key = Object.keys(S).find(x => x !== "intro" && !used.includes(x) && re.test(x)); if (key && S[key].length > 30) { used.push(key); wvBox.append(guideDetails(title, S[key], link, k === "Voir")); } }
   });
   safe2(async () => {
-    const w = await getJSON(`https://fr.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=geosearch&ggscoord=${lat}%7C${lon}&ggsradius=8000&ggslimit=12&prop=extracts%7Cpageimages&exintro=1&explaintext=1&exsentences=2&exlimit=12&piprop=thumbnail&pithumbsize=160`, 15000);
+    const w = await getJSON(`https://fr.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=geosearch&ggscoord=${lat}%7C${lon}&ggsradius=8000&ggslimit=12&prop=extracts%7Cpageimages%7Cpageprops&ppprop=wikibase_item&exintro=1&explaintext=1&exsentences=2&exlimit=12&piprop=thumbnail&pithumbsize=160`, 15000);
     const pgs = Object.values((w.query && w.query.pages) || {}).sort((a, b) => (a.index || 0) - (b.index || 0));
     if (!pgs.length) { seeBox.replaceChildren(seeBox.firstChild, el("p", { class: "small muted", text: "Pas de lieu célèbre trouvé : regarde le guide ci-dessous." })); return; }
-    seeBox.replaceChildren(seeBox.firstChild, el("p", { class: "small muted", text: "Les lieux les plus connus près du centre (Wikipédia) :" }), ...pgs.map(p => el("a", { class: "item", href: "https://fr.wikipedia.org/wiki/" + E((p.title || "").replace(/ /g, "_")), target: "_blank", rel: "noopener", style: "display:flex;gap:10px;align-items:center;text-decoration:none;color:inherit;margin-top:6px" },
-      p.thumbnail ? el("img", { src: p.thumbnail.source, alt: "", width: 56, height: 56, style: "object-fit:cover;border-radius:10px;flex:none" }) : el("span", { text: "📍" }),
-      el("span", { class: "small" }, el("strong", { text: p.title }), el("br"), guideCut(p.extract || "", 110)))));
+    // Site officiel (Wikidata, propriété « site web officiel ») : le vrai lien quand il existe, sinon une recherche de billets déjà remplie
+    const sites = {}, linkSlots = {};
+    const rows = pgs.map(p => { const slot = el("div", { class: "small", style: "margin:2px 0 0 66px" }); linkSlots[p.pageprops && p.pageprops.wikibase_item || p.title] = [slot, p];
+      slot.append(el("a", { href: `https://www.getyourguide.fr/s/?q=${E(p.title + " " + city)}`, target: "_blank", rel: "noopener", text: "🎟️ Billets et visites" }));
+      return el("div", { class: "item", style: "margin-top:6px" },
+        el("a", { href: "https://fr.wikipedia.org/wiki/" + E((p.title || "").replace(/ /g, "_")), target: "_blank", rel: "noopener", style: "display:flex;gap:10px;align-items:center;text-decoration:none;color:inherit" },
+          p.thumbnail ? el("img", { src: p.thumbnail.source, alt: "", width: 56, height: 56, style: "object-fit:cover;border-radius:10px;flex:none" }) : el("span", { text: "📍" }),
+          el("span", { class: "small" }, el("strong", { text: p.title }), el("br"), guideCut(p.extract || "", 110))), slot); });
+    seeBox.replaceChildren(seeBox.firstChild, el("p", { class: "small muted", text: "Les lieux les plus connus près du centre (Wikipédia). Touche un lieu pour le lire, ou un lien pour réserver :" }), ...rows);
+    const ids = Object.keys(linkSlots).filter(k => /^Q\d+$/.test(k));
+    if (ids.length) { const d = await getJSON(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids.join("%7C")}&props=claims&format=json&origin=*`, 15000);
+      for (const id of ids) { const c = d.entities && d.entities[id] && d.entities[id].claims, u = c && c.P856 && c.P856[0] && c.P856[0].mainsnak && c.P856[0].mainsnak.datavalue && c.P856[0].mainsnak.datavalue.value;
+        if (u && /^https?:\/\//.test(u)) linkSlots[id][0].prepend(el("a", { href: u, target: "_blank", rel: "noopener", text: "🌐 Site officiel" }), " · "); } }
+  });
+  safe2(async () => {
+    // Société de transports en commun : lue sur OpenStreetMap (réseau et site web des lignes de bus, tram, métro de la ville)
+    const o = await getJSON("https://overpass-api.de/api/interpreter?data=" + E(`[out:json][timeout:25];rel(around:3000,${lat},${lon})[type=route][route~"^(bus|tram|subway|trolleybus)$"];out tags 60;`), 30000);
+    const cnt = {}; for (const r of o.elements || []) { const t = r.tags || {}, nm = t.network || t.operator; if (!nm) continue; const k = nm; cnt[k] = cnt[k] || { n: 0, web: "" }; cnt[k].n++; cnt[k].web = cnt[k].web || t.website || t["contact:website"] || t["operator:website"] || ""; }
+    const best = Object.entries(cnt).sort((a, b) => b[1].n - a[1].n)[0];
+    const links = [L(`https://www.google.com/maps/dir/?api=1&destination=${E(city)}&travelmode=transit`, "🚌", "Bus, tram, métro sur la carte")];
+    if (best) { const web = /^https?:\/\//.test(best[1].web) ? best[1].web : `https://www.google.com/search?q=${E(best[0] + " " + city + " horaires billets")}`; links.unshift(L(web, "🎫", `${best[0]} : horaires et billets` + (/^https?:\/\//.test(best[1].web) ? "" : " (recherche)"))); }
+    go.append(el("div", { class: "label", style: "margin-top:12px", text: "🚌 Transports sur place" }), el("div", { class: "grid2" }, ...links));
   });
   safe2(async () => {
     const A = (r, f) => `nwr(around:${r},${lat},${lon})${f};`;
