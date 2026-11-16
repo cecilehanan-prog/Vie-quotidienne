@@ -970,6 +970,14 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
         <button class="btn primary" type="submit">Préparer</button>
       </form>
       <div class="tabs" id="guide-recent"></div>
+      <details id="guide-prefs" style="margin-top:8px">
+        <summary>🎯 Mes goûts de voyage</summary>
+        <p class="small muted">La fiche s'adapte à tes goûts, et garde de côté ce que tu n'aimes pas. Sépare par des virgules.</p>
+        <label class="small">🚫 Je n'aime pas<input type="text" id="pref-no" aria-label="Je n'aime pas"></label>
+        <label class="small">💜 J'aime<input type="text" id="pref-yes" aria-label="J'aime"></label>
+        <button class="btn primary" type="button" id="pref-save" style="margin-top:6px">✅ Enregistrer mes goûts</button>
+        <p class="small" id="pref-msg" role="status"></p>
+      </details>
       <div id="guide-body"></div>
     </article>
     <article class="card" data-sec="trip">
@@ -2319,6 +2327,16 @@ const GUIDE_SECTIONS = [
 ];
 const GMOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 let guideRecent = store.get("guideCities", []);
+/* Goûts de CéHa (16/11), gardés pour toutes ses visites : pas d'alcool, de viande, de poisson ni de tabac ; elle aime l'architecture islamique, le soufisme, les marchés, les bons repas… */
+const PREFS_DEF = { no: "alcool, viande, poisson, cigarette", yes: "architecture islamique, soufisme, marchés, bon repas, belle vue, musique, jolies rues, poésie, farniente, spa" };
+let guidePrefs = Object.assign({}, PREFS_DEF, store.get("voyagePrefs", {}));
+const prefList = t => (t || "").split(",").map(x => x.trim()).filter(Boolean);
+const LOVE_Q = [[/islam|mosqu/i, "mosquée médersa architecture islamique", "🕌"], [/sou?fi/i, "soufisme zaouïa confrérie soufie", "🌀"], [/march|souk|bazar/i, "marché souk", "🧺"],
+  [/repas|resto|cuisine|manger/i, "restaurant végétarien halal sans alcool", "🍽️"], [/vue|panoram/i, "point de vue panorama", "🌅"], [/musique|concert/i, "concert musique live", "🎶"],
+  [/rue|ruelle|quartier|vieille ville|m[ée]dina/i, "vieille ville ruelles pittoresques", "🏘️"], [/po[ée]sie|litt[ée]r/i, "poésie librairie lieu littéraire", "📜"],
+  [/farniente|plage|d[ée]tente/i, "plage jardin détente", "🏖️"], [/spa|hammam|bain/i, "hammam spa", "🧖"], [/jardin|parc/i, "jardin parc", "🌿"]];
+const loveQuery = it => { const m = LOVE_Q.find(([re]) => re.test(it)); return m ? [m[1], m[2]] : [it, "💜"]; };
+const FORYOU_RE = /mosqu|médersa|madrasa|soufi|zaou|souk|marché|bazar|panoram|\bvue\b|belvédère|hammam|\bspa\b|jardin|poés|musique|concert|ruelle|vieille ville|médina|coucher de soleil|calligraph|mausolée|minaret|palais/i;
 function guideSections(txt) {
   const parts = (txt || "").split(/\n==\s*([^=\n]+?)\s*==\s*\n/); const out = { intro: (parts[0] || "").trim() };
   for (let i = 1; i < parts.length; i += 2) out[parts[i].trim()] = ("\n" + (parts[i + 1] || "")).replace(/\n=== ([^=\n]+) ===\n/g, "\n• $1\n").trim();
@@ -2368,11 +2386,14 @@ async function loadGuide(name) {
       L(`https://www.blablacar.fr/search?fn=Tarare&tn=${E(city)}`, "🤝", "Covoiturage (BlaBlaCar)")));
   const stay = sec("🛏️ Dormir et manger pas cher",
     el("div", { class: "grid2" }, L(`https://www.booking.com/searchresults.fr.html?ss=${E(city)}&order=price`, "🏨", "Hôtels, du moins cher (Booking)"), L(`https://www.hostelworld.com/s?q=${E(city)}`, "🛌", "Auberges de jeunesse"),
-      L(`https://www.airbnb.fr/s/${E(city)}/homes`, "🏠", "Locations (Airbnb)"), L(`https://www.google.com/maps/search/${E("restaurants pas chers " + city)}`, "🍜", "Restos pas chers (Maps)"),
+      L(`https://www.airbnb.fr/s/${E(city)}/homes`, "🏠", "Locations (Airbnb)"), L(`https://www.google.com/maps/search/${E("restaurants végétariens pas chers " + city)}`, "🍜", "Restos végétariens pas chers (Maps)"), L(`https://www.booking.com/searchresults.fr.html?ss=${E(city)}&order=price&nflt=hotelfacility%3D54`, "🧖", "Hôtels avec spa, du moins cher"),
       L(`https://www.thefork.fr/search?cityId=&queryText=${E(city)}`, "🍴", "Réserver un resto (TheFork)"), L(`https://www.getyourguide.fr/s/?q=${E(city)}`, "🎟️", "Visites et billets")));
   const safe = sec("🛡️ Infos importantes", el("div", { class: "grid2" }, L("https://www.diplomatie.gouv.fr/fr/conseils-aux-voyageurs/conseils-par-pays-destination/", "🇫🇷", "Conseils aux voyageurs (État)"),
     L(`https://fr.wikivoyage.org/wiki/Special:Search?search=${E(city)}`, "📚", "Guide complet (Wikivoyage)")));
-  box.append(monthsBox, seeBox, wvBox, mapBox, go, stay, lodgeBox, safe,
+  const forYouList = el("div"), forYouWv = el("div"), forYou = sec("💜 Pour toi", el("p", { class: "small muted", text: `Choisi selon tes goûts, sans ${prefList(guidePrefs.no).join(", ") || "rien à éviter"}.` }),
+    el("div", { class: "tabs" }, ...prefList(guidePrefs.yes).map(it => { const [q, e] = loveQuery(it); return el("a", { class: "btn", href: `https://www.google.com/maps/search/${E(q + " " + city)}`, target: "_blank", rel: "noopener", text: `${e} ${it}` }); }),
+      el("a", { class: "btn", href: `https://www.happycow.net/searchmap?s=3&location=${E(city)}`, target: "_blank", rel: "noopener", text: "🥗 Restos végétariens (HappyCow)" })), forYouWv, forYouList);
+  box.append(monthsBox, forYou, seeBox, wvBox, mapBox, go, stay, lodgeBox, safe,
     el("p", { class: "small muted", style: "margin-top:12px", text: "ℹ️ En direct : la météo, le plan et les adresses. Les prix des vols, trains et hôtels se lisent en direct sur les sites qui s'ouvrent (je ne peux pas les afficher ici sans abonnement). Les guides viennent de Wikivoyage et Wikipédia, écrits par des voyageurs." }));
   body.replaceChildren(box);
   const safe2 = fn => fn().catch(() => {});
@@ -2398,6 +2419,8 @@ async function loadGuide(name) {
     const pg = Object.values((w.query && w.query.pages) || {})[0]; if (!pg || !pg.extract) return;
     const S = guideSections(pg.extract), link = "https://fr.wikivoyage.org/wiki/" + E((pg.title || city).replace(/ /g, "_"));
     const used = [];
+    const hl = []; for (const k of Object.keys(S)) { if (!/^(voir|faire|manger|se restaurer|se loger|comprendre|se déplacer)/i.test(k)) continue; for (const ln of S[k].split("\n")) { const t = ln.replace(/^[•\s]+/, "").trim(); if (t.length > 25 && FORYOU_RE.test(t) && !/alcool|bi[èe]re|\bvin\b|viande|poisson|cigar/i.test(t) && hl.length < 8) hl.push(t); } }
+    if (hl.length) forYouWv.append(el("p", { class: "small", style: "margin-top:8px", text: "⭐ Dans le guide, ça devrait te plaire :" }), ...hl.map(t => el("p", { class: "small", style: "margin:4px 0", text: "• " + guideCut(t, 200) })));
     if (S.intro) wvBox.append(el("p", { class: "small", style: "margin-top:12px;white-space:pre-line", text: guideCut(S.intro, 700) }));
     for (const [k, title, re] of GUIDE_SECTIONS) { const key = Object.keys(S).find(x => x !== "intro" && !used.includes(x) && re.test(x)); if (key && S[key].length > 30) { used.push(key); wvBox.append(guideDetails(title, S[key], link, k === "Voir")); } }
   });
@@ -2410,6 +2433,20 @@ async function loadGuide(name) {
       el("span", { class: "small" }, el("strong", { text: p.title }), el("br"), guideCut(p.extract || "", 110)))));
   });
   safe2(async () => {
+    const A = (r, f) => `nwr(around:${r},${lat},${lon})${f};`;
+    const q = `[out:json][timeout:25];(${A(4000, '[amenity=restaurant]["diet:vegetarian"~"^(yes|only)$"][name]')}${A(4000, '[amenity=restaurant]["diet:vegan"~"^(yes|only)$"][name]')}${A(6000, "[amenity=public_bath][name]")}${A(6000, "[leisure=spa][name]")}${A(6000, "[amenity=spa][name]")}${A(5000, "[amenity=marketplace][name]")}${A(6000, "[tourism=viewpoint][name]")}${A(5000, "[amenity=place_of_worship][religion=muslim][name]")}${A(5000, "[amenity=music_venue][name]")});out center 150;`;
+    const o = await getJSON("https://overpass-api.de/api/interpreter?data=" + E(q), 30000);
+    const T = x => x.tags || {}, seen = new Set(), cat = { resto: [], spa: [], marche: [], vue: [], mosq: [], music: [] };
+    for (const x of o.elements || []) { const t = T(x), nm = t.name; if (!nm || seen.has(nm)) continue; seen.add(nm);
+      if (t.amenity === "restaurant") cat.resto.push([nm, (t["diet:vegetarian"] === "only" || t["diet:vegan"] === "only") ? "🥗" : "🌱"]);
+      else if (t.amenity === "public_bath" || t.leisure === "spa" || t.amenity === "spa") cat.spa.push([nm, "🧖"]);
+      else if (t.amenity === "marketplace") cat.marche.push([nm, "🧺"]); else if (t.tourism === "viewpoint") cat.vue.push([nm, "🌅"]);
+      else if (t.amenity === "place_of_worship") cat.mosq.push([nm, "🕌"]); else if (t.amenity === "music_venue") cat.music.push([nm, "🎶"]); }
+    cat.resto.sort((a, b) => (a[1] === "🥗" ? 0 : 1) - (b[1] === "🥗" ? 0 : 1));
+    const part = (title, arr) => arr.length ? [el("div", { class: "small", style: "margin-top:8px;font-weight:700", text: title }), ...arr.slice(0, 5).map(([n, e]) => el("a", { class: "item", href: `https://www.google.com/maps/search/?api=1&query=${E(n + " " + city)}`, target: "_blank", rel: "noopener", style: "display:block;text-decoration:none;color:inherit;margin-top:4px", text: `${e} ${n}` }))] : [];
+    forYouList.replaceChildren(...part("🍽️ Repas végétariens (🥗 tout végétarien, 🌱 propose du végétarien : à vérifier sur place)", cat.resto), ...part("🧖 Spas et hammams", cat.spa), ...part("🧺 Marchés", cat.marche), ...part("🌅 Belles vues", cat.vue), ...part("🕌 Mosquées et lieux de prière", cat.mosq), ...part("🎶 Musique", cat.music));
+  });
+  safe2(async () => {
     const q = `[out:json][timeout:20];nwr(around:3500,${lat},${lon})[tourism~"^(hostel|guest_house|motel)$"][name];out center 12;`;
     const o = await getJSON("https://overpass-api.de/api/interpreter?data=" + E(q), 25000);
     const els = (o.elements || []).filter(x => x.tags && x.tags.name).slice(0, 8);
@@ -2419,6 +2456,8 @@ async function loadGuide(name) {
 }
 const drawGuideRecent = () => { const b = $("#guide-recent"); if (b) b.replaceChildren(...guideRecent.map(c => el("button", { class: "btn", type: "button", text: c, onclick: () => { $("#guide-q").value = c; loadGuide(c); } }))); };
 drawGuideRecent();
+$("#pref-no").value = guidePrefs.no; $("#pref-yes").value = guidePrefs.yes;
+$("#pref-save").addEventListener("click", () => { guidePrefs = { no: $("#pref-no").value.trim(), yes: $("#pref-yes").value.trim() }; store.set("voyagePrefs", guidePrefs); $("#pref-msg").textContent = "✅ Goûts enregistrés : ils serviront pour toutes tes prochaines villes."; });
 $("#guide-form").addEventListener("submit", e => { e.preventDefault(); loadGuide($("#guide-q").value); });
 if (window.SpeechRecognition || window.webkitSpeechRecognition) { const gm = $("#guide-mic"); gm.hidden = false; gm.addEventListener("click", () => dictate(gm, t => { t = t.trim().replace(/[.!?]+$/, "").replace(/^(?:visiter|visite de|visite|voyage à|voyage en|à|au|en)\s+/i, ""); $("#guide-q").value = t; loadGuide(t); })); }
 /* ----- trajet calculé par l'appli ----- */
