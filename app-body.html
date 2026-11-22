@@ -1099,10 +1099,11 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       <p class="small muted" id="myrec-msg">Prends une photo ou choisis une capture : je lis le texte et je remplis la fiche. Tu vérifies, puis tu ranges.</p>
       <div class="row"><button class="btn" type="button" id="book-export">💾 Exporter mon livre de recettes</button><button class="btn" type="button" id="book-import">📥 Restaurer</button><input type="file" id="book-file" accept=".json,application/json" hidden></div>
       <div class="row"><button class="btn primary" type="button" id="book-find">🔎 Retrouver mes recettes perdues</button></div>
+      <details id="hidden-box" hidden><summary class="small">🙈 Idées écartées (<span id="hidden-n">0</span>)</summary><div id="hidden-list" style="display:grid;gap:6px;margin-top:6px"></div></details>
       <p class="small muted" id="book-msg">Toutes tes recettes sont gardées sur ton appareil et dans ton compte. L'export est un fichier de secours en plus.</p>
       <form id="myrec-form" style="display:grid;gap:8px">
         <input type="text" id="myrec-name" placeholder="Nom (ex. Tajine de légumes)" required aria-label="Nom de la recette" autocomplete="off">
-        <label class="small">📂 Rubrique <select id="myrec-cat" aria-label="Rubrique"><option value="entree">🥗 Entrée</option><option value="plat">🍽️ Plat principal</option><option value="dessert">🍰 Dessert</option><option value="boisson">🥤 Boisson</option><option value="fete">🎉 Repas de fête</option><option value="ramadan">🌙 Repas du ramadan</option><option value="pain">🍞 Pain</option></select></label>
+        <label class="small">📂 Rubrique <select id="myrec-cat" aria-label="Rubrique"><option value="entree">🥗 Entrée</option><option value="plat">🍽️ Plat principal</option><option value="dessert">🍰 Dessert</option><option value="boisson">🥤 Boisson</option><option value="fete">🎉 Repas de fête</option><option value="ramadan">🌙 Repas du ramadan</option><option value="pain">🍞 Pain</option><option value="healthy">🌿 Sans gluten / Healthy</option></select></label>
         <div class="row small" id="myrec-appl" role="group" aria-label="Appareils">🔧 <label><input type="checkbox" value="mp"> 🍞 Machine à pain</label><label><input type="checkbox" value="af"> 🍟 Air fryer</label><label><input type="checkbox" value="fo"> 🔥 Four</label><label><input type="checkbox" value="pl"> 🍳 Plaque</label><label><input type="checkbox" value="ro"> 🥣 Robot</label><label><input type="checkbox" value="ba"> 🌀 Batteur</label></div>
         <div class="row"><label class="small">⏱️ Préparation <input type="number" id="myrec-min" min="0" max="600" inputmode="numeric" placeholder="min" style="width:80px" aria-label="Minutes de préparation"></label>
           <label class="small">🎚️ <select id="myrec-diff" aria-label="Difficulté"><option value="">Difficulté : plus tard</option><option>Facile</option><option>Moyen</option><option>Difficile</option></select></label>
@@ -3064,10 +3065,20 @@ const RECIPES = [
   ["🌾", "Pain complet aux graines (machine à pain)", 200, [["Farine complète", 300, "g"], ["Farine de blé", 200, "g"], ["Eau tiède", 33, "cl"], ["Graines (tournesol, lin)", 60, "g"], ["Levure de boulanger", 1, "sachet"], ["Sel", 1, "c. à café"]], ["Mettre eau, farines, sel, levure dans la cuve.", "Ajouter les graines au bip du programme « complet ».", "Laisser refroidir."]],
   ["🥐", "Brioche (machine à pain)", 190, [["Farine de blé", 500, "g"], ["Lait tiède", 12, "cl"], ["Œufs", 3, ""], ["Beurre mou", 80, "g"], ["Sucre", 60, "g"], ["Levure de boulanger", 1, "sachet"]], ["Tout mettre dans la cuve : œufs, lait, beurre, farine, sucre, levure.", "Choisir le programme « brioche ».", "Laisser tiédir avant de couper."]],
   ["🫒", "Pain aux olives (machine à pain)", 190, [["Farine de blé", 500, "g"], ["Eau tiède", 33, "cl"], ["Olives noires dénoyautées", 100, "g"], ["Huile d'olive", 2, "c. à soupe"], ["Levure de boulanger", 1, "sachet"], ["Sel", 1, "c. à café"]], ["Mettre eau, huile, farine, sel et levure dans la cuve.", "Ajouter les olives au bip du programme « pain ».", "Laisser refroidir."]],
+  ["🥗", "Bowl quinoa et légumes rôtis", 30, [["Quinoa", 200, "g"], ["Courgette", 1, ""], ["Poivron", 1, ""], ["Pois chiches", 1, "boîte"], ["Huile d'olive", 2, "c. à soupe"], ["Citron", 1, ""]], ["Four à 200 °C. Couper les légumes en dés, les mélanger à l'huile et aux pois chiches égouttés.", "Enfourner 20 min.", "Cuire le quinoa 12 min dans l'eau salée, égoutter.", "Servir en bol avec un filet de citron."]],
+  ["🍲", "Soupe de lentilles corail et coco", 25, [["Lentilles corail", 200, "g"], ["Lait de coco", 40, "cl"], ["Oignon", 1, ""], ["Carotte", 2, ""], ["Curcuma", 1, "c. à café"], ["Bouillon de légumes sans gluten", 75, "cl"]], ["Faire revenir l'oignon et les carottes en dés 5 min.", "Ajouter lentilles, curcuma et bouillon, cuire 15 min.", "Verser le lait de coco, mixer, saler et poivrer."]],
+  ["🍳", "Omelette épinards et feta", 15, [["Œufs", 6, ""], ["Épinards frais", 150, "g"], ["Feta", 100, "g"], ["Huile d'olive", 1, "c. à soupe"]], ["Faire tomber les épinards 3 min à la poêle huilée.", "Battre les œufs, saler, poivrer, verser sur les épinards.", "Parsemer de feta émiettée, cuire 5 min à feu doux, plier."]],
+  ["🍣", "Sushis maki végétariens", 35, [["Riz à sushi", 300, "g"], ["Feuilles de nori", 6, ""], ["Avocat", 2, ""], ["Concombre", 1, ""], ["Vinaigre de riz", 4, "c. à soupe"], ["Sauce soja sans gluten (tamari)", 4, "c. à soupe"]], ["Cuire le riz, l'assaisonner avec le vinaigre de riz et laisser tiédir.", "Étaler le riz sur le nori, ajouter avocat et concombre en bâtonnets.", "Rouler serré, couper en rondelles, servir avec le tamari."]],
+  ["🥞", "Galettes de sarrasin champignons fromage", 25, [["Farine de sarrasin", 250, "g"], ["Eau", 50, "cl"], ["Œufs", 4, ""], ["Champignons", 250, "g"], ["Gruyère râpé", 120, "g"], ["Beurre", 30, "g"]], ["Mélanger farine, eau et une pincée de sel, laisser reposer 10 min.", "Cuire de fines galettes à la poêle beurrée.", "Garnir de champignons poêlés, œuf et fromage, plier en carré."]],
+  ["🍚", "Salade de riz, avocat et edamame", 15, [["Riz complet cuit", 300, "g"], ["Avocat", 2, ""], ["Edamame", 150, "g"], ["Concombre", 1, ""], ["Graines de sésame", 2, "c. à soupe"], ["Sauce soja sans gluten (tamari)", 2, "c. à soupe"], ["Citron vert", 1, ""]], ["Cuire les edamame 4 min à l'eau bouillante, égoutter.", "Mélanger riz, edamame, concombre et avocat en dés.", "Assaisonner avec tamari et citron vert, parsemer de sésame."]],
+  ["🥭", "Pudding de chia à la mangue", 10, [["Graines de chia", 6, "c. à soupe"], ["Lait d'amande", 40, "cl"], ["Mangue", 1, ""], ["Sirop d'érable", 1, "c. à soupe"]], ["Mélanger chia, lait et sirop, laisser gonfler 10 min en remuant une fois (idéal : la veille).", "Mixer la mangue en purée.", "Servir en verrines : pudding puis purée."]],
+  ["🍌", "Pancakes banane et œuf", 10, [["Bananes mûres", 2, ""], ["Œufs", 4, ""], ["Cannelle", 1, "c. à café"], ["Huile de coco", 1, "c. à soupe"]], ["Écraser les bananes, ajouter les œufs et la cannelle, bien mélanger.", "Cuire de petits pancakes 2 min par face dans la poêle huilée."]],
+  ["🧆", "Houmous maison et bâtonnets de légumes", 10, [["Pois chiches", 1, "boîte"], ["Tahin (purée de sésame)", 2, "c. à soupe"], ["Citron", 1, ""], ["Ail", 1, "gousse"], ["Huile d'olive", 3, "c. à soupe"], ["Carottes", 3, ""], ["Concombre", 1, ""]], ["Mixer pois chiches égouttés, tahin, citron, ail, huile et un peu d'eau.", "Couper carottes et concombre en bâtonnets.", "Servir en trempette."]],
+  ["🥘", "Poêlée courgettes et pois chiches au cumin", 20, [["Courgettes", 3, ""], ["Pois chiches", 1, "boîte"], ["Cumin", 1, "c. à café"], ["Huile d'olive", 2, "c. à soupe"], ["Menthe fraîche", 1, "bouquet"], ["Yaourt nature", 2, ""]], ["Faire dorer les courgettes en rondelles 8 min à la poêle huilée.", "Ajouter pois chiches et cumin, cuire 5 min.", "Servir avec yaourt et menthe ciselée."]],
 ];
 /* Recettes de saison : chaque recette a ses saisons (aut = automne, hiv, pri, ete). Sans étiquette = toute l'année. Les suggestions changent toutes seules avec le mois. */
-const SEASON_TAGS = { 0: "ete", 2: "aut hiv", 6: "aut hiv", 7: "aut hiv", 9: "ete", 11: "aut hiv pri", 12: "hiv", 15: "aut hiv", 16: "aut hiv", 18: "aut hiv", 19: "aut", 20: "aut hiv", 21: "aut hiv", 22: "aut hiv", 23: "aut hiv", 24: "pri", 25: "pri ete", 26: "pri", 27: "pri", 28: "ete", 29: "ete", 30: "ete", 31: "ete", 32: "aut hiv", 33: "aut hiv", 36: "pri ete", 37: "ete", 39: "aut hiv", 40: "hiv", 43: "aut hiv", 44: "ete", 45: "ete", 46: "aut hiv", 47: "ete", 48: "ete", 49: "aut hiv", 50: "pri ete", 51: "aut hiv", 52: "hiv", 57: "aut hiv", 68: "aut hiv", 69: "aut hiv" };
-const CATS = [["fav", "❤️", "Préférées"], ["entree", "🥗", "Entrées"], ["plat", "🍽️", "Plats"], ["dessert", "🍰", "Desserts"], ["boisson", "🥤", "Boissons"], ["fete", "🎉", "Fête"], ["ramadan", "🌙", "Ramadan"], ["pain", "🍞", "Pains"]];
+const SEASON_TAGS = { 0: "ete", 2: "aut hiv", 6: "aut hiv", 7: "aut hiv", 9: "ete", 11: "aut hiv pri", 12: "hiv", 15: "aut hiv", 16: "aut hiv", 18: "aut hiv", 19: "aut", 20: "aut hiv", 21: "aut hiv", 22: "aut hiv", 23: "aut hiv", 24: "pri", 25: "pri ete", 26: "pri", 27: "pri", 28: "ete", 29: "ete", 30: "ete", 31: "ete", 32: "aut hiv", 33: "aut hiv", 36: "pri ete", 37: "ete", 39: "aut hiv", 40: "hiv", 43: "aut hiv", 44: "ete", 45: "ete", 46: "aut hiv", 47: "ete", 48: "ete", 49: "aut hiv", 50: "pri ete", 51: "aut hiv", 52: "hiv", 57: "aut hiv", 68: "aut hiv", 69: "aut hiv", 77: "aut hiv", 82: "ete", 81: "pri ete" };
+const CATS = [["fav", "❤️", "Préférées"], ["entree", "🥗", "Entrées"], ["plat", "🍽️", "Plats"], ["dessert", "🍰", "Desserts"], ["boisson", "🥤", "Boissons"], ["fete", "🎉", "Fête"], ["ramadan", "🌙", "Ramadan"], ["pain", "🍞", "Pains"], ["healthy", "🌿", "Healthy"]];
 const RCAT = {}; const setCat = (c, ...ix) => ix.forEach(i => { RCAT[i] = c; });
 setCat("entree", 7, 15, 20, 23, 25, 26, 27, 28, 30, 41, 42, 43, 44, 45, 46);
 setCat("dessert", 32, 33, 34, 35, 36, 37, 38, 39, 40);
@@ -3076,9 +3087,10 @@ setCat("fete", 53, 54, 55, 56, 57);
 setCat("ramadan", 58, 59, 60, 61, 62);
 setCat("pain", 63, 64, 65, 66, 67, 72, 73, 74, 75);
 setCat("entree", 70, 71);
+setCat("healthy", 76, 77, 78, 79, 80, 81, 82, 83, 84, 85);
 /* Matériel de Hanan : machine à pain, air fryer, four, plaque, robot mélangeur (ne cuit pas), batteur électrique. Recettes rapides de préférence. */
 const APPL = { mp: "🍞 Machine à pain", af: "🍟 Air fryer", fo: "🔥 Four", pl: "🍳 Plaque", ro: "🥣 Robot", ba: "🌀 Batteur" };
-const RAPPL = { 0: "pl", 1: "pl", 2: "pl", 3: "pl", 5: "fo", 6: "pl ro", 7: "pl", 8: "pl", 9: "fo", 10: "pl", 11: "fo", 12: "fo", 13: "fo", 14: "af fo", 15: "pl", 16: "fo pl", 17: "af", 18: "fo", 19: "pl", 20: "pl", 21: "fo", 22: "pl", 24: "pl", 26: "pl", 29: "pl", 31: "fo af", 32: "pl", 33: "fo af", 34: "ro fo", 35: "ba", 37: "ro fo", 38: "ro pl", 39: "pl", 41: "ro", 43: "pl", 49: "pl", 51: "pl", 52: "pl", 53: "pl", 54: "pl", 55: "fo af", 56: "ba fo", 57: "fo", 58: "pl", 59: "pl af", 60: "pl", 63: "mp", 64: "mp", 65: "pl ro", 66: "fo ro", 67: "fo ro", 68: "af", 69: "af", 70: "af", 71: "af", 72: "mp", 73: "mp", 74: "mp", 75: "mp" };
+const RAPPL = { 0: "pl", 1: "pl", 2: "pl", 3: "pl", 5: "fo", 6: "pl ro", 7: "pl", 8: "pl", 9: "fo", 10: "pl", 11: "fo", 12: "fo", 13: "fo", 14: "af fo", 15: "pl", 16: "fo pl", 17: "af", 18: "fo", 19: "pl", 20: "pl", 21: "fo", 22: "pl", 24: "pl", 26: "pl", 29: "pl", 31: "fo af", 32: "pl", 33: "fo af", 34: "ro fo", 35: "ba", 37: "ro fo", 38: "ro pl", 39: "pl", 41: "ro", 43: "pl", 49: "pl", 51: "pl", 52: "pl", 53: "pl", 54: "pl", 55: "fo af", 56: "ba fo", 57: "fo", 58: "pl", 59: "pl af", 60: "pl", 63: "mp", 64: "mp", 65: "pl ro", 66: "fo ro", 67: "fo ro", 68: "af", 69: "af", 70: "af", 71: "af", 72: "mp", 73: "mp", 74: "mp", 75: "mp", 76: "fo", 77: "pl ro", 78: "pl", 79: "pl", 80: "pl", 81: "pl", 83: "pl", 84: "ro", 85: "pl" };
 const applOf = k => typeof k === "number" ? (RAPPL[k] || "").split(" ").filter(Boolean) : (((myRecipes.find(x => "m:" + x.id === k) || {}).a) || []);
 const catOf = k => typeof k === "number" ? (RCAT[k] || "plat") : ((myRecipes.find(x => "m:" + x.id === k) || {}).c || "plat");
 const seasonOf = (d = new Date()) => { const m = d.getMonth() + 1; return m === 12 || m <= 2 ? "hiv" : m <= 5 ? "pri" : m <= 8 ? "ete" : "aut"; };
@@ -3086,18 +3098,18 @@ const SEASON_NAME = { hiv: "d'hiver", pri: "de printemps", ete: "d'été", aut: 
 const inSeason = (i, sea) => !SEASON_TAGS[i] || SEASON_TAGS[i].split(" ").includes(sea);
 const shuf = a => [...a].sort(() => Math.random() - .5);
 const pickCat = cat => {
-  const sea = seasonOf(), all = [...RECIPES.keys()].filter(i => (RCAT[i] || "plat") === cat && inSeason(i, sea));
+  const sea = seasonOf(), all = [...RECIPES.keys()].filter(i => (RCAT[i] || "plat") === cat && inSeason(i, sea) && !recipeHidden.includes(i));
   const quick = a => shuf(a).sort((x, y) => (RECIPES[x][2] > 45) - (RECIPES[y][2] > 45));
   return [...quick(all.filter(i => SEASON_TAGS[i])), ...quick(all.filter(i => !SEASON_TAGS[i]))].slice(0, 6);
 };
 let mealPeople = store.get("mealPeople", 4), mealPick = store.get("mealCook", []), mealShown = store.get("mealSeasonShown2", null), mealCat = store.get("mealCat", "fav");
-let mealFav = store.get("mealFav", []), myRecipes = store.get("myRecipes", []);
+let mealFav = store.get("mealFav", []), myRecipes = store.get("myRecipes", []), recipeHidden = store.get("recipeHidden", []);
 const monthKey = () => { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1); };
 if (!mealShown || mealShown.k !== monthKey()) { mealShown = { k: monthKey() }; }
 const shownFor = cat => { if (!mealShown[cat]) { mealShown[cat] = pickCat(cat); store.set("mealSeasonShown2", mealShown); } return mealShown[cat]; };
 // Une recette : un numéro (idées toutes faites) ou "m:<id>" (mes recettes à moi)
 const recipeOf = k => { if (typeof k === "number") return RECIPES[k]; const r = myRecipes.find(x => "m:" + x.id === k); return r && [r.e, r.n, r.m, r.ing, r.steps, r.people || 4, r.d || ""]; };
-const favKeys = () => [...myRecipes.map(r => "m:" + r.id), ...mealFav.filter(k => recipeOf(k))];
+const favKeys = () => [...myRecipes.map(r => "m:" + r.id), ...mealFav.filter(k => recipeOf(k) && !recipeHidden.includes(k))];
 /* ----- Recettes : lecture d'une ligne d'ingrédient, et d'un texte de recette (photo / capture) ----- */
 const ING_UNITS = "kg|g|mg|cl|ml|dl|l|litres?|c\\.?\\s*à\\s*s(?:oupe)?\\.?|c\\.?\\s*à\\s*c(?:af[ée])?\\.?|cuill[èe]res?(?:\\s+à\\s+(?:soupe|caf[ée]))?|càs|càc|cs|cc|sachets?|pinc[ée]es?|tranches?|gousses?|bo[iî]tes?|pots?|verres?|tasses?|brins?|feuilles?|bouquets?|morceaux?|paquets?";
 const ING_A = new RegExp("^(\\d+(?:[.,]\\d+)?(?:\\s*\\/\\s*\\d+)?)\\s*(" + ING_UNITS + ")?(?![a-zà-ÿ0-9])\\.?\\s*(?:(?:de|du|des|d')\\s*)?(.+)$", "i");
@@ -3211,7 +3223,7 @@ function recipeFiche(key) {
   const chip = (txt, on, fn, extra) => el("button", { class: "chip" + (on ? " on" : ""), type: "button", text: txt, onclick: fn, ...(extra || {}) });
   const meta = k2 => { recipeMeta[key] = Object.assign({}, recipeMeta[key], k2); saveMeta(); renderMeals(); };
   return el("details", { class: "fiche", open: ficheOpen === key, ontoggle: ev => { const d = ev.target; if (d.open) { ficheOpen = key; document.querySelectorAll("#view-recettes details.fiche[open]").forEach(o => { if (o !== d) o.open = false; }); } else if (ficheOpen === key) ficheOpen = null; } },
-    el("summary", { class: "fiche-h" }, el("button", { class: "cook", type: "button", "aria-label": "À cuisiner : " + n, "aria-pressed": String(mealPick.includes(key)), text: mealPick.includes(key) ? "✅" : "☐", onclick: ev => { ev.preventDefault(); ev.stopPropagation(); mealPick = mealPick.includes(key) ? mealPick.filter(x => x !== key) : [...mealPick, key]; store.set("mealCook", mealPick); renderMeals(); renderTiles(); } }), mine ? null : el("button", { class: "cook", type: "button", "aria-label": (fav ? "Retirer des préférées : " : "Garder dans mes préférées : ") + n, "aria-pressed": String(fav), text: fav ? "❤️" : "🤍", onclick: ev => { ev.preventDefault(); ev.stopPropagation(); mealFav = fav ? mealFav.filter(x => x !== key) : [...mealFav, key]; store.set("mealFav", mealFav); renderMeals(); } }), el("span", { class: "big", text: e }), el("h3", { text: n }), el("span", { class: "fiche-sub", text: [mm ? `⏱️ ${mm} min` : "", applOf(key).map(c => (APPL[c] || "").split(" ")[0]).join(""), dd ? DIFF_EMO[dd] : ""].filter(Boolean).join(" ") })),
+    el("summary", { class: "fiche-h" }, el("button", { class: "cook", type: "button", "aria-label": "À cuisiner : " + n, "aria-pressed": String(mealPick.includes(key)), text: mealPick.includes(key) ? "✅" : "☐", onclick: ev => { ev.preventDefault(); ev.stopPropagation(); mealPick = mealPick.includes(key) ? mealPick.filter(x => x !== key) : [...mealPick, key]; store.set("mealCook", mealPick); renderMeals(); renderTiles(); } }), mine ? null : el("button", { class: "cook", type: "button", "aria-label": (fav ? "Retirer des préférées : " : "Garder dans mes préférées : ") + n, "aria-pressed": String(fav), text: fav ? "❤️" : "🤍", onclick: ev => { ev.preventDefault(); ev.stopPropagation(); mealFav = fav ? mealFav.filter(x => x !== key) : [...mealFav, key]; store.set("mealFav", mealFav); renderMeals(); } }), el("span", { class: "big", text: e }), el("h3", { text: n }), mine ? null : el("button", { class: "cook", type: "button", "aria-label": "Écarter cette recette : " + n, text: "✕", style: "font-size:1.2rem;opacity:.6;margin-left:auto", onclick: ev => { ev.preventDefault(); ev.stopPropagation(); hideIdea(key); } }), el("span", { class: "fiche-sub", text: [mm ? `⏱️ ${mm} min` : "", applOf(key).map(c => (APPL[c] || "").split(" ")[0]).join(""), dd ? DIFF_EMO[dd] : ""].filter(Boolean).join(" ") })),
     el("div", { class: "fiche-b" },
       el("div", { class: "fiche-line" }, el("b", { text: "⏱️ Préparation" }), chip(mm ? `${mm} min` : "à noter", !!mm, () => { const v = prompt("Combien de minutes pour préparer ?", mm || ""); if (v === null) return; const x = parseInt(v, 10); meta({ m: x > 0 ? x : 0 }); })),
       applOf(key).length ? el("div", { class: "fiche-line" }, el("b", { text: "🔧 Avec" }), ...applOf(key).map(c => el("span", { class: "chip on", text: APPL[c] || c }))) : null,
@@ -3226,7 +3238,7 @@ function recipeFiche(key) {
       el("div", { class: "row", style: "margin-top:10px" },
         el("button", { class: "btn primary", type: "button", text: `🛒 Dans ma liste (pour ${people})`, onclick: () => { const c = addRecipesToList([key]); $("#meal-msg").replaceChildren(`✅ ${c} ingrédients ajoutés à ta liste de courses `, el("button", { class: "btn", type: "button", "data-goto": "home2", text: "🛒 Voir ma liste" })); $("#meal-msg").scrollIntoView({ block: "center", behavior: "smooth" }); } }),
         el("button", { class: "btn", type: "button", text: "📤 Partager", onclick: () => recipeShare(key) }),
-        mine ? el("button", { class: "btn", type: "button", text: "✏️ Modifier", onclick: () => myrecLoad(key) }) : el("button", { class: "btn", type: "button", text: fav ? "❤️ Dans mes préférées" : "🤍 Garder dans mes préférées", onclick: () => { mealFav = fav ? mealFav.filter(x => x !== key) : [...mealFav, key]; store.set("mealFav", mealFav); renderMeals(); } }),
+        el("button", { class: "btn", type: "button", text: "✏️ Modifier", onclick: () => mine ? myrecLoad(key) : myrecFromIdea(key) }), mine ? null : el("button", { class: "btn", type: "button", text: fav ? "❤️ Dans mes préférées" : "🤍 Garder dans mes préférées", onclick: () => { mealFav = fav ? mealFav.filter(x => x !== key) : [...mealFav, key]; store.set("mealFav", mealFav); renderMeals(); } }),
         mine ? el("button", { class: "btn", type: "button", text: "🗑️", "aria-label": "Supprimer ma recette", onclick: () => { if (!confirm(`Supprimer « ${n} » ?`)) return; myRecipes = myRecipes.filter(x => "m:" + x.id !== key); store.set("myRecipes", myRecipes); renderMeals(); renderTiles(); } }) : null)));
 }
 function mealBtn(k) {
@@ -3242,7 +3254,7 @@ function recipesBackup() {
   } catch (err) {}
 }
 $("#book-export").addEventListener("click", () => {
-  const data = JSON.stringify({ livre: "Mon Quotidien", f: mealFav, r: myRecipes, t: Date.now() }), a = document.createElement("a");
+  const data = JSON.stringify({ livre: "Mon Quotidien", f: mealFav, r: myRecipes, h: recipeHidden, t: Date.now() }), a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([data], { type: "application/json" })); a.download = "mon-livre-de-recettes.json"; document.body.appendChild(a); a.click(); a.remove();
   $("#book-msg").textContent = `✅ Fichier enregistré (${myRecipes.length} recette${myRecipes.length > 1 ? "s" : ""} à toi). Garde-le bien.`;
 });
@@ -3266,13 +3278,18 @@ $("#book-file").addEventListener("change", ev => {
     const d = JSON.parse(rd.result); let n = 0;
     (d.r || []).forEach(x => { if (x && x.id && !myRecipes.some(y => y.id === x.id)) { myRecipes.push(x); n++; } });
     (d.f || []).forEach(k => { if (!mealFav.includes(k)) mealFav.push(k); });
+    (d.h || []).forEach(k => { if (!recipeHidden.includes(k)) recipeHidden.push(k); }); store.set("recipeHidden", recipeHidden);
     store.set("myRecipes", myRecipes); store.set("mealFav", mealFav); renderMeals();
     $("#book-msg").textContent = `✅ Restauré : ${n} recette${n > 1 ? "s" : ""} ajoutée${n > 1 ? "s" : ""} (rien n'est effacé).`;
   } catch (e) { $("#book-msg").textContent = "😕 Ce fichier n'est pas un livre de recettes."; } ev.target.value = ""; };
   rd.readAsText(f);
 });
+function renderHidden() {
+  const hs = recipeHidden.filter(k => RECIPES[k]); $("#hidden-box").hidden = !hs.length; $("#hidden-n").textContent = hs.length;
+  $("#hidden-list").replaceChildren(...hs.map(k => el("div", { class: "row small", style: "align-items:center;justify-content:space-between" }, el("span", { text: `${RECIPES[k][0]} ${RECIPES[k][1]}` }), el("button", { class: "btn", type: "button", text: "↩️ Remettre", onclick: () => { recipeHidden = recipeHidden.filter(x => x !== k); store.set("recipeHidden", recipeHidden); renderMeals(); } }))));
+}
 function renderMeals() {
-  recipesBackup();
+  recipesBackup(); renderHidden();
   mealPick = mealPick.filter(k => recipeOf(k));
   $("#meal-people").textContent = mealPeople;
   const favs = favKeys();
@@ -3281,7 +3298,7 @@ function renderMeals() {
   const mine = mealCat === "fav" ? favs : favs.filter(k => catOf(k) === mealCat);
   const cname = (CATS.find(x => x[0] === mealCat) || [])[2] || "";
   $("#fav-grid").replaceChildren(...(mine.length ? mine.map(safeFiche) : [el("p", { class: "muted small", text: mealCat !== "fav" && favs.length ? `Tes ${favs.length} préférées sont dans la rubrique ❤️ Préférées (premier bouton ci-dessus 👆). Ici : rien dans « ${cname} » pour l'instant.` : mealCat === "fav" ? "Ouvre une idée, touche 🤍 pour la garder ici. Tu peux aussi ajouter tes recettes (photo ou écrites) en bas de page 👇" : `Pas encore de recette perso dans « ${cname} ». Regarde les idées ci-dessous, ou ajoute la tienne en bas de page 👇` })]));
-  const sug = mealCat === "fav" ? [] : shownFor(mealCat).filter(i => !favs.includes(i));
+  const sug = mealCat === "fav" ? [] : shownFor(mealCat).filter(i => !favs.includes(i) && !recipeHidden.includes(i));
   $("#meal-sug-head").hidden = mealCat === "fav"; $("#meal-grid").hidden = mealCat === "fav";
   $("#meal-sug-title").textContent = `${(CATS.find(x => x[0] === mealCat) || [, "🍂"])[1]} Idées ${SEASON_NAME[seasonOf()]}`;
   $("#meal-grid").replaceChildren(...sug.map(safeFiche));
@@ -3305,8 +3322,23 @@ $("#meal-add").addEventListener("click", () => {
   $("#meal-msg").replaceChildren(`✅ ${n} ingrédients ajoutés à ta liste de courses (tes cases sont décochées) `, el("button", { class: "btn", type: "button", "data-goto": "home2", text: "🛒 Voir ma liste" }));
 });
 // Mes recettes à moi : « Carottes 4 », « Riz 300 g » ou juste « Persil »
-let myrecEdit = null;
-const myrecReset = () => { myrecEdit = null; $("#myrec-form").reset(); $("#myrec-cat").value = (mealCat !== "fav" ? mealCat : "plat"); $("#myrec-people").value = String([2, 3, 4, 5, 6, 8].includes(mealPeople) ? mealPeople : 4); $("#myrec-title").textContent = "✍️ Ajouter ma recette"; $("#myrec-save").textContent = "❤️ Ranger dans mes préférées"; $("#myrec-clear").hidden = true; };
+let myrecEdit = null, myrecFrom = null;
+function hideIdea(key) {
+  const r = recipeOf(key); if (!r || !confirm(`Écarter « ${r[1]} » ?\nElle ne reviendra plus. Tu pourras la remettre tout en bas de la page.`)) return;
+  if (!recipeHidden.includes(key)) recipeHidden.push(key);
+  mealFav = mealFav.filter(x => x !== key); mealPick = mealPick.filter(x => x !== key);
+  store.set("recipeHidden", recipeHidden); store.set("mealFav", mealFav); store.set("mealCook", mealPick);
+  Object.keys(mealShown).forEach(c => { if (Array.isArray(mealShown[c])) mealShown[c] = mealShown[c].filter(x => x !== key); }); store.set("mealSeasonShown2", mealShown);
+  renderMeals(); renderTiles();
+}
+function myrecFromIdea(key) {
+  const r = recipeOf(key); if (!r) return;
+  myrecEdit = null; myrecFrom = key;
+  myrecFill({ n: r[1], c: catOf(key), a: applOf(key), m: recMin(key, r), d: recDiff(key, r), people: r[5] || 4, ing: r[3], steps: r[4] }, "✏️ Tu retouches cette idée : ta version la remplacera (pas de doublon). N'oublie pas d'enregistrer.");
+  $("#myrec-title").textContent = "✏️ Ma version de « " + r[1] + " »"; $("#myrec-save").textContent = "💾 Enregistrer ma version";
+  $("#myrec-card").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+const myrecReset = () => { myrecEdit = null; myrecFrom = null; $("#myrec-form").reset(); $("#myrec-cat").value = (mealCat !== "fav" ? mealCat : "plat"); $("#myrec-people").value = String([2, 3, 4, 5, 6, 8].includes(mealPeople) ? mealPeople : 4); $("#myrec-title").textContent = "✍️ Ajouter ma recette"; $("#myrec-save").textContent = "❤️ Ranger dans mes préférées"; $("#myrec-clear").hidden = true; };
 function myrecFill(o, msg) {
   $("#myrec-name").value = o.n || ""; $("#myrec-cat").value = o.c || "plat"; document.querySelectorAll("#myrec-appl input").forEach(x => { x.checked = (o.a || []).includes(x.value); }); $("#myrec-min").value = o.m || ""; $("#myrec-diff").value = o.d || "";
   if (o.people) { const sel = $("#myrec-people"); if (![...sel.options].some(x => +x.value === o.people)) sel.append(new Option(String(o.people), String(o.people))); sel.value = String(o.people); }
@@ -3330,6 +3362,7 @@ $("#myrec-form").addEventListener("submit", e => {
   if (myrecEdit) { const r = myRecipes.find(x => x.id === myrecEdit); if (r) Object.assign(r, rec); key = "m:" + myrecEdit; }
   else { const id = uid(); myRecipes.push({ id, ...rec }); key = "m:" + id; }
   recipePeople[key] = rec.people; saveMeta();
+  if (myrecFrom != null) { const o = myrecFrom; if (!recipeHidden.includes(o)) recipeHidden.push(o); mealFav = mealFav.filter(x => x !== o); mealPick = mealPick.filter(x => x !== o); store.set("recipeHidden", recipeHidden); store.set("mealFav", mealFav); store.set("mealCook", mealPick); }
   mealCat = "fav"; store.set("mealCat", mealCat);
   store.set("myRecipes", myRecipes); myrecReset(); $("#myrec-msg").textContent = "✅ Recette rangée dans tes préférées. Elle est ouverte juste au-dessus 👆"; renderMeals();
   $("#fav-grid").scrollIntoView({ behavior: "smooth", block: "center" });
