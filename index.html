@@ -110,6 +110,17 @@ h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; mar
 .meal .fav { position: absolute; top: 4px; left: 8px; font-size: .9rem; }
 .recipe .row { margin-top: 8px; }
 .meal[aria-pressed=true]::after { content: "✓"; position: absolute; top: 4px; right: 8px; font-weight: 800; }
+.fiche { border-radius: 18px; overflow: hidden; background: var(--surface); border: 2px solid var(--sec); margin-top: 12px; }
+.fiche-h { background: var(--sec); color: var(--on-sec, #fff); text-align: center; padding: 14px 10px; }
+.fiche-h .big { font-size: 2.4rem; line-height: 1.1; } .fiche-h h3 { margin: 4px 0 0; font-size: 1.25rem; }
+.fiche-b { padding: 12px; } .fiche-b h4 { margin: 14px 0 6px; color: var(--sec); font-size: 1rem; }
+.fiche-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
+.chip { border: 2px solid var(--sec); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+.chip.on { background: var(--sec); color: var(--on-sec, #fff); }
+.fiche-ing { margin: 0; padding-left: 20px; } .fiche-ing li { margin: 3px 0; }
+.fiche-steps { margin: 0; padding-left: 22px; } .fiche-steps li { margin: 8px 0; } .fiche-steps .chip { margin-left: 8px; padding: 2px 10px; font-size: .78rem; }
+#ktimer { white-space: nowrap; max-width: 94vw; position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 30; background: #e8590c; color: #fff; border-radius: 999px; padding: 8px 8px 8px 16px; display: flex; gap: 10px; align-items: center; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,.3); }
+#ktimer.done { background: #c62828; } #ktimer button { border: 0; border-radius: 999px; background: rgba(255,255,255,.25); color: #fff; font: inherit; padding: 4px 12px; cursor: pointer; }
 .recipe { background: var(--surface); border-radius: 14px; padding: 10px 12px; margin-top: 8px; }
 .recipe ol { margin: 6px 0 0; padding-left: 20px; font-size: .9rem; }
 .leg.link { text-decoration: none; color: inherit; }
@@ -1084,13 +1095,18 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       <p class="small muted" id="meal-msg"></p>
       <div id="meal-chosen"></div>
     </article>
-    <article class="card" data-sec="meals">
-      <h2>✍️ Ajouter ma recette</h2>
+    <article class="card" data-sec="meals" id="myrec-card">
+      <h2 id="myrec-title">✍️ Ajouter ma recette</h2>
+      <div class="row"><button class="btn primary" type="button" id="myrec-photo">📷 Photo ou capture d'écran</button><button class="btn" type="button" id="myrec-clear" hidden>↩️ Recommencer</button></div>
+      <p class="small muted" id="myrec-msg">Prends une photo ou choisis une capture : je lis le texte et je remplis la fiche. Tu vérifies, puis tu ranges.</p>
       <form id="myrec-form" style="display:grid;gap:8px">
         <input type="text" id="myrec-name" placeholder="Nom (ex. Tajine de légumes)" required aria-label="Nom de la recette" autocomplete="off">
-        <textarea id="myrec-ing" rows="4" placeholder="Ingrédients, un par ligne (ex. Carottes 4)" aria-label="Ingrédients" required></textarea>
-        <textarea id="myrec-steps" rows="3" placeholder="Étapes (facultatif), une par ligne" aria-label="Étapes"></textarea>
-        <button class="btn primary" type="submit">❤️ Ranger dans mes préférées</button>
+        <div class="row"><label class="small">⏱️ Préparation <input type="number" id="myrec-min" min="0" max="600" inputmode="numeric" placeholder="min" style="width:80px" aria-label="Minutes de préparation"></label>
+          <label class="small">🎚️ <select id="myrec-diff" aria-label="Difficulté"><option value="">Difficulté : plus tard</option><option>Facile</option><option>Moyen</option><option>Difficile</option></select></label>
+          <label class="small">👥 <select id="myrec-people" aria-label="Pour combien de personnes"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>8</option></select> pers.</label></div>
+        <textarea id="myrec-ing" rows="5" placeholder="Ingrédients, un par ligne (ex. 200 g de farine, 2 œufs, Carottes 4)" aria-label="Ingrédients" required></textarea>
+        <textarea id="myrec-steps" rows="4" placeholder="Préparation (facultatif), une étape par ligne" aria-label="Préparation"></textarea>
+        <button class="btn primary" type="submit" id="myrec-save">❤️ Ranger dans mes préférées</button>
       </form>
     </article>
   </section>
@@ -1225,7 +1241,8 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       <form class="inline" id="outing-form">
         <input type="text" id="outing-name" placeholder="Ex. Expo Picasso" required aria-label="Sortie" autocomplete="off">
         <input type="text" id="outing-where" placeholder="Où ? (ex. Lyon)" aria-label="Où">
-        <input type="date" id="outing-date" aria-label="Jusqu'à quand (facultatif)">
+        <input type="date" id="outing-date" aria-label="Date (ou jusqu'à quand), facultatif">
+        <input type="time" id="outing-time" aria-label="Heure (concert, rendez-vous), facultatif">
         <button class="btn primary" type="submit">Ajouter</button>
       </form>
       <div class="list" id="outing-list"></div>
@@ -1749,7 +1766,7 @@ function evItem(e, withDelete, sameDay) {
     el("div", { class: "when" }, sameDay ? "" : el("small", { text: d.toLocaleDateString("fr-FR", { weekday: "short" }).replace(".", "") }), sameDay ? "" : el("b", { text: d.getDate() }), el("span", { class: "ev-time", text: e.time || (sameDay ? "" : "journée") })),
     el("div", { class: "what" }, el("div", { class: "ev-title" }, /^\p{Extended_Pictographic}/u.test(e.title) ? "" : emoSpan(e.title, ""), e.title),
       el("div", { class: "small muted", text: [e.cal ? "● " + e.cal : "", shortPlace(e.place), e.remind && !e.gcal ? "rappel " + ({ 30: "30 min avant", 60: "1 h avant", 1440: "la veille", 2880: "2 jours avant" }[e.remind] || "") : ""].filter(Boolean).join(" · ") })),
-    withDelete && !e.gcal ? el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer " + e.title, text: "✕", onclick: () => { events = events.filter(x => x.id !== e.id); saveEvents(); } }) : (dd <= 1 ? el("span", { class: "pill soon", text: dd === 0 ? "aujourd'hui" : "demain" }) : el("span", { class: "pill", text: `J-${dd}` })));
+    withDelete && !e.gcal ? el("button", { class: "icon-btn", type: "button", "aria-label": "Supprimer " + e.title, text: "✕", onclick: () => { if (e.out) { const o = outings.find(x => "o:" + x.id === e.id); if (o) { o.time = ""; store.set("outings", outings); try { renderOutings(); } catch {} } } events = events.filter(x => x.id !== e.id); saveEvents(); } }) : (dd <= 1 ? el("span", { class: "pill soon", text: dd === 0 ? "aujourd'hui" : "demain" }) : el("span", { class: "pill", text: `J-${dd}` })));
   return it;
 }
 /* Week-ends de garde de Charlie et Gabriel (CéHa, 26/10) : pas de pavé, juste une pastille de la couleur de l'agenda */
@@ -1918,6 +1935,7 @@ async function syncAgenda(manual) {
     }
     fresh.sort((a, b) => a.rank - b.rank);
     events = events.filter(x => !x.sample && !x.gcal && !x.imported && !seenEv.has(x.date + (x.time || "") + (x.title || "").trim().toLowerCase())).concat(fresh);
+    try { syncOutings(); } catch {}
     saveEvents(); renderTiles();
     const ago = Math.max(0, Math.round((Date.now() - new Date(pack.u)) / 6e4));
     st.textContent = "✅ en direct"; msg.textContent = `${got.length} agenda${got.length > 1 ? "s" : ""} · mis à jour il y a ${ago} min : ${got.map(c => c.n || "sans nom").sort((a, b) => a.localeCompare(b, "fr")).join(", ")}${links.length > got.length ? ` · ⚠️ ${links.length - got.length} lien${links.length - got.length > 1 ? "s" : ""} illisible${links.length - got.length > 1 ? "s" : ""}` : ""}`;
@@ -2991,12 +3009,118 @@ let mealFav = store.get("mealFav", []), myRecipes = store.get("myRecipes", []);
 const pickSix = () => [...RECIPES.keys()].sort(() => Math.random() - .5).slice(0, 6);
 if (!mealShown) mealShown = pickSix();
 // Une recette : un numéro (idées toutes faites) ou "m:<id>" (mes recettes à moi)
-const recipeOf = k => { if (typeof k === "number") return RECIPES[k]; const r = myRecipes.find(x => "m:" + x.id === k); return r && [r.e, r.n, r.m, r.ing, r.steps, r.people || 4]; };
+const recipeOf = k => { if (typeof k === "number") return RECIPES[k]; const r = myRecipes.find(x => "m:" + x.id === k); return r && [r.e, r.n, r.m, r.ing, r.steps, r.people || 4, r.d || ""]; };
 const favKeys = () => [...myRecipes.map(r => "m:" + r.id), ...mealFav.filter(k => recipeOf(k))];
+/* ----- Recettes : lecture d'une ligne d'ingrédient, et d'un texte de recette (photo / capture) ----- */
+const ING_UNITS = "kg|g|mg|cl|ml|dl|l|litres?|c\\.?\\s*à\\s*s(?:oupe)?\\.?|c\\.?\\s*à\\s*c(?:af[ée])?\\.?|cuill[èe]res?(?:\\s+à\\s+(?:soupe|caf[ée]))?|càs|càc|cs|cc|sachets?|pinc[ée]es?|tranches?|gousses?|bo[iî]tes?|pots?|verres?|tasses?|brins?|feuilles?|bouquets?|morceaux?|paquets?";
+const ING_A = new RegExp("^(\\d+(?:[.,]\\d+)?(?:\\s*\\/\\s*\\d+)?)\\s*(" + ING_UNITS + ")?(?![a-zà-ÿ0-9])\\.?\\s*(?:(?:de|du|des|d')\\s*)?(.+)$", "i");
+const ING_B = /^(.*?)[\s:]+(\d+(?:[.,]\d+)?)\s*(\S.*)?$/;
+const cleanUnit = u => { u = (u || "").trim().toLowerCase().replace(/\s+/g, " "); if (/^(c\.?\s*à\s*s|cuill[èe]res?(\s+à\s+soupe)?$|càs$|cs$)/.test(u)) return "c. à soupe"; if (/^(c\.?\s*à\s*c|cuill[èe]res?\s+à\s+caf|càc$|cc$)/.test(u)) return "c. à café"; return u.replace(/^litres?$/, "l"); };
+const capFirst = t => t ? t[0].toUpperCase() + t.slice(1) : t;
+function parseIngLine(raw) {
+  let l = String(raw || "").replace(/^[\s•·*\-–—▪■□●○✓✔]+/, "").replace(/½/g, "1/2").replace(/¼/g, "1/4").replace(/¾/g, "3/4").replace(/\s+/g, " ").trim().replace(/^[^\s\d]{1,2}\s+(?=\d)/, "");
+  if (!l) return null;
+  let m = ING_A.exec(l);
+  if (m) { const q = m[1].includes("/") ? m[1].split("/").reduce((a, b) => parseFloat(a) / parseFloat(b)) : parseFloat(m[1].replace(",", ".")); return [capFirst(m[3].trim().replace(/^d'/i, "")), q, cleanUnit(m[2])]; }
+  m = ING_B.exec(l);
+  if (m && m[1].trim()) return [capFirst(m[1].trim()), parseFloat(m[2].replace(",", ".")), (m[3] || "").trim()];
+  return [capFirst(l), null, ""];
+}
+function parseRecipeText(text) {
+  const lines = String(text || "").split(/\r?\n/).map(l => l.replace(/\s+/g, " ").trim()).filter(l => l.length > 1);
+  const H_ING = /^(?:les\s+)?ingr[ée]dients?\b/i, H_PREP = /^(?:la\s+)?(pr[ée]paration|recette|[ée]tapes?|instructions?|d[ée]roulement|m[ée]thode|r[ée]alisation)\b\s*:?\s*$/i;
+  let iIng = lines.findIndex(l => H_ING.test(l)), iPrep = lines.findIndex((l, i) => i > iIng && H_PREP.test(l));
+  const head = lines.slice(0, iIng >= 0 ? iIng : Math.min(lines.length, 3)).join(" \n ");
+  const all = lines.join(" \n ");
+  const out = { n: "", m: 0, d: "", people: 0, ing: [], steps: [] };
+  const timeOf = (h, mn) => (h ? parseInt(h, 10) * 60 : 0) + (mn ? parseInt(mn, 10) : 0);
+  let t = /(?:pr[ée]paration|temps(?:\s+de\s+pr[ée]paration)?|dur[ée]e)\D{0,20}?(?:(\d+)\s*h(?:eures?)?\s*(\d+)?|(\d+)\s*min)/i.exec(all);
+  if (t) out.m = t[3] ? parseInt(t[3], 10) : timeOf(t[1], t[2]); else { t = /(?:(\d+)\s*h\s*(\d+)?|(\d+)\s*min)/i.exec(head); if (t) out.m = t[3] ? parseInt(t[3], 10) : timeOf(t[1], t[2]); }
+  const dm = /difficult[ée]\s*:?\s*(tr[èe]s\s+facile|facile|moyen(?:ne)?|difficile)/i.exec(all) || /\b(tr[èe]s\s+facile|facile|moyen|difficile)\b/i.exec(head);
+  if (dm) out.d = /difficile/i.test(dm[1]) ? "Difficile" : /moyen/i.test(dm[1]) ? "Moyen" : "Facile";
+  const pm = /pour\s*(\d+)\s*(?:personnes?|pers\.?|parts?|convives)/i.exec(all) || /(\d+)\s*(?:personnes?|pers\.?|parts?)\b/i.exec(head);
+  if (pm) out.people = Math.min(12, parseInt(pm[1], 10));
+  const isMeta = l => /dur[ée]e|temps|difficult|personnes?|pers\.|cuisson|co[uû]t|budget|^\W*$/i.test(l);
+  const titleLine = lines.slice(0, iIng >= 0 ? iIng : 5).find(l => !isMeta(l) && !H_ING.test(l) && /[a-zà-ÿ]{3,}/i.test(l));
+  out.n = capFirst((titleLine || "Ma recette").replace(/^recette\s*(de|:)?\s*/i, "").replace(/[|_]+/g, " ").trim()) || "Ma recette";
+  const stepStart = iPrep >= 0 ? iPrep + 1 : -1;
+  let ingLines = iIng >= 0 ? lines.slice(iIng + 1, iPrep >= 0 ? iPrep : undefined) : [];
+  if (iIng >= 0 && iPrep < 0) { // pas d'en-tête « Préparation » : les phrases longues sont la préparation
+    const cut = ingLines.findIndex(l => l.split(" ").length > 8 && /[.!]$/.test(l)); if (cut >= 0) { out.steps = ingLines.slice(cut); ingLines = ingLines.slice(0, cut); }
+  }
+  if (iIng < 0) { // aucun en-tête : lignes courtes qui commencent par un nombre ou une puce = ingrédients, le reste = préparation
+    const rest = lines.slice(lines.indexOf(titleLine) + 1);
+    ingLines = rest.filter(l => /^[\s•·*\-–]*\d/.test(l) && l.split(" ").length <= 8 && !isMeta(l));
+    out.steps = rest.filter(l => !ingLines.includes(l) && !isMeta(l));
+  } else if (stepStart >= 0) out.steps = lines.slice(stepStart);
+  out.ing = ingLines.map(parseIngLine).filter(Boolean);
+  const steps = []; // numérotation « 1. », « 1) », « Étape 1 » = nouvelle étape ; sinon une phrase finie = une étape
+  out.steps.forEach(l => { const num = /^\s*(?:[ée]tape\s*)?\d+\s*[.)\-:]\s*(.*)$/i.exec(l); if (num) steps.push(num[1]); else if (steps.length && !/[.!?:;]$/.test(steps[steps.length - 1])) steps[steps.length - 1] += " " + l; else steps.push(l); });
+  out.steps = steps.map(s => s.trim()).filter(s => s.length > 2);
+  return out;
+}
+
+const recipeMeta = store.get("recipeMeta", {}), recipePeople = store.get("recipePeople", {});
+const DIFFS = ["Facile", "Moyen", "Difficile"], DIFF_EMO = { Facile: "🟢", Moyen: "🟠", Difficile: "🔴" };
+const recMin = (key, r) => (recipeMeta[key] && recipeMeta[key].m != null ? recipeMeta[key].m : (r[2] || 0));
+const recDiff = (key, r) => (recipeMeta[key] && recipeMeta[key].d != null ? recipeMeta[key].d : (r[6] || ""));
+const recPeopleOf = key => recipePeople[key] || mealPeople;
+const saveMeta = () => { store.set("recipeMeta", recipeMeta); store.set("recipePeople", recipePeople); };
+/* Minuteur de cuisine : reste affiché sur toutes les pages, sonne + vibre à la fin */
+let kt = null, ktTick = null, ktAudio = null, ktRing = null;
+try { kt = JSON.parse(localStorage.getItem("mq-ktimer") || "null"); } catch {}
+function ktBeep() {
+  try {
+    if (!ktAudio) return; const t0 = ktAudio.currentTime;
+    [0, .25, .5].forEach(d => { const o = ktAudio.createOscillator(), g = ktAudio.createGain(); o.frequency.value = 880; g.gain.setValueAtTime(.25, t0 + d); g.gain.exponentialRampToValueAtTime(.001, t0 + d + .2); o.connect(g); g.connect(ktAudio.destination); o.start(t0 + d); o.stop(t0 + d + .22); });
+  } catch {}
+  try { navigator.vibrate && navigator.vibrate([300, 150, 300]); } catch {}
+}
+function ktDraw() {
+  let pill = document.getElementById("ktimer");
+  if (!kt) { if (pill) pill.remove(); clearInterval(ktTick); ktTick = null; clearInterval(ktRing); ktRing = null; return; }
+  if (!pill) { pill = el("div", { id: "ktimer", role: "timer" }); document.body.appendChild(pill); }
+  const left = Math.round((kt.end - Date.now()) / 1000);
+  if (left > 0) { const mm = String(Math.floor(left / 60)).padStart(2, "0"), ss = String(left % 60).padStart(2, "0"); pill.className = ""; pill.replaceChildren(el("span", { text: `⏲️ ${kt.label ? kt.label.slice(0, 14) + (kt.label.length > 14 ? "…" : "") + " · " : ""}${mm}:${ss}` }), el("button", { type: "button", "aria-label": "Arrêter le minuteur", text: "✕", onclick: () => ktStop() })); return; }
+  pill.className = "done"; pill.replaceChildren(el("span", { text: `⏰ ${kt.label ? kt.label + " : " : ""}c'est prêt !` }), el("button", { type: "button", text: "OK", onclick: () => ktStop() }));
+  if (!ktRing) { ktBeep(); let n = 0; ktRing = setInterval(() => { if (++n > 20) { clearInterval(ktRing); ktRing = null; } else ktBeep(); }, 1500); }
+}
+function ktStop() { kt = null; try { localStorage.removeItem("mq-ktimer"); } catch {} ktDraw(); }
+function ktStart(min, label) {
+  try { if (!ktAudio) ktAudio = new (window.AudioContext || window.webkitAudioContext)(); ktAudio.resume && ktAudio.resume(); } catch {}
+  clearInterval(ktRing); ktRing = null;
+  kt = { end: Date.now() + min * 60000, label: (label || "").slice(0, 24) }; try { localStorage.setItem("mq-ktimer", JSON.stringify(kt)); } catch {}
+  clearInterval(ktTick); ktTick = setInterval(ktDraw, 500); ktDraw();
+}
+if (kt) { ktTick = setInterval(ktDraw, 500); setTimeout(ktDraw, 0); }
+const stepMinutes = t => { const m = /(\d+)\s*(?:min(?:utes?)?|h(?:eures?)?)\b/i.exec(t || ""); if (!m) return 0; return /h/i.test(m[0].replace(/min/i, "")) && !/min/i.test(m[0]) ? parseInt(m[1], 10) * 60 : parseInt(m[1], 10); };
+/* La fiche recette : même présentation pour toutes les recettes */
+function recipeFiche(key) {
+  const r = recipeOf(key), [e, n, , ing, steps, base = 4] = r, mine = typeof key === "string", fav = favKeys().includes(key);
+  const people = recPeopleOf(key), k = people / base, mm = recMin(key, r), dd = recDiff(key, r);
+  const chip = (txt, on, fn, extra) => el("button", { class: "chip" + (on ? " on" : ""), type: "button", text: txt, onclick: fn, ...(extra || {}) });
+  const meta = k2 => { recipeMeta[key] = Object.assign({}, recipeMeta[key], k2); saveMeta(); renderMeals(); };
+  return el("article", { class: "fiche" },
+    el("div", { class: "fiche-h" }, el("div", { class: "big", text: e }), el("h3", { text: n })),
+    el("div", { class: "fiche-b" },
+      el("div", { class: "fiche-line" }, el("b", { text: "⏱️ Préparation" }), chip(mm ? `${mm} min` : "à noter", !!mm, () => { const v = prompt("Combien de minutes pour préparer ?", mm || ""); if (v === null) return; const x = parseInt(v, 10); meta({ m: x > 0 ? x : 0 }); })),
+      el("div", { class: "fiche-line" }, el("b", { text: "🎚️ Difficulté" }), ...DIFFS.map(x => chip(`${DIFF_EMO[x]} ${x}`, dd === x, () => meta({ d: dd === x ? "" : x })))),
+      el("div", { class: "fiche-line" }, el("b", { text: "👥 Pour" }), ...[2, 3, 4, 5, 6, 8].map(x => chip(String(x), people === x, () => { recipePeople[key] = x; saveMeta(); renderMeals(); })), el("span", { class: "small muted", text: "personnes" })),
+      el("h4", { text: "🧂 Ingrédients" }),
+      el("ul", { class: "fiche-ing" }, ...ing.map(([a, q, u]) => el("li", { text: q == null ? a : `${fmtQty(q * k, u)} · ${a}` }))),
+      steps && steps.length ? el("h4", { text: "👩‍🍳 Préparation" }) : null,
+      steps && steps.length ? el("ol", { class: "fiche-steps" }, ...steps.map(t => { const sm = stepMinutes(t); return el("li", {}, t, sm ? el("button", { class: "chip", type: "button", text: `⏲️ ${sm} min`, onclick: () => ktStart(sm, n) }) : null); })) : null,
+      el("h4", { text: "⏲️ Minuteur" }),
+      el("div", { class: "fiche-line" }, ...[5, 10, 15, 20, 30].map(x => chip(`${x} min`, false, () => ktStart(x, n))), chip("✏️ Autre", false, () => { const v = parseInt(prompt("Combien de minutes ?", "10"), 10); if (v > 0) ktStart(v, n); })),
+      el("div", { class: "row", style: "margin-top:10px" },
+        el("button", { class: "btn primary", type: "button", text: `🛒 Dans ma liste (pour ${people})`, onclick: () => { const c = addRecipesToList([key]); $("#meal-msg").replaceChildren(`✅ ${c} ingrédients ajoutés à ta liste de courses `, el("button", { class: "btn", type: "button", "data-goto": "home2", text: "🛒 Voir ma liste" })); $("#meal-msg").scrollIntoView({ block: "center", behavior: "smooth" }); } }),
+        mine ? el("button", { class: "btn", type: "button", text: "✏️ Modifier", onclick: () => myrecLoad(key) }) : el("button", { class: "btn", type: "button", text: fav ? "❤️ Dans mes préférées" : "🤍 Garder dans mes préférées", onclick: () => { mealFav = fav ? mealFav.filter(x => x !== key) : [...mealFav, key]; store.set("mealFav", mealFav); renderMeals(); } }),
+        mine ? el("button", { class: "btn", type: "button", text: "🗑️", "aria-label": "Supprimer ma recette", onclick: () => { if (!confirm(`Supprimer « ${n} » ?`)) return; myRecipes = myRecipes.filter(x => "m:" + x.id !== key); store.set("myRecipes", myRecipes); renderMeals(); renderTiles(); } }) : null)));
+}
 function mealBtn(k) {
   const [e, n, m] = recipeOf(k);
   return el("button", { class: "meal", type: "button", "aria-pressed": String(mealPick.includes(k)), onclick: () => { mealPick = mealPick.includes(k) ? mealPick.filter(x => x !== k) : [...mealPick, k]; store.set("mealPick", mealPick); renderMeals(); } },
-    favKeys().includes(k) ? el("span", { class: "fav", text: "❤️" }) : null, el("i", { text: e }), el("b", { text: n }), el("small", { text: m ? `⏱️ ${m} min` : "ma recette" }));
+    favKeys().includes(k) ? el("span", { class: "fav", text: "❤️" }) : null, el("i", { text: e }), el("b", { text: n }), el("small", { text: [recMin(k, recipeOf(k)) ? `⏱️ ${recMin(k, recipeOf(k))} min` : (typeof k === "string" ? "ma recette" : ""), recDiff(k, recipeOf(k)) ? DIFF_EMO[recDiff(k, recipeOf(k))] : ""].filter(Boolean).join(" ") }));
 }
 function renderMeals() {
   mealPick = mealPick.filter(k => recipeOf(k));
@@ -3006,40 +3130,83 @@ function renderMeals() {
   $("#fav-grid").replaceChildren(...(favs.length ? favs.map(mealBtn) : [el("p", { class: "muted small", style: "grid-column:1/-1", text: "Touche un repas, puis 🤍 pour le garder ici. Tu peux aussi écrire tes propres recettes 👇" })]));
   $("#meal-grid").replaceChildren(...mealShown.filter(i => !favs.includes(i)).map(mealBtn));
   $("#meal-add").textContent = mealPick.length ? `🛒 Ajouter les ingrédients (${mealPick.length} repas)` : "👆 Choisis tes repas";
-  $("#meal-chosen").replaceChildren(...mealPick.map(key => { const [e, n, m, ing, steps, base = 4] = recipeOf(key), k = mealPeople / base, mine = typeof key === "string", fav = favs.includes(key);
-    return el("details", { class: "recipe" }, el("summary", { text: `${e} ${n}` }),
-      el("p", { class: "small", text: ing.map(([a, q, u]) => q == null ? a : `${a} ${fmtQty(q * k, u)}`).join(" · ") }),
-      steps?.length ? el("ol", {}, ...steps.map(t => el("li", { text: t }))) : null,
-      el("div", { class: "row" }, mine
-        ? el("button", { class: "btn", type: "button", text: "🗑️ Supprimer ma recette", onclick: () => { if (!confirm(`Supprimer « ${n} » ?`)) return; myRecipes = myRecipes.filter(r => "m:" + r.id !== key); store.set("myRecipes", myRecipes); renderMeals(); renderTiles(); } })
-        : el("button", { class: "btn", type: "button", text: fav ? "❤️ Dans mes préférées" : "🤍 Garder dans mes préférées", onclick: () => { mealFav = fav ? mealFav.filter(x => x !== key) : [...mealFav, key]; store.set("mealFav", mealFav); renderMeals(); } }))); }));
+  $("#meal-chosen").replaceChildren(...mealPick.map(recipeFiche));
 }
 const fmtQty = (q, u) => { const r = q >= 10 ? Math.round(q / 10) * 10 : Math.round(q * 2) / 2 || 0.5; return `${String(r).replace(".", ",")}${u ? " " + u : ""}`; };
 $("#meal-shuffle").addEventListener("click", () => { mealShown = pickSix(); store.set("mealShown", mealShown); renderMeals(); });
 $("#meal-minus").addEventListener("click", () => { mealPeople = Math.max(1, mealPeople - 1); store.set("mealPeople", mealPeople); renderMeals(); });
 $("#meal-plus").addEventListener("click", () => { mealPeople = Math.min(10, mealPeople + 1); store.set("mealPeople", mealPeople); renderMeals(); });
-$("#meal-add").addEventListener("click", () => {
-  if (!mealPick.length) { $("#meal-msg").textContent = "👆 Touche d'abord les repas qui te font envie."; return; }
+function addRecipesToList(keys) {
   const tot = {}, plain = new Set();
-  mealPick.forEach(key => { const r = recipeOf(key), k = mealPeople / (r[5] || 4); r[3].forEach(([a, q, u]) => { if (q == null) { plain.add(a); return; } const kk = a + "|" + u; tot[kk] = (tot[kk] || 0) + q * k; }); });
+  keys.forEach(key => { const r = recipeOf(key), k = recPeopleOf(key) / (r[5] || 4); r[3].forEach(([a, q, u]) => { if (q == null) { plain.add(a); return; } const kk = a + "|" + u; tot[kk] = (tot[kk] || 0) + q * k; }); });
   for (const [kk, q] of Object.entries(tot)) { const [a, u] = kk.split("|"); addToList(a, fmtQty(q, u)); }
   plain.forEach(a => addToList(a));
   saveShop(); renderTiles();
-  const n = Object.keys(tot).length + plain.size;
+  return Object.keys(tot).length + plain.size;
+}
+$("#meal-add").addEventListener("click", () => {
+  if (!mealPick.length) { $("#meal-msg").textContent = "👆 Touche d'abord les repas qui te font envie."; return; }
+  const n = addRecipesToList(mealPick);
   $("#meal-msg").replaceChildren(`✅ ${n} ingrédients ajoutés à ta liste de courses `, el("button", { class: "btn", type: "button", "data-goto": "home2", text: "🛒 Voir ma liste" }));
 });
 // Mes recettes à moi : « Carottes 4 », « Riz 300 g » ou juste « Persil »
+let myrecEdit = null;
+const myrecReset = () => { myrecEdit = null; $("#myrec-form").reset(); $("#myrec-people").value = String([2, 3, 4, 5, 6, 8].includes(mealPeople) ? mealPeople : 4); $("#myrec-title").textContent = "✍️ Ajouter ma recette"; $("#myrec-save").textContent = "❤️ Ranger dans mes préférées"; $("#myrec-clear").hidden = true; };
+function myrecFill(o, msg) {
+  $("#myrec-name").value = o.n || ""; $("#myrec-min").value = o.m || ""; $("#myrec-diff").value = o.d || "";
+  if (o.people) { const sel = $("#myrec-people"); if (![...sel.options].some(x => +x.value === o.people)) sel.append(new Option(String(o.people), String(o.people))); sel.value = String(o.people); }
+  $("#myrec-ing").value = (o.ingText != null ? o.ingText : (o.ing || []).map(([a, q, u]) => q == null ? a : `${a} ${String(q).replace(".", ",")}${u ? " " + u : ""}`).join("\n"));
+  $("#myrec-steps").value = (o.steps || []).join("\n"); $("#myrec-clear").hidden = false;
+  if (msg) $("#myrec-msg").textContent = msg;
+}
+function myrecLoad(key) {
+  const r = myRecipes.find(x => "m:" + x.id === key); if (!r) return;
+  myrecEdit = r.id; myrecFill({ n: r.n, m: r.m, d: r.d, people: r.people, ing: r.ing, steps: r.steps }, "✏️ Tu modifies cette recette. N'oublie pas d'enregistrer.");
+  $("#myrec-title").textContent = "✏️ Modifier ma recette"; $("#myrec-save").textContent = "💾 Enregistrer les changements";
+  $("#myrec-card").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+$("#myrec-clear").addEventListener("click", () => { myrecReset(); $("#myrec-msg").textContent = "Prends une photo ou choisis une capture : je lis le texte et je remplis la fiche. Tu vérifies, puis tu ranges."; });
 $("#myrec-form").addEventListener("submit", e => {
   e.preventDefault();
   const n = $("#myrec-name").value.trim(); if (!n) return;
-  const ing = $("#myrec-ing").value.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
-    const m = /^(.*?)[\s:]+(\d+(?:[.,]\d+)?)\s*(\S.*)?$/.exec(l);
-    return m ? [m[1].trim(), parseFloat(m[2].replace(",", ".")), (m[3] || "").trim()] : [l, null, ""];
-  });
-  const id = uid();
-  myRecipes.push({ id, e: emo(n, "🍽️"), n: n[0].toUpperCase() + n.slice(1), m: 0, ing, steps: $("#myrec-steps").value.split("\n").map(l => l.trim()).filter(Boolean), people: mealPeople });
-  store.set("myRecipes", myRecipes); e.target.reset(); renderMeals();
+  const ing = $("#myrec-ing").value.split("\n").map(parseIngLine).filter(Boolean);
+  const rec = { e: emo(n, "🍽️"), n: capFirst(n), m: Math.max(0, parseInt($("#myrec-min").value, 10) || 0), d: $("#myrec-diff").value, ing, steps: $("#myrec-steps").value.split("\n").map(l => l.trim()).filter(Boolean), people: parseInt($("#myrec-people").value, 10) || 4 };
+  let key;
+  if (myrecEdit) { const r = myRecipes.find(x => x.id === myrecEdit); if (r) Object.assign(r, rec); key = "m:" + myrecEdit; }
+  else { const id = uid(); myRecipes.push({ id, ...rec }); key = "m:" + id; }
+  recipePeople[key] = rec.people; saveMeta();
+  if (!mealPick.includes(key)) { mealPick = [...mealPick, key]; store.set("mealPick", mealPick); }
+  store.set("myRecipes", myRecipes); myrecReset(); $("#myrec-msg").textContent = "✅ Recette rangée dans tes préférées. Elle est ouverte juste au-dessus 👆"; renderMeals();
   $("#fav-grid").scrollIntoView({ behavior: "smooth", block: "center" });
+});
+/* Lire le texte d'une photo / capture : OCR gratuit (Tesseract) qui tourne dans le navigateur, sans compte ni IA payante */
+let ocrWorker = null;
+const loadScript = src => new Promise((ok, ko) => { const t = el("script", { src }); t.onload = ok; t.onerror = () => ko(new Error("script")); document.head.appendChild(t); });
+async function ocrImage(file, say) {
+  say("⏳ Je prépare la photo…");
+  const bmp = await (window.createImageBitmap ? createImageBitmap(file).catch(() => null) : null);
+  const img = bmp || await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = URL.createObjectURL(file); });
+  const W = img.width, H = img.height, sc = Math.min(1, 2000 / Math.max(W, H)), cv = document.createElement("canvas");
+  cv.width = Math.round(W * sc); cv.height = Math.round(H * sc);
+  const cx = cv.getContext("2d"); cx.filter = "grayscale(1) contrast(1.3)"; cx.drawImage(img, 0, 0, cv.width, cv.height);
+  if (!window.Tesseract) { say("⏳ Je télécharge le lecteur de texte (la première fois seulement)…"); await loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"); }
+  if (!ocrWorker) ocrWorker = await Tesseract.createWorker("fra", 1, { workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js", corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1", langPath: "https://cdn.jsdelivr.net/npm/@tesseract.js-data/fra@1.0.0/4.0.0_best_int", logger: m => { if (m.status === "recognizing text") say(`🔎 Je lis le texte… ${Math.round((m.progress || 0) * 100)} %`); else if (/load|init/.test(m.status || "")) say("⏳ Je prépare le lecteur…"); } });
+  const { data } = await ocrWorker.recognize(cv);
+  return data.text || "";
+}
+$("#myrec-photo").addEventListener("click", () => {
+  const inp = el("input", { type: "file", accept: "image/*" }), say = t => { $("#myrec-msg").textContent = t; };
+  inp.onchange = async () => {
+    const f = inp.files[0]; if (!f) return;
+    try {
+      const text = await ocrImage(f, say);
+      if (text.replace(/\s/g, "").length < 20) { say("😕 Je n'ai presque rien lu. Reprends la photo bien à plat, avec de la lumière, ou écris la recette à la main."); return; }
+      const r = parseRecipeText(text);
+      myrecEdit = null; myrecFill({ n: r.n, m: r.m, d: r.d, people: r.people, ing: r.ing, steps: r.steps, ingText: r.ing.map(([a, q, u]) => q == null ? a : `${a} ${String(q).replace(".", ",")}${u ? " " + u : ""}`).join("\n") }, "👀 Voilà ce que j'ai lu. Relis, corrige les petites erreurs (c'est normal), puis touche « Ranger ».");
+      $("#myrec-name").scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch { say("😕 Je n'ai pas pu lire la photo (il faut une connexion la première fois). Tu peux écrire la recette à la main."); }
+  };
+  inp.click();
 });
 function renderLeclerc() {
   const items = shop.filter(i => !i.done);
@@ -3750,19 +3917,40 @@ $("#vt-form").addEventListener("submit", e => {
 let outings = store.get("outings", []), films = store.get("films", []), filmStars = 5;
 const OUT_EMO = [[/musée|museum/, "🏛️"], [/expo/, "🖼️"], [/concert|opéra|festival de musique|jazz/, "🎵"], [/théâtre|pièce|spectacle|danse|ballet/, "🎭"],
   [/cinéma|ciné|film/, "🎬"], [/festival|fête/, "🎪"], [/château|monument|visite|patrimoine/, "🏰"], [/jardin|parc/, "🌳"]];
+/* Sorties ↔ agenda : une sortie avec une date ET une heure précises entre dans l'agenda de l'appli ; un événement d'agenda de type sortie (concert, expo…) entre dans les idées. Les simples idées restent des idées. */
+const OUT_RE = /concert|spectacle|expo|exposition|th[ée][aâ]tre|op[ée]ra|festival|cin[ée]ma|mus[ée]e|r[ée]cital|conf[ée]rence|visite guid/i;
+const outSig = t => fold(t || "").split(/[^a-z0-9]+/).filter(w => w.length >= 4);
+const outSame = (a, b) => a.date === b.date && outSig(a.title).some(w => outSig(b.title).includes(w));
+function syncOutings() {
+  const before = JSON.stringify([outings, events]), ign = store.get("outIgnored", []), today = todayISO();
+  events.filter(e => e.gcal && !e.out && e.date >= today && !/^[🇫🌙]/u.test(e.title) && OUT_RE.test(e.title)).forEach(e => {
+    const o = outings.find(x => x.date && outSame({ date: x.date, title: x.name }, e));
+    if (o) { if (!o.time && e.time) o.time = e.time; if (!o.where && e.place) o.where = shortPlace(e.place); return; }
+    if (ign.includes(e.id)) return;
+    outings.push({ id: uid(), name: e.title, where: shortPlace(e.place), date: e.date, time: e.time || "", done: false, from: e.id });
+  });
+  const want = outings.filter(o => o.date && o.time && !o.done && o.date >= today && !events.some(g => g.gcal && outSame(g, { date: o.date, title: o.name })));
+  events = events.filter(e => !e.out || want.some(o => "o:" + o.id === e.id));
+  want.forEach(o => { const id = "o:" + o.id, cur = events.find(e => e.id === id), ev = { id, title: o.name, date: o.date, time: o.time, place: o.where || "", remind: 60, out: true, cal: "Sorties" };
+    if (!cur) events.push(ev); else Object.assign(cur, ev); });
+  if (JSON.stringify([outings, events]) !== before) { store.set("outings", outings); store.set("events", events); try { renderAgenda(); scheduleReminders(); } catch {} }
+}
+const outChanged = () => { store.set("outings", outings); try { syncOutings(); } catch {} renderOutings(); renderTiles(); };
 function renderOutings() {
   $("#outing-count").textContent = outings.length ? `${outings.filter(o => !o.done).length} à voir` : "";
-  const sorted = [...outings].sort((a, b) => a.done - b.done || (a.date || "9999").localeCompare(b.date || "9999"));
+  const sorted = [...outings].sort((a, b) => a.done - b.done || (a.date || "9999").localeCompare(b.date || "9999") || (a.time || "").localeCompare(b.time || ""));
   $("#outing-list").replaceChildren(...(sorted.length ? sorted.map(o => el("label", { class: "shop-item" + (o.done ? " done" : "") },
-    el("input", { type: "checkbox", checked: !!o.done, "aria-label": "Vu", onchange: e => { o.done = e.target.checked; store.set("outings", outings); renderOutings(); renderTiles(); } }),
+    el("input", { type: "checkbox", checked: !!o.done, "aria-label": "Vu", onchange: e => { o.done = e.target.checked; outChanged(); } }),
     el("span", { class: "what" }, el("i", { class: "emo", "aria-hidden": "true", text: (OUT_EMO.find(([re]) => re.test(o.name.toLowerCase())) || [, "🎨"])[1] }), o.name,
-      el("span", { class: "muted", text: [o.where && " · 📍 " + o.where, o.date && ` · jusqu'au ${new Date(o.date + "T12:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`].filter(Boolean).join("") })),
+      el("span", { class: "muted", text: [o.where && " · 📍 " + o.where, o.date && (o.time ? ` · 🗓️ le ${new Date(o.date + "T12:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}` : ` · jusqu'au ${new Date(o.date + "T12:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`), o.time && ` · 🕘 ${o.time.replace(":", "h")}`].filter(Boolean).join("") })),
+    el("button", { class: "icon-btn", type: "button", "aria-label": "Mettre l'heure", title: "Mettre l'heure", text: "🕘", onclick: e => { e.preventDefault(); const v = prompt("À quelle heure ? (ex. 20:30, vide pour enlever)", o.time || ""); if (v === null) return; const m = /^\s*(\d{1,2})\s*(?:[:hH]\s*(\d{0,2}))?\s*$/.exec(v); if (v.trim() && !m) { alert("Écris par exemple 20:30"); return; } o.time = m ? String(Math.min(23, +m[1])).padStart(2, "0") + ":" + String(Math.min(59, +(m[2] || 0))).padStart(2, "0") : ""; outChanged(); } }),
+    o.date && o.time ? el("a", { class: "icon-btn", href: gcalLink({ title: o.name, date: o.date, time: o.time, place: o.where }), target: "_blank", rel: "noopener", "aria-label": "Mettre dans Google Agenda", title: "Mettre dans Google Agenda", text: "📅" }) : null,
     el("a", { class: "icon-btn", href: `https://www.google.com/search?q=${encodeURIComponent(o.name + " " + (o.where || ""))}`, target: "_blank", rel: "noopener", "aria-label": "Infos", text: "🔎" }),
     o.ticket
       ? el("button", { class: "btn primary", type: "button", style: "padding:4px 10px", text: "🎟️ Billet", onclick: async e => {
           e.preventDefault(); showTicket(o.id, o.name); } })
       : el("button", { class: "icon-btn", type: "button", "aria-label": "Ajouter le billet", title: "Ajouter le billet", text: "🎟️", onclick: e => { e.preventDefault(); ticketPick(o); } }),
-    el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + o.name, text: "✕", onclick: e => { e.preventDefault(); if (o.ticket) ticketDel(o.id).catch(() => {}); outings = outings.filter(x => x !== o); store.set("outings", outings); renderOutings(); renderTiles(); } })))
+    el("button", { class: "icon-btn", type: "button", "aria-label": "Retirer " + o.name, text: "✕", onclick: e => { e.preventDefault(); if (o.ticket) ticketDel(o.id).catch(() => {}); if (o.from) store.set("outIgnored", [...store.get("outIgnored", []), o.from]); outings = outings.filter(x => x !== o); outChanged(); } })))
     : [el("p", { class: "muted", text: "Note ici les sorties qui te font envie ✨" })]));
 }
 function ticketPick(o) {
@@ -3773,8 +3961,8 @@ function ticketPick(o) {
 $("#outing-form").addEventListener("submit", e => {
   e.preventDefault();
   const name = $("#outing-name").value.trim(); if (!name) return;
-  outings.push({ id: uid(), name: name[0].toUpperCase() + name.slice(1), where: $("#outing-where").value.trim(), date: $("#outing-date").value, done: false });
-  store.set("outings", outings); e.target.reset(); renderOutings(); renderTiles();
+  outings.push({ id: uid(), name: name[0].toUpperCase() + name.slice(1), where: $("#outing-where").value.trim(), date: $("#outing-date").value, time: $("#outing-time").value || "", done: false });
+  e.target.reset(); outChanged();
 });
 function renderStars() {
   $("#film-stars").replaceChildren(...[1, 2, 3, 4, 5].map(n => el("button", { class: "btn", type: "button", "aria-pressed": String(n <= filmStars), "aria-label": n + " étoiles", text: "★", style: "padding:6px 8px", onclick: () => { filmStars = n; renderStars(); } })));
@@ -3829,6 +4017,7 @@ $("#loved-form").addEventListener("submit", e => {
   loved.push({ id: uid(), name: name[0].toUpperCase() + name.slice(1), stars: lovedStars, note: $("#loved-note").value.trim(), date: new Date().toISOString().slice(0, 10) });
   store.set("lovedOutings", loved); e.target.reset(); lovedStars = 5; renderLovedStars(); renderLoved();
 });
+try { syncOutings(); } catch {}
 renderOutings(); renderLovedStars(); renderLoved(); renderStars(); renderFilms(); renderBookStars(); renderBooks(); renderVtix(); renderLoyal(); renderAuto();
 /* Pensée du jour : change chaque jour, la même toute la journée */
 const QUOTES = [
@@ -4205,7 +4394,7 @@ const RDV_KINDS = [["coiffeur", "✂️", "Coiffeur", "maps"], ["osteo", "🦴",
   ["toiletteur", "🐩", "Toiletteur", "maps"], ["autre", "✨", "Autre", "maps"]];
 const rdvKind = k => RDV_KINDS.find(x => x[0] === k) || RDV_KINDS.at(-1);
 let pros = store.get("pros", []);
-const gcalLink = e => { const d = evDate(e), f = x => x.toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z"; return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${f(d)}/${f(new Date(+d + 3600e3))}&location=${encodeURIComponent(e.place || "")}`; };
+function gcalLink(e) { const d = evDate(e), f = x => x.toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z"; return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${f(d)}/${f(new Date(+d + 3600e3))}&location=${encodeURIComponent(e.place || "")}`; }
 let rdvOpen = null, rdvEdit = null;
 function renderRdv() {
   $("#rdv-pros").replaceChildren(...(pros.length ? pros.map(p => {
