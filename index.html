@@ -1109,6 +1109,8 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       <details id="hidden-box" hidden><summary class="small">🙈 Idées écartées (<span id="hidden-n">0</span>)</summary><div id="hidden-list" style="display:grid;gap:6px;margin-top:6px"></div></details>
       <p class="small muted" id="book-msg">Toutes tes recettes sont gardées sur ton appareil et dans ton compte. L'export est un fichier de secours en plus.</p>
       <form id="myrec-form" style="display:grid;gap:8px">
+        <div class="row" id="myrec-draftbar" hidden><button class="btn primary" type="button" id="myrec-again">🔄 Recommencer avec une autre photo</button><button class="btn" type="button" id="myrec-wipe">🗑️ Tout effacer</button></div>
+        <details id="myrec-raw" hidden><summary class="small">👁️ Texte lu sur la photo</summary><pre id="myrec-rawtxt" style="white-space:pre-wrap;font-size:.8rem;margin:6px 0"></pre></details>
         <input type="text" id="myrec-name" placeholder="Nom (ex. Tajine de légumes)" required aria-label="Nom de la recette" autocomplete="off">
         <label class="small">📂 Rubrique <select id="myrec-cat" aria-label="Rubrique"><option value="entree">🥗 Entrée</option><option value="plat">🍽️ Plat principal</option><option value="dessert">🍰 Dessert</option><option value="boisson">🥤 Boisson</option><option value="fete">🎉 Repas de fête</option><option value="ramadan">🌙 Repas du ramadan</option><option value="pain">🍞 Pain</option><option value="healthy">🌿 Sans gluten / Healthy</option></select></label>
         <div class="row small" id="myrec-appl" role="group" aria-label="Appareils">🔧 <label><input type="checkbox" value="mp"> 🍞 Machine à pain</label><label><input type="checkbox" value="af"> 🍟 Air fryer</label><label><input type="checkbox" value="fo"> 🔥 Four</label><label><input type="checkbox" value="pl"> 🍳 Plaque</label><label><input type="checkbox" value="ro"> 🥣 Robot</label><label><input type="checkbox" value="ba"> 🌀 Batteur</label></div>
@@ -3345,12 +3347,12 @@ function myrecFromIdea(key) {
   $("#myrec-title").textContent = "✏️ Ma version de « " + r[1] + " »"; $("#myrec-save").textContent = "💾 Enregistrer ma version";
   $("#myrec-card").scrollIntoView({ behavior: "smooth", block: "start" });
 }
-const myrecReset = () => { myrecEdit = null; myrecFrom = null; $("#myrec-form").reset(); $("#myrec-cat").value = (mealCat !== "fav" ? mealCat : "plat"); $("#myrec-people").value = String([2, 3, 4, 5, 6, 8].includes(mealPeople) ? mealPeople : 4); $("#myrec-title").textContent = "✍️ Ajouter ma recette"; $("#myrec-save").textContent = "❤️ Ranger dans mes préférées"; $("#myrec-clear").hidden = true; };
+const myrecReset = () => { myrecEdit = null; myrecFrom = null; $("#myrec-form").reset(); $("#myrec-cat").value = (mealCat !== "fav" ? mealCat : "plat"); $("#myrec-people").value = String([2, 3, 4, 5, 6, 8].includes(mealPeople) ? mealPeople : 4); $("#myrec-title").textContent = "✍️ Ajouter ma recette"; $("#myrec-save").textContent = "❤️ Ranger dans mes préférées"; $("#myrec-clear").hidden = true; $("#myrec-draftbar").hidden = true; $("#myrec-raw").hidden = true; };
 function myrecFill(o, msg) {
   $("#myrec-name").value = o.n || ""; $("#myrec-cat").value = o.c || "plat"; document.querySelectorAll("#myrec-appl input").forEach(x => { x.checked = (o.a || []).includes(x.value); }); $("#myrec-min").value = o.m || ""; $("#myrec-diff").value = o.d || "";
   if (o.people) { const sel = $("#myrec-people"); if (![...sel.options].some(x => +x.value === o.people)) sel.append(new Option(String(o.people), String(o.people))); sel.value = String(o.people); }
   $("#myrec-ing").value = (o.ingText != null ? o.ingText : (o.ing || []).map(([a, q, u]) => q == null ? a : `${a} ${String(q).replace(".", ",")}${u ? " " + u : ""}`).join("\n"));
-  $("#myrec-steps").value = (o.steps || []).join("\n"); $("#myrec-clear").hidden = false;
+  $("#myrec-steps").value = (o.steps || []).join("\n"); $("#myrec-clear").hidden = false; $("#myrec-draftbar").hidden = false;
   if (msg) $("#myrec-msg").textContent = msg;
 }
 function myrecLoad(key) {
@@ -3389,6 +3391,8 @@ async function ocrImage(file, say) {
   const { data } = await ocrWorker.recognize(cv);
   return data.text || "";
 }
+$("#myrec-wipe").addEventListener("click", () => { if (!confirm("Tout effacer ce que j'ai lu et tout ce qui est dans la fiche ?")) return; myrecReset(); $("#myrec-msg").textContent = "🗑️ C'est effacé. Tu peux prendre une autre photo ou écrire à la main."; });
+$("#myrec-again").addEventListener("click", () => { myrecReset(); $("#myrec-photo").click(); });
 $("#myrec-photo").addEventListener("click", () => {
   const inp = el("input", { type: "file", accept: "image/*" }), say = t => { $("#myrec-msg").textContent = t; };
   inp.onchange = async () => {
@@ -3396,7 +3400,7 @@ $("#myrec-photo").addEventListener("click", () => {
     try {
       const text = await ocrImage(f, say);
       if (text.replace(/\s/g, "").length < 20) { say("😕 Je n'ai presque rien lu. Reprends la photo bien à plat, avec de la lumière, ou écris la recette à la main."); return; }
-      const r = parseRecipeText(text);
+      const r = parseRecipeText(text); $("#myrec-rawtxt").textContent = text.trim(); $("#myrec-raw").hidden = false;
       myrecEdit = null; myrecFill({ n: r.n, c: r.c, m: r.m, d: r.d, people: r.people, ing: r.ing, steps: r.steps, ingText: r.ing.map(([a, q, u]) => q == null ? a : `${a} ${String(q).replace(".", ",")}${u ? " " + u : ""}`).join("\n") }, "👀 Voilà ce que j'ai lu. Relis, corrige les petites erreurs (c'est normal), puis touche « Ranger ».");
       $("#myrec-name").scrollIntoView({ behavior: "smooth", block: "center" });
     } catch { say("😕 Je n'ai pas pu lire la photo (il faut une connexion la première fois). Tu peux écrire la recette à la main."); }
