@@ -103,9 +103,9 @@ h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; mar
 .meal .fav { position: absolute; top: 4px; left: 8px; font-size: .9rem; }
 .recipe .row { margin-top: 8px; }
 .meal[aria-pressed=true]::after { content: "✓"; position: absolute; top: 4px; right: 8px; font-weight: 800; }
-.fiche { --f-bg: #f9dccb; --f-fg: #5a2a10; --f-bd: #eebb9b; --f-on: #f1b18a; --f-h: #b4521f; border-radius: 18px; overflow: hidden; background: var(--surface); border: 2px solid var(--f-bd); margin-top: 8px; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .fiche { --f-bg: #46291c; --f-fg: #ffe3d2; --f-bd: #6e4430; --f-on: #8a5238; --f-h: #f3b08a; } }
-:root[data-theme="dark"] .fiche { --f-bg: #46291c; --f-fg: #ffe3d2; --f-bd: #6e4430; --f-on: #8a5238; --f-h: #f3b08a; }
+#view-recettes, .fiche { --f-bg: #f9dccb; --f-fg: #5a2a10; --f-bd: #eebb9b; --f-on: #f1b18a; --f-h: #b4521f; border-radius: 18px; overflow: hidden; background: var(--surface); border: 2px solid var(--f-bd); margin-top: 8px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #view-recettes, :root:not([data-theme="light"]) .fiche { --f-bg: #46291c; --f-fg: #ffe3d2; --f-bd: #6e4430; --f-on: #8a5238; --f-h: #f3b08a; } }
+:root[data-theme="dark"] #view-recettes, :root[data-theme="dark"] .fiche { --f-bg: #46291c; --f-fg: #ffe3d2; --f-bd: #6e4430; --f-on: #8a5238; --f-h: #f3b08a; }
 .fiche-h { background: var(--f-bg); color: var(--f-fg); padding: 10px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; list-style: none; }
 .fiche-h::-webkit-details-marker { display: none; } .fiche-h::after { content: "▾"; margin-left: auto; font-size: 1.1rem; } .fiche[open] .fiche-h::after { content: "▴"; }
 .fiche-h .big { font-size: 1.6rem; line-height: 1; } .fiche-h h3 { margin: 0; font-size: 1.05rem; } .fiche-sub { font-size: .75rem; opacity: .85; white-space: nowrap; }
@@ -113,6 +113,7 @@ h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; mar
 .fiche-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
 .chip { border: 2px solid var(--f-bd); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
 .chip.on { background: var(--f-on); border-color: var(--f-on); color: var(--f-fg); }
+.cook { border: 0; background: transparent; font-size: 1.5rem; line-height: 1; padding: 0 2px; cursor: pointer; flex: none; }
 .fiche-ing { margin: 0; padding-left: 20px; } .fiche-ing li { margin: 3px 0; }
 .fiche-steps { margin: 0; padding-left: 22px; } .fiche-steps li { margin: 8px 0; } .fiche-steps .chip { margin-left: 8px; padding: 2px 10px; font-size: .78rem; }
 #ktimer { white-space: nowrap; max-width: 94vw; position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 30; background: #d9783f; color: #fff; border-radius: 999px; padding: 8px 8px 8px 16px; display: flex; gap: 10px; align-items: center; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,.3); }
@@ -1082,14 +1083,15 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
   <section class="view" id="view-recettes" hidden>
     <button class="btn" type="button" data-goto="home" style="margin-bottom:10px">⬅️ Accueil</button>
     <article class="card" data-sec="meals">
-      <div class="card-head"><h2>❤️ Mes recettes préférées</h2><span class="pill" id="fav-count"></span></div>
-      <div class="meals" id="fav-grid"></div>
-      <div class="card-head" style="margin-top:12px"><h2>🍽️ Idées repas végé</h2><button class="btn" type="button" id="meal-shuffle">🔀 Autres</button></div>
-      <div class="meals" id="meal-grid"></div>
+      <div class="card-head"><h2>🍽️ Mes recettes</h2><span class="pill" id="fav-count"></span></div>
+      <div class="fiche-line" id="meal-cats" role="group" aria-label="Rubriques"></div>
+      <p class="small muted">☐ Coche les recettes que tu veux cuisiner, puis touche le bouton : seuls leurs ingrédients partent dans ta liste.</p>
       <div class="go-row"><span>👥</span><button class="btn" type="button" id="meal-minus">−</button><strong id="meal-people">4</strong><button class="btn" type="button" id="meal-plus">+</button><span class="small muted">personnes</span></div>
       <button class="btn primary go-btn" type="button" id="meal-add">🛒 Mettre les ingrédients dans ma liste</button>
       <p class="small muted" id="meal-msg"></p>
-      <div id="meal-chosen"></div>
+      <div id="fav-grid"></div>
+      <div class="card-head" style="margin-top:14px" id="meal-sug-head"><h2 id="meal-sug-title">🍂 Idées de saison</h2><button class="btn" type="button" id="meal-shuffle">🔀 Autres</button></div>
+      <div id="meal-grid"></div>
     </article>
     <article class="card" data-sec="meals" id="myrec-card">
       <h2 id="myrec-title">✍️ Ajouter ma recette</h2>
@@ -1097,6 +1099,8 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       <p class="small muted" id="myrec-msg">Prends une photo ou choisis une capture : je lis le texte et je remplis la fiche. Tu vérifies, puis tu ranges.</p>
       <form id="myrec-form" style="display:grid;gap:8px">
         <input type="text" id="myrec-name" placeholder="Nom (ex. Tajine de légumes)" required aria-label="Nom de la recette" autocomplete="off">
+        <label class="small">📂 Rubrique <select id="myrec-cat" aria-label="Rubrique"><option value="entree">🥗 Entrée</option><option value="plat">🍽️ Plat principal</option><option value="dessert">🍰 Dessert</option><option value="boisson">🥤 Boisson</option><option value="fete">🎉 Repas de fête</option><option value="ramadan">🌙 Repas du ramadan</option><option value="pain">🍞 Pain</option></select></label>
+        <div class="row small" id="myrec-appl" role="group" aria-label="Appareils">🔧 <label><input type="checkbox" value="mp"> 🍞 Machine à pain</label><label><input type="checkbox" value="af"> 🍟 Air fryer</label><label><input type="checkbox" value="fo"> 🔥 Four</label><label><input type="checkbox" value="pl"> 🍳 Plaque</label><label><input type="checkbox" value="ro"> 🥣 Robot</label><label><input type="checkbox" value="ba"> 🌀 Batteur</label></div>
         <div class="row"><label class="small">⏱️ Préparation <input type="number" id="myrec-min" min="0" max="600" inputmode="numeric" placeholder="min" style="width:80px" aria-label="Minutes de préparation"></label>
           <label class="small">🎚️ <select id="myrec-diff" aria-label="Difficulté"><option value="">Difficulté : plus tard</option><option>Facile</option><option>Moyen</option><option>Difficile</option></select></label>
           <label class="small">👥 <select id="myrec-people" aria-label="Pour combien de personnes"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>8</option></select> pers.</label></div>
@@ -2999,11 +3003,95 @@ const RECIPES = [
   ["🎃", "Velouté de potimarron", 35, [["Potimarron", 1, ""], ["Oignon", 1, ""], ["Crème fraîche", 20, "cl"], ["Pain", 1, "baguette"]], ["Couper le potimarron (pas besoin d'éplucher).", "Cuire 25 min avec l'oignon dans l'eau.", "Mixer avec la crème."]],
   ["🥦", "Gratin de pâtes brocoli-fromage", 35, [["Pâtes", 400, "g"], ["Brocoli", 1, ""], ["Crème fraîche", 20, "cl"], ["Emmental râpé", 200, "g"]], ["Cuire pâtes et brocoli ensemble.", "Mélanger avec crème et la moitié du fromage.", "Fromage dessus, 15 min de four à 200 °C."]],
   ["🍔", "Burger végé", 25, [["Steaks végétaux", 4, ""], ["Pains burger", 4, ""], ["Cheddar", 4, "tranches"], ["Tomates", 2, ""], ["Salade", 1, ""], ["Pommes de terre", 800, "g"]], ["Faire des frites au four.", "Cuire les steaks, fromage dessus.", "Monter les burgers avec tomate et salade."]],
+  ["🎃", "Gratin de potiron et pommes de terre", 55, [["Potiron", 800, "g"], ["Pommes de terre", 600, "g"], ["Crème fraîche", 20, "cl"], ["Gruyère râpé", 100, "g"], ["Ail", 1, "gousse"]], ["Couper potiron et pommes de terre en fines tranches.", "Les ranger dans un plat avec l'ail, couvrir de crème.", "Fromage dessus, 40 min de four à 190 °C."]],
+  ["🍄", "Risotto aux champignons", 35, [["Riz à risotto", 300, "g"], ["Champignons de Paris", 400, "g"], ["Oignon", 1, ""], ["Bouillon de légumes", 1, "l"], ["Parmesan", 60, "g"]], ["Faire revenir l'oignon puis les champignons.", "Ajouter le riz, puis le bouillon louche par louche pendant 18 min.", "Finir avec le parmesan."]],
+  ["🍲", "Soupe de potiron au lait de coco", 30, [["Potiron", 1, "kg"], ["Oignon", 1, ""], ["Lait de coco", 20, "cl"], ["Bouillon de légumes", 50, "cl"]], ["Cuire le potiron et l'oignon dans le bouillon 20 min.", "Mixer avec le lait de coco.", "Servir avec du pain grillé."]],
+  ["🥦", "Gratin de chou-fleur", 45, [["Chou-fleur", 1, ""], ["Lait", 50, "cl"], ["Farine", 40, "g"], ["Beurre", 40, "g"], ["Emmental râpé", 100, "g"]], ["Cuire le chou-fleur 10 min à l'eau.", "Faire une béchamel avec beurre, farine et lait.", "Mélanger, fromage dessus, 25 min de four à 200 °C."]],
+  ["🍠", "Curry de patates douces et lentilles corail", 35, [["Patates douces", 800, "g"], ["Lentilles corail", 200, "g"], ["Lait de coco", 40, "cl"], ["Oignon", 1, ""], ["Curry", 2, "c. à café"]], ["Faire revenir l'oignon avec le curry.", "Ajouter patates douces en cubes, lentilles, lait de coco et un peu d'eau.", "Mijoter 25 min."]],
+  ["🥦", "Salade tiède de brocoli et quinoa", 25, [["Brocoli", 1, ""], ["Quinoa", 200, "g"], ["Pois chiches", 1, "boîte"], ["Citron", 1, ""], ["Huile d'olive", 3, "c. à soupe"]], ["Cuire le quinoa 12 min.", "Cuire le brocoli à la vapeur 8 min.", "Mélanger avec les pois chiches, citron et huile d'olive."]],
+  ["🌿", "Risotto aux asperges", 35, [["Riz à risotto", 300, "g"], ["Asperges vertes", 500, "g"], ["Oignon", 1, ""], ["Bouillon de légumes", 1, "l"], ["Parmesan", 60, "g"]], ["Couper les asperges, garder les pointes.", "Faire le risotto au bouillon pendant 18 min en ajoutant les asperges à mi-cuisson.", "Finir avec le parmesan."]],
+  ["🥗", "Salade de radis, petits pois et feta", 15, [["Radis", 1, "botte"], ["Petits pois", 300, "g"], ["Feta", 200, "g"], ["Menthe", 1, "bouquet"], ["Citron", 1, ""]], ["Cuire les petits pois 5 min.", "Couper radis et feta.", "Tout mélanger avec la menthe et le citron."]],
+  ["🍲", "Soupe d'épinards et petits pois", 25, [["Épinards", 400, "g"], ["Petits pois", 300, "g"], ["Pommes de terre", 2, ""], ["Crème fraîche", 10, "cl"]], ["Cuire pommes de terre et petits pois 15 min.", "Ajouter les épinards 3 min.", "Mixer avec la crème."]],
+  ["🥖", "Tartines de fèves et chèvre frais", 15, [["Fèves", 400, "g"], ["Chèvre frais", 200, "g"], ["Pain de campagne", 8, "tranches"], ["Menthe", 1, "bouquet"]], ["Cuire les fèves 5 min et les écosser.", "Tartiner le pain de chèvre.", "Garnir de fèves et de menthe."]],
+  ["🍅", "Gaspacho de tomates et concombre", 15, [["Tomates", 1, "kg"], ["Concombre", 1, ""], ["Poivron", 1, ""], ["Huile d'olive", 3, "c. à soupe"], ["Pain", 2, "tranches"]], ["Mixer tous les légumes avec le pain et l'huile.", "Saler, poivrer.", "Servir bien frais."]],
+  ["🍆", "Ratatouille et riz", 50, [["Aubergines", 2, ""], ["Courgettes", 2, ""], ["Poivrons", 2, ""], ["Tomates", 4, ""], ["Riz", 300, "g"]], ["Couper les légumes en cubes.", "Les faire mijoter 35 min à couvert.", "Servir avec le riz."]],
+  ["🍉", "Salade de pastèque, feta et menthe", 10, [["Pastèque", 1, "kg"], ["Feta", 200, "g"], ["Menthe", 1, "bouquet"], ["Citron vert", 1, ""]], ["Couper la pastèque en cubes.", "Ajouter la feta émiettée et la menthe.", "Arroser de citron vert."]],
+  ["🥒", "Tian de courgettes et tomates", 60, [["Courgettes", 3, ""], ["Tomates", 4, ""], ["Oignon", 1, ""], ["Huile d'olive", 3, "c. à soupe"], ["Chèvre", 100, "g"]], ["Disposer en rangs les rondelles de courgettes et de tomates.", "Arroser d'huile d'olive.", "Cuire 45 min à 180 °C, chèvre à la fin."]],
+  ["🍏", "Compote pommes-cannelle", 25, [["Pommes", 6, ""], ["Cannelle", 1, "c. à café"], ["Sucre", 2, "c. à soupe"]], ["Éplucher et couper les pommes.", "Cuire 20 min à feu doux avec la cannelle et le sucre.", "Écraser à la fourchette."]],
+  ["🍐", "Crumble pommes-poires", 50, [["Pommes", 3, ""], ["Poires", 3, ""], ["Farine", 100, "g"], ["Beurre", 80, "g"], ["Sucre", 80, "g"]], ["Couper les fruits dans un plat.", "Du bout des doigts, mélanger farine, beurre et sucre en sable.", "Étaler dessus, 30 min de four à 180 °C."]],
+  ["🍰", "Gâteau au yaourt", 45, [["Yaourt nature", 1, "pot"], ["Sucre", 2, "pots"], ["Farine", 3, "pots"], ["Œufs", 3, ""], ["Huile", 1, "pot"], ["Levure", 1, "sachet"]], ["Mélanger le yaourt, le sucre et les œufs.", "Ajouter farine, levure et huile.", "35 min de four à 180 °C."]],
+  ["🍫", "Mousse au chocolat", 20, [["Chocolat noir", 200, "g"], ["Œufs", 6, ""], ["Sucre", 1, "c. à soupe"]], ["Faire fondre le chocolat.", "Ajouter les jaunes, puis les blancs montés en neige.", "2 h au frais."]],
+  ["🍓", "Salade de fruits frais", 15, [["Fraises", 300, "g"], ["Pêches", 3, ""], ["Melon", 1, ""], ["Citron", 1, ""], ["Menthe", 1, "bouquet"]], ["Couper tous les fruits en morceaux.", "Arroser de jus de citron.", "Ajouter la menthe, servir frais."]],
+  ["🍒", "Clafoutis aux cerises", 50, [["Cerises", 500, "g"], ["Œufs", 3, ""], ["Farine", 80, "g"], ["Sucre", 80, "g"], ["Lait", 25, "cl"]], ["Mélanger œufs, sucre, farine puis le lait.", "Verser sur les cerises dans un plat beurré.", "35 min de four à 180 °C."]],
+  ["🥞", "Crêpes", 30, [["Farine", 250, "g"], ["Œufs", 3, ""], ["Lait", 50, "cl"], ["Beurre", 30, "g"]], ["Mélanger farine, œufs et lait.", "Laisser reposer 30 min.", "Cuire à la poêle, de chaque côté."]],
+  ["🍚", "Riz au lait", 45, [["Riz rond", 150, "g"], ["Lait", 1, "l"], ["Sucre", 80, "g"], ["Vanille", 1, "c. à café"]], ["Porter le lait à frémir avec la vanille.", "Ajouter le riz et le sucre, cuire 35 min à feu doux.", "Servir tiède ou froid."]],
+  ["🍊", "Salade d'agrumes à la menthe", 15, [["Oranges", 4, ""], ["Pamplemousses", 2, ""], ["Clémentines", 4, ""], ["Menthe", 1, "bouquet"], ["Miel", 2, "c. à soupe"]], ["Peler les agrumes à vif et les couper en tranches.", "Arroser de miel.", "Parsemer de menthe."]],
+  ["🥕", "Houmous maison et crudités", 15, [["Pois chiches", 1, "boîte"], ["Tahini", 2, "c. à soupe"], ["Citron", 1, ""], ["Ail", 1, "gousse"], ["Carottes", 3, ""], ["Concombre", 1, ""]], ["Mixer pois chiches, tahini, citron, ail et un peu d'eau.", "Couper carottes et concombre en bâtonnets.", "Servir en trempette."]],
+  ["🥕", "Carottes râpées citron-orange", 10, [["Carottes", 600, "g"], ["Orange", 1, ""], ["Citron", 1, ""], ["Huile d'olive", 2, "c. à soupe"]], ["Râper les carottes.", "Ajouter le jus d'orange et de citron.", "Huile d'olive, sel, poivre."]],
+  ["🍲", "Velouté de poireaux", 30, [["Poireaux", 4, ""], ["Pommes de terre", 2, ""], ["Crème fraîche", 10, "cl"]], ["Cuire poireaux et pommes de terre 20 min dans l'eau.", "Mixer avec la crème.", "Saler, poivrer."]],
+  ["🥒", "Tzatziki et concombre", 10, [["Yaourt grec", 2, "pots"], ["Concombre", 1, ""], ["Ail", 1, "gousse"], ["Menthe", 1, "bouquet"]], ["Râper le concombre et bien l'égoutter.", "Mélanger avec le yaourt, l'ail et la menthe.", "Servir très frais."]],
+  ["🥗", "Taboulé", 20, [["Semoule fine", 200, "g"], ["Tomates", 3, ""], ["Concombre", 1, ""], ["Persil", 2, "bouquets"], ["Menthe", 1, "bouquet"], ["Citron", 2, ""]], ["Gonfler la semoule avec de l'eau chaude 5 min.", "Couper les légumes et les herbes en petits dés.", "Tout mélanger avec le citron et l'huile."]],
+  ["🥗", "Salade d'endives, pomme et noix", 10, [["Endives", 4, ""], ["Pommes", 2, ""], ["Noix", 50, "g"], ["Chèvre", 100, "g"]], ["Couper endives et pommes.", "Ajouter les noix et le chèvre.", "Assaisonner de citron et d'huile."]],
+  ["🍋", "Citronnade maison", 10, [["Citrons", 5, ""], ["Sucre", 100, "g"], ["Eau", 1.5, "l"], ["Menthe", 1, "bouquet"]], ["Presser les citrons.", "Mélanger le jus, le sucre et l'eau.", "Ajouter la menthe et des glaçons."]],
+  ["🍵", "Thé glacé à la menthe", 15, [["Thé vert", 4, "sachets"], ["Menthe", 1, "bouquet"], ["Citron", 1, ""], ["Sucre", 2, "c. à soupe"]], ["Infuser le thé et la menthe 5 min dans 1 l d'eau chaude.", "Ajouter le sucre et le citron.", "Laisser refroidir, servir avec des glaçons."]],
+  ["☕", "Chocolat chaud maison", 10, [["Lait", 1, "l"], ["Chocolat noir", 150, "g"], ["Sucre", 1, "c. à soupe"]], ["Chauffer le lait.", "Y faire fondre le chocolat en fouettant.", "Servir bien chaud."]],
+  ["🍓", "Smoothie banane-fraise", 5, [["Bananes", 2, ""], ["Fraises", 250, "g"], ["Lait", 40, "cl"]], ["Mixer tous les ingrédients.", "Servir tout de suite."]],
+  ["🥛", "Lait d'or au curcuma", 10, [["Lait", 50, "cl"], ["Curcuma", 1, "c. à café"], ["Cannelle", 1, "pincée"], ["Miel", 1, "c. à soupe"]], ["Chauffer le lait avec le curcuma et la cannelle.", "Ajouter le miel.", "Boire chaud."]],
+  ["🫖", "Infusion gingembre-citron-miel", 10, [["Gingembre frais", 1, "morceau"], ["Citron", 1, ""], ["Miel", 2, "c. à soupe"]], ["Faire bouillir le gingembre en lamelles 5 min dans 1 l d'eau.", "Ajouter citron et miel hors du feu.", "Filtrer et servir chaud."]],
+  ["🍲", "Couscous aux sept légumes", 70, [["Semoule", 500, "g"], ["Carottes", 4, ""], ["Courgettes", 3, ""], ["Navets", 3, ""], ["Pois chiches", 1, "boîte"], ["Courge", 400, "g"], ["Oignons", 2, ""]], ["Faire mijoter les légumes dans un bouillon épicé 40 min.", "Préparer la semoule avec de l'eau chaude et un peu d'huile.", "Servir la semoule avec les légumes et le bouillon."]],
+  ["🍑", "Tajine de légumes aux pruneaux", 60, [["Carottes", 4, ""], ["Pommes de terre", 4, ""], ["Pruneaux", 150, "g"], ["Oignons", 2, ""], ["Amandes", 50, "g"], ["Cannelle", 1, "c. à café"]], ["Faire revenir les oignons avec la cannelle.", "Ajouter légumes, pruneaux et un verre d'eau, mijoter 45 min.", "Parsemer d'amandes."]],
+  ["🥟", "Feuilletés épinards-feta", 40, [["Pâte feuilletée", 2, ""], ["Épinards", 400, "g"], ["Feta", 200, "g"], ["Œuf", 1, ""]], ["Faire tomber les épinards, les mélanger à la feta.", "Garnir des carrés de pâte et refermer.", "Dorer à l'œuf, 20 min de four à 200 °C."]],
+  ["🍫", "Gâteau au chocolat fondant", 35, [["Chocolat noir", 200, "g"], ["Beurre", 100, "g"], ["Sucre", 100, "g"], ["Œufs", 4, ""], ["Farine", 40, "g"]], ["Faire fondre chocolat et beurre.", "Ajouter sucre, œufs puis farine.", "20 min de four à 180 °C : le centre doit rester fondant."]],
+  ["🥔", "Gratin dauphinois", 80, [["Pommes de terre", 1.2, "kg"], ["Crème fraîche", 40, "cl"], ["Lait", 25, "cl"], ["Ail", 1, "gousse"]], ["Couper les pommes de terre en fines rondelles.", "Les ranger dans un plat frotté d'ail, couvrir de crème et de lait.", "1 h de four à 170 °C."]],
+  ["🍲", "Harira végétarienne", 50, [["Tomates", 600, "g"], ["Lentilles", 100, "g"], ["Pois chiches", 1, "boîte"], ["Céleri", 2, "branches"], ["Oignon", 1, ""], ["Vermicelles", 50, "g"], ["Persil", 1, "bouquet"]], ["Faire revenir l'oignon et le céleri, ajouter tomates et lentilles.", "Couvrir d'eau, cuire 30 min, ajouter pois chiches et vermicelles.", "Finir au persil et au citron."]],
+  ["🥟", "Brik à l'œuf", 25, [["Feuilles de brick", 4, ""], ["Œufs", 4, ""], ["Persil", 1, "bouquet"], ["Fromage râpé", 80, "g"]], ["Poser un peu de fromage et de persil sur chaque feuille.", "Casser un œuf dessus et replier en triangle.", "Frire ou dorer au four quelques minutes."]],
+  ["🍲", "Chorba végétarienne", 45, [["Tomates", 400, "g"], ["Pois chiches", 1, "boîte"], ["Courgettes", 2, ""], ["Pommes de terre", 2, ""], ["Vermicelles", 80, "g"], ["Menthe séchée", 1, "c. à soupe"]], ["Cuire les légumes et pois chiches dans l'eau 25 min.", "Ajouter les vermicelles 5 min.", "Finir à la menthe séchée."]],
+  ["🌴", "Dattes farcies aux amandes", 10, [["Dattes", 20, ""], ["Amandes", 100, "g"]], ["Dénoyauter les dattes.", "Glisser une amande dans chacune.", "Servir pour la rupture du jeûne."]],
+  ["🥛", "Smoothie dattes-lait", 5, [["Dattes", 8, ""], ["Lait", 50, "cl"], ["Banane", 1, ""]], ["Dénoyauter les dattes.", "Mixer avec le lait et la banane.", "Servir frais."]],
+  ["🍞", "Pain maison", 150, [["Farine de blé", 500, "g"], ["Eau tiède", 33, "cl"], ["Levure de boulanger", 1, "sachet"], ["Sel", 10, "g"]], ["Mélanger les ingrédients et pétrir 10 min.", "Laisser lever 1 h 30 sous un linge.", "Façonner, laisser 30 min, cuire 30 min à 220 °C."]],
+  ["🥖", "Khobz (pain marocain)", 120, [["Semoule fine", 250, "g"], ["Farine", 250, "g"], ["Levure de boulanger", 1, "sachet"], ["Eau tiède", 35, "cl"], ["Sel", 1, "c. à café"]], ["Pétrir tous les ingrédients 10 min.", "Former des galettes, laisser lever 1 h.", "Cuire 20 min à 220 °C."]],
+  ["🫓", "Naans à la poêle", 40, [["Farine", 300, "g"], ["Yaourt nature", 1, "pot"], ["Levure chimique", 1, "sachet"], ["Ail", 1, "gousse"]], ["Mélanger farine, yaourt et levure en une pâte souple.", "Étaler en galettes.", "Cuire à la poêle chaude avec un peu d'ail et de beurre."]],
+  ["🫓", "Pain pita", 90, [["Farine", 400, "g"], ["Levure de boulanger", 1, "sachet"], ["Eau tiède", 25, "cl"], ["Huile d'olive", 2, "c. à soupe"]], ["Pétrir tous les ingrédients, laisser lever 1 h.", "Étaler en disques.", "Cuire 5 min à 250 °C : ils gonflent."]],
+  ["🍞", "Focaccia romarin-tomates", 120, [["Farine", 500, "g"], ["Levure de boulanger", 1, "sachet"], ["Eau tiède", 30, "cl"], ["Huile d'olive", 5, "c. à soupe"], ["Tomates cerises", 200, "g"], ["Romarin", 1, "brin"]], ["Pétrir la pâte, laisser lever 1 h.", "Étaler dans un plat, creuser du bout des doigts.", "Garnir de tomates, romarin et huile, cuire 25 min à 220 °C."]],
+  ["🥔", "Pommes de terre grenaille à l'air fryer", 20, [["Pommes de terre grenaille", 800, "g"], ["Huile d'olive", 2, "c. à soupe"], ["Ail en poudre", 1, "c. à café"], ["Romarin", 1, "brin"]], ["Couper les pommes de terre en deux, les enrober d'huile et d'épices.", "Air fryer 18 min à 200 °C en les remuant à mi-cuisson.", "Servir avec une salade ou un yaourt à l'ail."]],
+  ["🥦", "Brocoli et pois chiches rôtis à l'air fryer", 15, [["Brocoli", 1, ""], ["Pois chiches", 1, "boîte"], ["Huile d'olive", 2, "c. à soupe"], ["Paprika", 1, "c. à café"], ["Citron", 1, ""]], ["Mélanger brocoli et pois chiches égouttés avec huile et paprika.", "Air fryer 12 min à 190 °C.", "Arroser de citron."]],
+  ["🍠", "Chips de patate douce à l'air fryer", 20, [["Patates douces", 2, ""], ["Huile d'olive", 1, "c. à soupe"], ["Paprika", 1, "c. à café"]], ["Couper les patates douces en rondelles très fines.", "Les huiler et assaisonner.", "Air fryer 12 à 15 min à 180 °C."]],
+  ["🥟", "Samoussas aux légumes à l'air fryer", 30, [["Feuilles de brick", 6, ""], ["Petits pois", 200, "g"], ["Pommes de terre", 2, ""], ["Curry", 1, "c. à café"], ["Huile", 1, "c. à soupe"]], ["Écraser pommes de terre cuites, petits pois et curry.", "Garnir et plier les feuilles de brick en triangles.", "Badigeonner d'huile, air fryer 8 min à 190 °C."]],
+  ["🍞", "Pain de mie (machine à pain)", 180, [["Farine de blé", 500, "g"], ["Lait tiède", 30, "cl"], ["Beurre", 30, "g"], ["Sucre", 1, "c. à soupe"], ["Levure de boulanger", 1, "sachet"], ["Sel", 1, "c. à café"]], ["Mettre les ingrédients dans la cuve : liquides d'abord, farine, puis levure.", "Choisir le programme « pain de mie ».", "Laisser refroidir sur une grille."]],
+  ["🌾", "Pain complet aux graines (machine à pain)", 200, [["Farine complète", 300, "g"], ["Farine de blé", 200, "g"], ["Eau tiède", 33, "cl"], ["Graines (tournesol, lin)", 60, "g"], ["Levure de boulanger", 1, "sachet"], ["Sel", 1, "c. à café"]], ["Mettre eau, farines, sel, levure dans la cuve.", "Ajouter les graines au bip du programme « complet ».", "Laisser refroidir."]],
+  ["🥐", "Brioche (machine à pain)", 190, [["Farine de blé", 500, "g"], ["Lait tiède", 12, "cl"], ["Œufs", 3, ""], ["Beurre mou", 80, "g"], ["Sucre", 60, "g"], ["Levure de boulanger", 1, "sachet"]], ["Tout mettre dans la cuve : œufs, lait, beurre, farine, sucre, levure.", "Choisir le programme « brioche ».", "Laisser tiédir avant de couper."]],
+  ["🫒", "Pain aux olives (machine à pain)", 190, [["Farine de blé", 500, "g"], ["Eau tiède", 33, "cl"], ["Olives noires dénoyautées", 100, "g"], ["Huile d'olive", 2, "c. à soupe"], ["Levure de boulanger", 1, "sachet"], ["Sel", 1, "c. à café"]], ["Mettre eau, huile, farine, sel et levure dans la cuve.", "Ajouter les olives au bip du programme « pain ».", "Laisser refroidir."]],
 ];
-let mealPeople = store.get("mealPeople", 4), mealPick = store.get("mealPick", []), mealShown = store.get("mealShown", null);
+/* Recettes de saison : chaque recette a ses saisons (aut = automne, hiv, pri, ete). Sans étiquette = toute l'année. Les suggestions changent toutes seules avec le mois. */
+const SEASON_TAGS = { 0: "ete", 2: "aut hiv", 6: "aut hiv", 7: "aut hiv", 9: "ete", 11: "aut hiv pri", 12: "hiv", 15: "aut hiv", 16: "aut hiv", 18: "aut hiv", 19: "aut", 20: "aut hiv", 21: "aut hiv", 22: "aut hiv", 23: "aut hiv", 24: "pri", 25: "pri ete", 26: "pri", 27: "pri", 28: "ete", 29: "ete", 30: "ete", 31: "ete", 32: "aut hiv", 33: "aut hiv", 36: "pri ete", 37: "ete", 39: "aut hiv", 40: "hiv", 43: "aut hiv", 44: "ete", 45: "ete", 46: "aut hiv", 47: "ete", 48: "ete", 49: "aut hiv", 50: "pri ete", 51: "aut hiv", 52: "hiv", 57: "aut hiv", 68: "aut hiv", 69: "aut hiv" };
+const CATS = [["fav", "❤️", "Préférées"], ["entree", "🥗", "Entrées"], ["plat", "🍽️", "Plats"], ["dessert", "🍰", "Desserts"], ["boisson", "🥤", "Boissons"], ["fete", "🎉", "Fête"], ["ramadan", "🌙", "Ramadan"], ["pain", "🍞", "Pains"]];
+const RCAT = {}; const setCat = (c, ...ix) => ix.forEach(i => { RCAT[i] = c; });
+setCat("entree", 7, 15, 20, 23, 25, 26, 27, 28, 30, 41, 42, 43, 44, 45, 46);
+setCat("dessert", 32, 33, 34, 35, 36, 37, 38, 39, 40);
+setCat("boisson", 47, 48, 49, 50, 51, 52);
+setCat("fete", 53, 54, 55, 56, 57);
+setCat("ramadan", 58, 59, 60, 61, 62);
+setCat("pain", 63, 64, 65, 66, 67, 72, 73, 74, 75);
+setCat("entree", 70, 71);
+/* Matériel de Hanan : machine à pain, air fryer, four, plaque, robot mélangeur (ne cuit pas), batteur électrique. Recettes rapides de préférence. */
+const APPL = { mp: "🍞 Machine à pain", af: "🍟 Air fryer", fo: "🔥 Four", pl: "🍳 Plaque", ro: "🥣 Robot", ba: "🌀 Batteur" };
+const RAPPL = { 0: "pl", 1: "pl", 2: "pl", 3: "pl", 5: "fo", 6: "pl ro", 7: "pl", 8: "pl", 9: "fo", 10: "pl", 11: "fo", 12: "fo", 13: "fo", 14: "af fo", 15: "pl", 16: "fo pl", 17: "af", 18: "fo", 19: "pl", 20: "pl", 21: "fo", 22: "pl", 24: "pl", 26: "pl", 29: "pl", 31: "fo af", 32: "pl", 33: "fo af", 34: "ro fo", 35: "ba", 37: "ro fo", 38: "ro pl", 39: "pl", 41: "ro", 43: "pl", 49: "pl", 51: "pl", 52: "pl", 53: "pl", 54: "pl", 55: "fo af", 56: "ba fo", 57: "fo", 58: "pl", 59: "pl af", 60: "pl", 63: "mp", 64: "mp", 65: "pl ro", 66: "fo ro", 67: "fo ro", 68: "af", 69: "af", 70: "af", 71: "af", 72: "mp", 73: "mp", 74: "mp", 75: "mp" };
+const applOf = k => typeof k === "number" ? (RAPPL[k] || "").split(" ").filter(Boolean) : (((myRecipes.find(x => "m:" + x.id === k) || {}).a) || []);
+const catOf = k => typeof k === "number" ? (RCAT[k] || "plat") : ((myRecipes.find(x => "m:" + x.id === k) || {}).c || "plat");
+const seasonOf = (d = new Date()) => { const m = d.getMonth() + 1; return m === 12 || m <= 2 ? "hiv" : m <= 5 ? "pri" : m <= 8 ? "ete" : "aut"; };
+const SEASON_NAME = { hiv: "d'hiver", pri: "de printemps", ete: "d'été", aut: "d'automne" };
+const inSeason = (i, sea) => !SEASON_TAGS[i] || SEASON_TAGS[i].split(" ").includes(sea);
+const shuf = a => [...a].sort(() => Math.random() - .5);
+const pickCat = cat => {
+  const sea = seasonOf(), all = [...RECIPES.keys()].filter(i => (RCAT[i] || "plat") === cat && inSeason(i, sea));
+  const quick = a => shuf(a).sort((x, y) => (RECIPES[x][2] > 45) - (RECIPES[y][2] > 45));
+  return [...quick(all.filter(i => SEASON_TAGS[i])), ...quick(all.filter(i => !SEASON_TAGS[i]))].slice(0, 6);
+};
+let mealPeople = store.get("mealPeople", 4), mealPick = store.get("mealCook", []), mealShown = store.get("mealSeasonShown2", null), mealCat = store.get("mealCat", "fav");
 let mealFav = store.get("mealFav", []), myRecipes = store.get("myRecipes", []);
-const pickSix = () => [...RECIPES.keys()].sort(() => Math.random() - .5).slice(0, 6);
-if (!mealShown) mealShown = pickSix();
+const monthKey = () => { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1); };
+if (!mealShown || mealShown.k !== monthKey()) { mealShown = { k: monthKey() }; }
+const shownFor = cat => { if (!mealShown[cat]) { mealShown[cat] = pickCat(cat); store.set("mealSeasonShown2", mealShown); } return mealShown[cat]; };
 // Une recette : un numéro (idées toutes faites) ou "m:<id>" (mes recettes à moi)
 const recipeOf = k => { if (typeof k === "number") return RECIPES[k]; const r = myRecipes.find(x => "m:" + x.id === k); return r && [r.e, r.n, r.m, r.ing, r.steps, r.people || 4, r.d || ""]; };
 const favKeys = () => [...myRecipes.map(r => "m:" + r.id), ...mealFav.filter(k => recipeOf(k))];
@@ -3022,6 +3110,16 @@ function parseIngLine(raw) {
   if (m && m[1].trim()) return [capFirst(m[1].trim()), parseFloat(m[2].replace(",", ".")), (m[3] || "").trim()];
   return [capFirst(l), null, ""];
 }
+function guessCat(t) {
+  t = String(t || "").toLowerCase().slice(0, 400);
+  if (/ramadan|harira|chorba|\bbrik\b|chebakia/.test(t)) return "ramadan";
+  if (/\bpain\b|focaccia|\bnaans?\b|\bpita\b|brioche|fougasse|baguette|khobz/.test(t)) return "pain";
+  if (/smoothie|\bjus\b|\bth[ée]\b|infusion|limonade|citronnade|sirop|milk-?shake|chocolat chaud/.test(t)) return "boisson";
+  if (/g[âa]teau|tarte|mousse|\bflan\b|brownie|cookies?|crumble|clafoutis|compote|\bglace|cr[êe]pes?|dessert|tiramisu|cr[èe]me/.test(t)) return "dessert";
+  if (/\bsalade|soupe|velout[ée]|houmous|taboul[ée]|entr[ée]e|gaspacho/.test(t)) return "entree";
+  if (/f[êe]te|no[ëe]l|r[ée]veillon|b[ûu]che|couscous/.test(t)) return "fete";
+  return "plat";
+}
 function parseRecipeText(text) {
   const lines = String(text || "").split(/\r?\n/).map(l => l.replace(/\s+/g, " ").trim()).filter(l => l.length > 1);
   const H_ING = /^(?:les\s+)?ingr[ée]dients?\b/i, H_PREP = /^(?:la\s+)?(pr[ée]paration|recette|[ée]tapes?|instructions?|d[ée]roulement|m[ée]thode|r[ée]alisation)\b\s*:?\s*$/i;
@@ -3038,6 +3136,7 @@ function parseRecipeText(text) {
   if (pm) out.people = Math.min(12, parseInt(pm[1], 10));
   const isMeta = l => /dur[ée]e|temps|difficult|personnes?|pers\.|cuisson|co[uû]t|budget|^\W*$/i.test(l);
   const titleLine = lines.slice(0, iIng >= 0 ? iIng : 5).find(l => !isMeta(l) && !H_ING.test(l) && /[a-zà-ÿ]{3,}/i.test(l));
+  out.c = guessCat(all);
   out.n = capFirst((titleLine || "Ma recette").replace(/^recette\s*(de|:)?\s*/i, "").replace(/[|_]+/g, " ").trim()) || "Ma recette";
   const stepStart = iPrep >= 0 ? iPrep + 1 : -1;
   let ingLines = iIng >= 0 ? lines.slice(iIng + 1, iPrep >= 0 ? iPrep : undefined) : [];
@@ -3108,10 +3207,11 @@ function recipeFiche(key) {
   const people = recPeopleOf(key), k = people / base, mm = recMin(key, r), dd = recDiff(key, r);
   const chip = (txt, on, fn, extra) => el("button", { class: "chip" + (on ? " on" : ""), type: "button", text: txt, onclick: fn, ...(extra || {}) });
   const meta = k2 => { recipeMeta[key] = Object.assign({}, recipeMeta[key], k2); saveMeta(); renderMeals(); };
-  return el("details", { class: "fiche", open: ficheOpen === key, ontoggle: ev => { const d = ev.target; if (d.open) { ficheOpen = key; document.querySelectorAll("#meal-chosen details.fiche[open]").forEach(o => { if (o !== d) o.open = false; }); } else if (ficheOpen === key) ficheOpen = null; } },
-    el("summary", { class: "fiche-h" }, el("span", { class: "big", text: e }), el("h3", { text: n }), el("span", { class: "fiche-sub", text: [mm ? `⏱️ ${mm} min` : "", dd ? `${DIFF_EMO[dd]} ${dd}` : ""].filter(Boolean).join(" · ") })),
+  return el("details", { class: "fiche", open: ficheOpen === key, ontoggle: ev => { const d = ev.target; if (d.open) { ficheOpen = key; document.querySelectorAll("#view-recettes details.fiche[open]").forEach(o => { if (o !== d) o.open = false; }); } else if (ficheOpen === key) ficheOpen = null; } },
+    el("summary", { class: "fiche-h" }, el("button", { class: "cook", type: "button", "aria-label": "À cuisiner : " + n, "aria-pressed": String(mealPick.includes(key)), text: mealPick.includes(key) ? "✅" : "☐", onclick: ev => { ev.preventDefault(); ev.stopPropagation(); mealPick = mealPick.includes(key) ? mealPick.filter(x => x !== key) : [...mealPick, key]; store.set("mealCook", mealPick); renderMeals(); renderTiles(); } }), el("span", { class: "big", text: e }), el("h3", { text: n }), el("span", { class: "fiche-sub", text: [mm ? `⏱️ ${mm} min` : "", applOf(key).map(c => (APPL[c] || "").split(" ")[0]).join(""), dd ? DIFF_EMO[dd] : ""].filter(Boolean).join(" ") })),
     el("div", { class: "fiche-b" },
       el("div", { class: "fiche-line" }, el("b", { text: "⏱️ Préparation" }), chip(mm ? `${mm} min` : "à noter", !!mm, () => { const v = prompt("Combien de minutes pour préparer ?", mm || ""); if (v === null) return; const x = parseInt(v, 10); meta({ m: x > 0 ? x : 0 }); })),
+      applOf(key).length ? el("div", { class: "fiche-line" }, el("b", { text: "🔧 Avec" }), ...applOf(key).map(c => el("span", { class: "chip on", text: APPL[c] || c }))) : null,
       el("div", { class: "fiche-line" }, el("b", { text: "🎚️ Difficulté" }), ...DIFFS.map(x => chip(`${DIFF_EMO[x]} ${x}`, dd === x, () => meta({ d: dd === x ? "" : x })))),
       el("div", { class: "fiche-line" }, el("b", { text: "👥 Pour" }), ...[2, 3, 4, 5, 6, 8].map(x => chip(String(x), people === x, () => { recipePeople[key] = x; saveMeta(); renderMeals(); })), el("span", { class: "small muted", text: "personnes" })),
       el("h4", { text: "🧂 Ingrédients" }),
@@ -3135,14 +3235,19 @@ function renderMeals() {
   mealPick = mealPick.filter(k => recipeOf(k));
   $("#meal-people").textContent = mealPeople;
   const favs = favKeys();
-  $("#fav-count").textContent = favs.length ? `${favs.length}` : "";
-  $("#fav-grid").replaceChildren(...(favs.length ? favs.map(mealBtn) : [el("p", { class: "muted small", style: "grid-column:1/-1", text: "Touche un repas, puis 🤍 pour le garder ici. Tu peux aussi écrire tes propres recettes 👇" })]));
-  $("#meal-grid").replaceChildren(...mealShown.filter(i => !favs.includes(i)).map(mealBtn));
-  $("#meal-add").textContent = mealPick.length ? `🛒 Ajouter les ingrédients (${mealPick.length} repas)` : "👆 Choisis tes repas";
-  $("#meal-chosen").replaceChildren(...mealPick.map(recipeFiche));
+  $("#fav-count").textContent = favs.length ? `${favs.length} ❤️` : "";
+  $("#meal-cats").replaceChildren(...CATS.map(([c, e, n]) => el("button", { class: "chip" + (mealCat === c ? " on" : ""), type: "button", text: `${e} ${n}`, onclick: () => { mealCat = c; store.set("mealCat", c); renderMeals(); } })));
+  const mine = mealCat === "fav" ? favs : favs.filter(k => catOf(k) === mealCat);
+  const cname = (CATS.find(x => x[0] === mealCat) || [])[2] || "";
+  $("#fav-grid").replaceChildren(...(mine.length ? mine.map(recipeFiche) : [el("p", { class: "muted small", text: mealCat === "fav" ? "Ouvre une idée, touche 🤍 pour la garder ici. Tu peux aussi ajouter tes recettes (photo ou écrites) en bas de page 👇" : `Pas encore de recette perso dans « ${cname} ». Regarde les idées ci-dessous, ou ajoute la tienne en bas de page 👇` })]));
+  const sug = mealCat === "fav" ? [] : shownFor(mealCat).filter(i => !favs.includes(i));
+  $("#meal-sug-head").hidden = mealCat === "fav"; $("#meal-grid").hidden = mealCat === "fav";
+  $("#meal-sug-title").textContent = `${(CATS.find(x => x[0] === mealCat) || [, "🍂"])[1]} Idées ${SEASON_NAME[seasonOf()]}`;
+  $("#meal-grid").replaceChildren(...sug.map(recipeFiche));
+  $("#meal-add").textContent = mealPick.length ? `🛒 Ajouter les ingrédients (${mealPick.length} recette${mealPick.length > 1 ? "s" : ""} cochée${mealPick.length > 1 ? "s" : ""})` : "☐ Coche d'abord tes recettes";
 }
 const fmtQty = (q, u) => { const r = q >= 10 ? Math.round(q / 10) * 10 : Math.round(q * 2) / 2 || 0.5; return `${String(r).replace(".", ",")}${u ? " " + u : ""}`; };
-$("#meal-shuffle").addEventListener("click", () => { mealShown = pickSix(); store.set("mealShown", mealShown); renderMeals(); });
+$("#meal-shuffle").addEventListener("click", () => { mealShown[mealCat] = pickCat(mealCat); store.set("mealSeasonShown2", mealShown); renderMeals(); });
 $("#meal-minus").addEventListener("click", () => { mealPeople = Math.max(1, mealPeople - 1); store.set("mealPeople", mealPeople); renderMeals(); });
 $("#meal-plus").addEventListener("click", () => { mealPeople = Math.min(10, mealPeople + 1); store.set("mealPeople", mealPeople); renderMeals(); });
 function addRecipesToList(keys) {
@@ -3154,15 +3259,15 @@ function addRecipesToList(keys) {
   return Object.keys(tot).length + plain.size;
 }
 $("#meal-add").addEventListener("click", () => {
-  if (!mealPick.length) { $("#meal-msg").textContent = "👆 Touche d'abord les repas qui te font envie."; return; }
-  const n = addRecipesToList(mealPick);
-  $("#meal-msg").replaceChildren(`✅ ${n} ingrédients ajoutés à ta liste de courses `, el("button", { class: "btn", type: "button", "data-goto": "home2", text: "🛒 Voir ma liste" }));
+  if (!mealPick.length) { $("#meal-msg").textContent = "☐ Coche d'abord les recettes que tu veux cuisiner."; return; }
+  const n = addRecipesToList(mealPick); mealPick = []; store.set("mealCook", mealPick); renderMeals(); renderTiles();
+  $("#meal-msg").replaceChildren(`✅ ${n} ingrédients ajoutés à ta liste de courses (tes cases sont décochées) `, el("button", { class: "btn", type: "button", "data-goto": "home2", text: "🛒 Voir ma liste" }));
 });
 // Mes recettes à moi : « Carottes 4 », « Riz 300 g » ou juste « Persil »
 let myrecEdit = null;
-const myrecReset = () => { myrecEdit = null; $("#myrec-form").reset(); $("#myrec-people").value = String([2, 3, 4, 5, 6, 8].includes(mealPeople) ? mealPeople : 4); $("#myrec-title").textContent = "✍️ Ajouter ma recette"; $("#myrec-save").textContent = "❤️ Ranger dans mes préférées"; $("#myrec-clear").hidden = true; };
+const myrecReset = () => { myrecEdit = null; $("#myrec-form").reset(); $("#myrec-cat").value = (mealCat !== "fav" ? mealCat : "plat"); $("#myrec-people").value = String([2, 3, 4, 5, 6, 8].includes(mealPeople) ? mealPeople : 4); $("#myrec-title").textContent = "✍️ Ajouter ma recette"; $("#myrec-save").textContent = "❤️ Ranger dans mes préférées"; $("#myrec-clear").hidden = true; };
 function myrecFill(o, msg) {
-  $("#myrec-name").value = o.n || ""; $("#myrec-min").value = o.m || ""; $("#myrec-diff").value = o.d || "";
+  $("#myrec-name").value = o.n || ""; $("#myrec-cat").value = o.c || "plat"; document.querySelectorAll("#myrec-appl input").forEach(x => { x.checked = (o.a || []).includes(x.value); }); $("#myrec-min").value = o.m || ""; $("#myrec-diff").value = o.d || "";
   if (o.people) { const sel = $("#myrec-people"); if (![...sel.options].some(x => +x.value === o.people)) sel.append(new Option(String(o.people), String(o.people))); sel.value = String(o.people); }
   $("#myrec-ing").value = (o.ingText != null ? o.ingText : (o.ing || []).map(([a, q, u]) => q == null ? a : `${a} ${String(q).replace(".", ",")}${u ? " " + u : ""}`).join("\n"));
   $("#myrec-steps").value = (o.steps || []).join("\n"); $("#myrec-clear").hidden = false;
@@ -3170,7 +3275,7 @@ function myrecFill(o, msg) {
 }
 function myrecLoad(key) {
   const r = myRecipes.find(x => "m:" + x.id === key); if (!r) return;
-  myrecEdit = r.id; myrecFill({ n: r.n, m: r.m, d: r.d, people: r.people, ing: r.ing, steps: r.steps }, "✏️ Tu modifies cette recette. N'oublie pas d'enregistrer.");
+  myrecEdit = r.id; myrecFill({ n: r.n, c: r.c, a: r.a, m: r.m, d: r.d, people: r.people, ing: r.ing, steps: r.steps }, "✏️ Tu modifies cette recette. N'oublie pas d'enregistrer.");
   $("#myrec-title").textContent = "✏️ Modifier ma recette"; $("#myrec-save").textContent = "💾 Enregistrer les changements";
   $("#myrec-card").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -3179,12 +3284,12 @@ $("#myrec-form").addEventListener("submit", e => {
   e.preventDefault();
   const n = $("#myrec-name").value.trim(); if (!n) return;
   const ing = $("#myrec-ing").value.split("\n").map(parseIngLine).filter(Boolean);
-  const rec = { e: emo(n, "🍽️"), n: capFirst(n), m: Math.max(0, parseInt($("#myrec-min").value, 10) || 0), d: $("#myrec-diff").value, ing, steps: $("#myrec-steps").value.split("\n").map(l => l.trim()).filter(Boolean), people: parseInt($("#myrec-people").value, 10) || 4 };
+  const rec = { e: emo(n, "🍽️"), n: capFirst(n), c: $("#myrec-cat").value || "plat", a: [...document.querySelectorAll("#myrec-appl input:checked")].map(x => x.value), m: Math.max(0, parseInt($("#myrec-min").value, 10) || 0), d: $("#myrec-diff").value, ing, steps: $("#myrec-steps").value.split("\n").map(l => l.trim()).filter(Boolean), people: parseInt($("#myrec-people").value, 10) || 4 };
   let key;
   if (myrecEdit) { const r = myRecipes.find(x => x.id === myrecEdit); if (r) Object.assign(r, rec); key = "m:" + myrecEdit; }
   else { const id = uid(); myRecipes.push({ id, ...rec }); key = "m:" + id; }
   recipePeople[key] = rec.people; saveMeta();
-  if (!mealPick.includes(key)) { mealPick = [...mealPick, key]; store.set("mealPick", mealPick); }
+  mealCat = "fav"; store.set("mealCat", mealCat);
   store.set("myRecipes", myRecipes); myrecReset(); $("#myrec-msg").textContent = "✅ Recette rangée dans tes préférées. Elle est ouverte juste au-dessus 👆"; renderMeals();
   $("#fav-grid").scrollIntoView({ behavior: "smooth", block: "center" });
 });
@@ -3211,7 +3316,7 @@ $("#myrec-photo").addEventListener("click", () => {
       const text = await ocrImage(f, say);
       if (text.replace(/\s/g, "").length < 20) { say("😕 Je n'ai presque rien lu. Reprends la photo bien à plat, avec de la lumière, ou écris la recette à la main."); return; }
       const r = parseRecipeText(text);
-      myrecEdit = null; myrecFill({ n: r.n, m: r.m, d: r.d, people: r.people, ing: r.ing, steps: r.steps, ingText: r.ing.map(([a, q, u]) => q == null ? a : `${a} ${String(q).replace(".", ",")}${u ? " " + u : ""}`).join("\n") }, "👀 Voilà ce que j'ai lu. Relis, corrige les petites erreurs (c'est normal), puis touche « Ranger ».");
+      myrecEdit = null; myrecFill({ n: r.n, c: r.c, m: r.m, d: r.d, people: r.people, ing: r.ing, steps: r.steps, ingText: r.ing.map(([a, q, u]) => q == null ? a : `${a} ${String(q).replace(".", ",")}${u ? " " + u : ""}`).join("\n") }, "👀 Voilà ce que j'ai lu. Relis, corrige les petites erreurs (c'est normal), puis touche « Ranger ».");
       $("#myrec-name").scrollIntoView({ behavior: "smooth", block: "center" });
     } catch { say("😕 Je n'ai pas pu lire la photo (il faut une connexion la première fois). Tu peux écrire la recette à la main."); }
   };

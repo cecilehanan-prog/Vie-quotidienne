@@ -47,3 +47,13 @@ Un GPS type Waze avec trafic en temps réel demande des millions d'utilisateurs 
 - `index.html` : l'appli complète (s'ouvre dans un navigateur)
 - `app-body.html` : la source ; `sh build.sh` régénère `index.html`
 - `manifest.webmanifest`, `sw.js`, `icon.svg` : installation sur le téléphone et mode hors ligne
+
+
+## Onglet Recettes : règles (22/11)
+- Goûts de CéHa : végétarien, sans alcool (ni vin dans les recettes), pas de viande ni de poisson.
+- Rubriques : Préférées, Entrées, Plats, Desserts, Boissons (sans alcool), Fête, Ramadan, Pains. Chaque recette a une rubrique (choisie à l'ajout, proposée par l'import photo).
+- Suggestions de saison : elles changent avec le mois (étiquettes aut / hiv / pri / ete dans SEASON_TAGS) ; produits frais du moment (brocoli, potiron, potimarron en automne…).
+- Cuisine rapide : les suggestions mettent d'abord les recettes courtes. Matériel : machine à pain, air fryer, four, plaque, batteur électrique, robot mélangeur simple (ne cuit pas). Chaque fiche indique les appareils.
+- Une même fiche pour toutes les recettes : titre, temps, difficulté (libre), personnes (2 à 8, quantités recalculées), ingrédients, préparation, minuteur, bouton Partager, bouton vers la liste de courses.
+- Les favoris restent. Seules les recettes cochées « à cuisiner » (☐/✅) envoient leurs ingrédients à la liste de courses ; les cases se décochent après l'envoi.
+- Import par photo ou capture : OCR gratuit (Tesseract, dans le navigateur), puis relecture avant de ranger.
