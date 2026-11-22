@@ -1112,13 +1112,14 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
         <div class="row" id="myrec-draftbar" hidden><button class="btn primary" type="button" id="myrec-again">🔄 Recommencer avec une autre photo</button><button class="btn" type="button" id="myrec-wipe">🗑️ Tout effacer</button></div>
         <details id="myrec-raw" hidden><summary class="small">👁️ Texte lu sur la photo</summary><pre id="myrec-rawtxt" style="white-space:pre-wrap;font-size:.8rem;margin:6px 0"></pre></details>
         <input type="text" id="myrec-name" placeholder="Nom (ex. Tajine de légumes)" required aria-label="Nom de la recette" autocomplete="off">
-        <label class="small">📂 Rubrique <select id="myrec-cat" aria-label="Rubrique"><option value="entree">🥗 Entrée</option><option value="plat">🍽️ Plat principal</option><option value="dessert">🍰 Dessert</option><option value="boisson">🥤 Boisson</option><option value="fete">🎉 Repas de fête</option><option value="ramadan">🌙 Repas du ramadan</option><option value="pain">🍞 Pain</option><option value="healthy">🌿 Sans gluten / Healthy</option></select></label>
+        <select id="myrec-cat" aria-label="Rubrique" hidden><option value="entree">🥗 Entrée</option><option value="plat">🍽️ Plat principal</option><option value="dessert">🍰 Dessert</option><option value="boisson">🥤 Boisson</option><option value="fete">🎉 Repas de fête</option><option value="ramadan">🌙 Repas du ramadan</option><option value="pain">🍞 Pain</option><option value="healthy">🌿 Sans gluten / Healthy</option></select>
         <div class="row small" id="myrec-appl" role="group" aria-label="Appareils">🔧 <label><input type="checkbox" value="mp"> 🍞 Machine à pain</label><label><input type="checkbox" value="af"> 🍟 Air fryer</label><label><input type="checkbox" value="fo"> 🔥 Four</label><label><input type="checkbox" value="pl"> 🍳 Plaque</label><label><input type="checkbox" value="ro"> 🥣 Robot</label><label><input type="checkbox" value="ba"> 🌀 Batteur</label></div>
         <div class="row"><label class="small">⏱️ Préparation <input type="number" id="myrec-min" min="0" max="600" inputmode="numeric" placeholder="min" style="width:80px" aria-label="Minutes de préparation"></label>
           <label class="small">🎚️ <select id="myrec-diff" aria-label="Difficulté"><option value="">Difficulté : plus tard</option><option>Facile</option><option>Moyen</option><option>Difficile</option></select></label>
           <label class="small">👥 <select id="myrec-people" aria-label="Pour combien de personnes"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>8</option></select> pers.</label></div>
         <textarea id="myrec-ing" rows="5" placeholder="Ingrédients, un par ligne (ex. 200 g de farine, 2 œufs, Carottes 4)" aria-label="Ingrédients" required></textarea>
         <textarea id="myrec-steps" rows="4" placeholder="Préparation (facultatif), une étape par ligne" aria-label="Préparation"></textarea>
+        <div class="small"><b>📂 Dans quelle rubrique ?</b></div><div class="row" id="myrec-catchips" role="group" aria-label="Rubrique"></div>
         <button class="btn primary" type="submit" id="myrec-save">➕ Ajouter à mes recettes</button>
       </form>
     </article>
@@ -3360,12 +3361,18 @@ function myrecFromIdea(key) {
   $("#myrec-title").textContent = "✏️ Ma version de « " + r[1] + " »"; $("#myrec-save").textContent = "💾 Enregistrer ma version";
   $("#myrec-card").scrollIntoView({ behavior: "smooth", block: "start" });
 }
-const myrecReset = () => { myrecEdit = null; myrecFrom = null; $("#myrec-form").reset(); $("#myrec-cat").value = (["fav", "carnet"].includes(mealCat) ? "plat" : mealCat); $("#myrec-people").value = String([2, 3, 4, 5, 6, 8].includes(mealPeople) ? mealPeople : 4); $("#myrec-title").textContent = "✍️ Ajouter ma recette"; $("#myrec-save").textContent = "➕ Ajouter à mes recettes"; $("#myrec-clear").hidden = true; $("#myrec-draftbar").hidden = true; $("#myrec-raw").hidden = true; };
+const CATCHIPS = [["entree", "🥗 Entrée"], ["plat", "🍽️ Plat"], ["dessert", "🍰 Dessert"], ["boisson", "🥤 Boisson"], ["fete", "🎉 Fête"], ["ramadan", "🌙 Ramadan"], ["pain", "🍞 Pain"], ["healthy", "🌿 Healthy"]];
+function drawCatChips() {
+  const cur = $("#myrec-cat").value || "plat";
+  $("#myrec-catchips").replaceChildren(...CATCHIPS.map(([c, t]) => el("button", { class: "chip" + (cur === c ? " on" : ""), type: "button", "aria-pressed": String(cur === c), style: "font-size:1rem;padding:10px 14px", text: t, onclick: () => { $("#myrec-cat").value = c; drawCatChips(); } })));
+}
+const myrecReset = () => { myrecEdit = null; myrecFrom = null; $("#myrec-form").reset(); $("#myrec-cat").value = (["fav", "carnet"].includes(mealCat) ? "plat" : mealCat); $("#myrec-people").value = String([2, 3, 4, 5, 6, 8].includes(mealPeople) ? mealPeople : 4); $("#myrec-title").textContent = "✍️ Ajouter ma recette"; $("#myrec-save").textContent = "➕ Ajouter à mes recettes"; $("#myrec-clear").hidden = true; $("#myrec-draftbar").hidden = true; $("#myrec-raw").hidden = true; drawCatChips(); };
+myrecReset();
 function myrecFill(o, msg) {
   $("#myrec-name").value = o.n || ""; $("#myrec-cat").value = o.c || "plat"; document.querySelectorAll("#myrec-appl input").forEach(x => { x.checked = (o.a || []).includes(x.value); }); $("#myrec-min").value = o.m || ""; $("#myrec-diff").value = o.d || "";
   if (o.people) { const sel = $("#myrec-people"); if (![...sel.options].some(x => +x.value === o.people)) sel.append(new Option(String(o.people), String(o.people))); sel.value = String(o.people); }
   $("#myrec-ing").value = (o.ingText != null ? o.ingText : (o.ing || []).map(([a, q, u]) => q == null ? a : `${a} ${String(q).replace(".", ",")}${u ? " " + u : ""}`).join("\n"));
-  $("#myrec-steps").value = (o.steps || []).join("\n"); $("#myrec-clear").hidden = false; $("#myrec-draftbar").hidden = false;
+  $("#myrec-steps").value = (o.steps || []).join("\n"); $("#myrec-clear").hidden = false; drawCatChips(); $("#myrec-draftbar").hidden = false;
   if (msg) $("#myrec-msg").textContent = msg;
 }
 function myrecLoad(key) {
