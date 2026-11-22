@@ -67,3 +67,4 @@ Carnet de recettes (22/11) : « 📒 Mon carnet » = toutes les recettes de CéH
 Ajout de recette : rubrique choisie par gros boutons juste avant « Ajouter à mes recettes » (présélection automatique, modifiable ; aussi dans ✏️ Modifier).
 Rubrique « 🌍 Du monde » (Inde, Japon, Asie, etc.) : soupe miso, naans, curry, sushis, samoussas + 7 idées. Mêmes règles (végétarien, sans alcool, poisson seulement sushis/asiatique).
 Onglets de rubriques : grille régulière (Préférées + Mon carnet en grand, puis 3 colonnes égales, icône au-dessus du libellé) ; mêmes gros boutons à l'ajout.
+Recettes : vocabulaire « panier » = liste de courses. Aide en 2 étapes (1 coche ☐, 2 « Ajouter à mon panier »).

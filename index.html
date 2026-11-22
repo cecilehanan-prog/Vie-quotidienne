@@ -1098,9 +1098,9 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
     <article class="card" data-sec="meals">
       <div class="card-head"><h2>🍽️ Mes recettes</h2><span class="pill" id="fav-count"></span></div>
       <div class="cat-grid" id="meal-cats" role="group" aria-label="Rubriques"></div>
-      <p class="small muted">☐ Coche les recettes que tu veux cuisiner, puis touche le bouton : seuls leurs ingrédients partent dans ta liste.</p>
+      <p class="small" style="margin:8px 0"><b>🛒 Pour mes courses :</b><br>1️⃣ coche ☐ tes recettes (la case à gauche)<br>2️⃣ touche « 🛒 Ajouter à mon panier » ci-dessous</p>
       <div class="go-row"><span>👥</span><button class="btn" type="button" id="meal-minus">−</button><strong id="meal-people">4</strong><button class="btn" type="button" id="meal-plus">+</button><span class="small muted">personnes</span></div>
-      <button class="btn primary go-btn" type="button" id="meal-add">🛒 Mettre les ingrédients dans ma liste</button>
+      <button class="btn primary go-btn" type="button" id="meal-add">🛒 Ajouter à mon panier</button>
       <p class="small muted" id="meal-msg"></p>
       <div id="fav-grid"></div>
       <div class="card-head" style="margin-top:14px" id="meal-sug-head"><h2 id="meal-sug-title">🍂 Idées de saison</h2><button class="btn" type="button" id="meal-shuffle">🔀 Autres</button></div>
@@ -3272,7 +3272,7 @@ function recipeFiche(key) {
       el("h4", { text: "⏲️ Minuteur" }),
       el("div", { class: "fiche-line" }, ...[5, 10, 15, 20, 30].map(x => chip(`${x} min`, false, () => ktStart(x, n))), chip("✏️ Autre", false, () => { const v = parseInt(prompt("Combien de minutes ?", "10"), 10); if (v > 0) ktStart(v, n); })),
       el("div", { class: "row", style: "margin-top:10px" },
-        el("button", { class: "btn primary", type: "button", text: `🛒 Dans ma liste (pour ${people})`, onclick: () => { const c = addRecipesToList([key]); $("#meal-msg").replaceChildren(`✅ ${c} ingrédients ajoutés à ta liste de courses `, el("button", { class: "btn", type: "button", "data-goto": "home2", text: "🛒 Voir ma liste" })); $("#meal-msg").scrollIntoView({ block: "center", behavior: "smooth" }); } }),
+        el("button", { class: "btn primary", type: "button", text: `🛒 Dans mon panier (pour ${people})`, onclick: () => { const c = addRecipesToList([key]); $("#meal-msg").replaceChildren(`✅ ${c} ingrédients ajoutés à ton panier `, el("button", { class: "btn", type: "button", "data-goto": "home2", text: "🛒 Voir ma liste" })); $("#meal-msg").scrollIntoView({ block: "center", behavior: "smooth" }); } }),
         el("button", { class: "btn", type: "button", text: "📤 Partager", onclick: () => recipeShare(key) }),
         el("button", { class: "btn", type: "button", text: "✏️ Modifier", onclick: () => mine ? myrecLoad(key) : myrecFromIdea(key) }), el("button", { class: "btn", type: "button", text: fav ? "❤️ Dans mes préférées" : "🤍 Garder dans mes préférées", onclick: () => { mealFav = fav ? mealFav.filter(x => x !== key) : [...mealFav, key]; store.set("mealFav", mealFav); renderMeals(); } }),
         mine ? el("button", { class: "btn", type: "button", text: "🗑️", "aria-label": "Supprimer ma recette", onclick: () => { if (!confirm(`Supprimer « ${n} » ?`)) return; myRecipes = myRecipes.filter(x => "m:" + x.id !== key); mealFav = mealFav.filter(x => x !== key); mealPick = mealPick.filter(x => x !== key); store.set("myRecipes", myRecipes); store.set("mealFav", mealFav); store.set("mealCook", mealPick); renderMeals(); renderTiles(); } }) : null)));
@@ -3341,7 +3341,7 @@ function renderMeals() {
   $("#meal-sug-head").hidden = grouped; $("#meal-grid").hidden = grouped;
   $("#meal-sug-title").textContent = `${(CATS.find(x => x[0] === mealCat) || [, "🍂"])[1]} Idées ${SEASON_NAME[seasonOf()]}`;
   $("#meal-grid").replaceChildren(...sug.map(safeFiche));
-  $("#meal-add").textContent = mealPick.length ? `🛒 Ajouter les ingrédients (${mealPick.length} recette${mealPick.length > 1 ? "s" : ""} cochée${mealPick.length > 1 ? "s" : ""})` : "☐ Coche d'abord tes recettes";
+  $("#meal-add").textContent = mealPick.length ? `🛒 Ajouter à mon panier (${mealPick.length} recette${mealPick.length > 1 ? "s" : ""})` : "🛒 Ajouter à mon panier (coche ☐ d'abord)";
 }
 const fmtQty = (q, u) => { const r = q >= 10 ? Math.round(q / 10) * 10 : Math.round(q * 2) / 2 || 0.5; return `${String(r).replace(".", ",")}${u ? " " + u : ""}`; };
 $("#meal-shuffle").addEventListener("click", () => { mealShown[mealCat] = pickCat(mealCat); store.set("mealSeasonShown2", mealShown); renderMeals(); });
@@ -3356,9 +3356,9 @@ function addRecipesToList(keys) {
   return Object.keys(tot).length + plain.size;
 }
 $("#meal-add").addEventListener("click", () => {
-  if (!mealPick.length) { $("#meal-msg").textContent = "☐ Coche d'abord les recettes que tu veux cuisiner."; return; }
+  if (!mealPick.length) { $("#meal-msg").textContent = "☐ Coche d'abord une recette (la case à gauche), puis touche « Ajouter à mon panier »."; return; }
   const n = addRecipesToList(mealPick); mealPick = []; store.set("mealCook", mealPick); renderMeals(); renderTiles();
-  $("#meal-msg").replaceChildren(`✅ ${n} ingrédients ajoutés à ta liste de courses (tes cases sont décochées) `, el("button", { class: "btn", type: "button", "data-goto": "home2", text: "🛒 Voir ma liste" }));
+  $("#meal-msg").replaceChildren(`✅ ${n} ingrédients ajoutés à ton panier (tes cases sont décochées) `, el("button", { class: "btn", type: "button", "data-goto": "home2", text: "🛒 Voir mon panier" }));
 });
 // Mes recettes à moi : « Carottes 4 », « Riz 300 g » ou juste « Persil »
 let myrecEdit = null, myrecFrom = null;
