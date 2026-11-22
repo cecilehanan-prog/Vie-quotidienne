@@ -69,3 +69,4 @@ Rubrique « 🌍 Du monde » (Inde, Japon, Asie, etc.) : soupe miso, naans, curr
 Onglets de rubriques : grille régulière (Préférées + Mon carnet en grand, puis 3 colonnes égales, icône au-dessus du libellé) ; mêmes gros boutons à l'ajout.
 Recettes : vocabulaire « panier » = liste de courses. Aide en 2 étapes (1 coche ☐, 2 « Ajouter à mon panier »).
 Ordre des rubriques : Entrées, Plats, Desserts / Boissons, Healthy, Pains / Monde, Fête, Ramadan (grille, boutons d'ajout, groupes Préférées/Carnet).
+Picto pain : 🥖 (jamais 🥐, réservé aux brioches/croissants). Anciennes recettes perso corrigées une fois (painEmo).

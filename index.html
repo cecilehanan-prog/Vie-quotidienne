@@ -1548,7 +1548,7 @@ for (const card of document.querySelectorAll(".card[data-sec]")) {
   h.prepend(b);
 }
 const EMOJI = [
-  [/brioche|pain|baguette|croissant/, "🥐"], [/nutella|chocolat/, "🍫"], [/café|cafetière/, "☕"], [/salade|légume|carotte|tomate|courgette/, "🥬"],
+  [/brioche|croissant|viennoiserie/, "🥐"], [/pain|baguette|naan|pita|focaccia|khobz/, "🥖"], [/nutella|chocolat/, "🍫"], [/café|cafetière/, "☕"], [/salade|légume|carotte|tomate|courgette/, "🥬"],
   [/fromage|comté|camembert|raclette/, "🧀"], [/lait|yaourt|crème|beurre/, "🥛"], [/oeuf|œuf/, "🥚"], [/pomme|banane|fruit|poire|orange|raisin|citron/, "🍎"],
   [/poulet|viande|steak|jambon|saucisse|lardon/, "🍗"], [/poisson|saumon|thon/, "🐟"], [/pâtes|riz/, "🍝"], [/pizza/, "🍕"], [/(^|\s)eau($|\s)|jus|soda|sirop/, "🥤"],
   [/vin|bière/, "🍷"], [/lessive|savon|shampo|gel douche|dentifrice|éponge/, "🧴"], [/papier|mouchoir|essuie/, "🧻"], [/glace|surgel|congélateur/, "🧊"],
@@ -3144,6 +3144,7 @@ if (!store.get("seedMiso", false)) {
   if (!myRecipes.some(r => r.id === "miso1")) myRecipes.push({ id: "miso1", e: "🍲", n: "Soupe miso champignons tofu", c: "monde", a: ["pl"], m: 10, d: "Facile", people: 2, ing: [["Champignons", 3, ""], ["Oignon nouveau", 1, ""], ["Tofu", 1, "bloc"], ["Sauce soja sans gluten (tamari)", 3, "c. à soupe"], ["Wakamé", 1, "poignée"], ["Miso", 2, "grosses c. à soupe"], ["Sel", null, ""]], steps: ["Faire revenir les champignons et l'oignon avec la sauce soja.", "Ajouter 3 tasses d'eau.", "Ajouter le wakamé et le tofu.", "Ajouter le miso et le sel.", "Cuire 10 min."] });
   store.set("myRecipes", myRecipes); store.set("seedMiso", true);
 }
+if (!store.get("painEmo", false)) { let ch = false; myRecipes.forEach(r => { if (r.e === "🥐" && !/brioche|croissant/i.test(r.n || "")) { r.e = "🥖"; ch = true; } }); if (ch) store.set("myRecipes", myRecipes); store.set("painEmo", true); }
 if (!store.get("misoMonde", false)) { const m = myRecipes.find(r => r.id === "miso1"); if (m && m.c === "healthy") { m.c = "monde"; store.set("myRecipes", myRecipes); } store.set("misoMonde", true); }
 /* ----- Recettes : lecture d'une ligne d'ingrédient, et d'un texte de recette (photo / capture) ----- */
 const ING_UNITS = "kg|g|mg|cl|ml|dl|l|litres?|c\\.?\\s*à\\s*s(?:oupe)?\\.?|c\\.?\\s*à\\s*c(?:af[ée])?\\.?|cuill[èe]res?(?:\\s+à\\s+(?:soupe|caf[ée]))?|càs|càc|cs|cc|sachets?|pinc[ée]es?|tranches?|gousses?|bo[iî]tes?|pots?|verres?|tasses?|brins?|feuilles?|bouquets?|morceaux?|paquets?";
