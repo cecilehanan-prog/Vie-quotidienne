@@ -1097,6 +1097,8 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       <h2 id="myrec-title">✍️ Ajouter ma recette</h2>
       <div class="row"><button class="btn primary" type="button" id="myrec-photo">📷 Photo ou capture d'écran</button><button class="btn" type="button" id="myrec-clear" hidden>↩️ Recommencer</button></div>
       <p class="small muted" id="myrec-msg">Prends une photo ou choisis une capture : je lis le texte et je remplis la fiche. Tu vérifies, puis tu ranges.</p>
+      <div class="row"><button class="btn" type="button" id="book-export">💾 Exporter mon livre de recettes</button><button class="btn" type="button" id="book-import">📥 Restaurer</button><input type="file" id="book-file" accept=".json,application/json" hidden></div>
+      <p class="small muted" id="book-msg">Toutes tes recettes sont gardées sur ton appareil et dans ton compte. L'export est un fichier de secours en plus.</p>
       <form id="myrec-form" style="display:grid;gap:8px">
         <input type="text" id="myrec-name" placeholder="Nom (ex. Tajine de légumes)" required aria-label="Nom de la recette" autocomplete="off">
         <label class="small">📂 Rubrique <select id="myrec-cat" aria-label="Rubrique"><option value="entree">🥗 Entrée</option><option value="plat">🍽️ Plat principal</option><option value="dessert">🍰 Dessert</option><option value="boisson">🥤 Boisson</option><option value="fete">🎉 Repas de fête</option><option value="ramadan">🌙 Repas du ramadan</option><option value="pain">🍞 Pain</option></select></label>
@@ -3238,6 +3240,23 @@ function recipesBackup() {
     else localStorage.setItem("mq:_bkRecipes", JSON.stringify({ f: mealFav, r: myRecipes, t: Date.now() }));
   } catch (err) {}
 }
+$("#book-export").addEventListener("click", () => {
+  const data = JSON.stringify({ livre: "Mon Quotidien", f: mealFav, r: myRecipes, t: Date.now() }), a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([data], { type: "application/json" })); a.download = "mon-livre-de-recettes.json"; document.body.appendChild(a); a.click(); a.remove();
+  $("#book-msg").textContent = `✅ Fichier enregistré (${myRecipes.length} recette${myRecipes.length > 1 ? "s" : ""} à toi). Garde-le bien.`;
+});
+$("#book-import").addEventListener("click", () => $("#book-file").click());
+$("#book-file").addEventListener("change", ev => {
+  const f = ev.target.files[0]; if (!f) return; const rd = new FileReader();
+  rd.onload = () => { try {
+    const d = JSON.parse(rd.result); let n = 0;
+    (d.r || []).forEach(x => { if (x && x.id && !myRecipes.some(y => y.id === x.id)) { myRecipes.push(x); n++; } });
+    (d.f || []).forEach(k => { if (!mealFav.includes(k)) mealFav.push(k); });
+    store.set("myRecipes", myRecipes); store.set("mealFav", mealFav); renderMeals();
+    $("#book-msg").textContent = `✅ Restauré : ${n} recette${n > 1 ? "s" : ""} ajoutée${n > 1 ? "s" : ""} (rien n'est effacé).`;
+  } catch (e) { $("#book-msg").textContent = "😕 Ce fichier n'est pas un livre de recettes."; } ev.target.value = ""; };
+  rd.readAsText(f);
+});
 function renderMeals() {
   recipesBackup();
   mealPick = mealPick.filter(k => recipeOf(k));

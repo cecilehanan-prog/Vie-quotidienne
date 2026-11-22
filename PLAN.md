@@ -57,3 +57,5 @@ Un GPS type Waze avec trafic en temps réel demande des millions d'utilisateurs 
 - Une même fiche pour toutes les recettes : titre, temps, difficulté (libre), personnes (2 à 8, quantités recalculées), ingrédients, préparation, minuteur, bouton Partager, bouton vers la liste de courses.
 - Les favoris restent. Seules les recettes cochées « à cuisiner » (☐/✅) envoient leurs ingrédients à la liste de courses ; les cases se décochent après l'envoi.
 - Import par photo ou capture : OCR gratuit (Tesseract, dans le navigateur), puis relecture avant de ranger.
+
+Livre de recettes (22/11) : toutes les recettes de CéHa (myRecipes, mealFav) sont son livre personnel. Jamais écrasées ni vidées : stockage local + Firebase, sauvegarde auto locale (mq:_bkRecipes, restaurée si la liste devient vide), export/restauration par fichier (mon-livre-de-recettes.json, la restauration ajoute sans rien effacer).
