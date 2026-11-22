@@ -115,6 +115,19 @@ h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; mar
 .cat-grid .chip .ci, .cat-grid3 .chip .ci { font-size: 1.5rem; line-height: 1; }
 .cat-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .cat-grid3 .chip { grid-column: auto; }
+#fav-grid, #meal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; grid-auto-flow: row dense; margin-top: 8px; }
+#fav-grid > .fav-sec, #fav-grid > p, #meal-grid > p { grid-column: 1 / -1; margin: 8px 0 0; }
+#fav-grid > .fiche, #meal-grid > .fiche { margin-top: 0; min-width: 0; }
+#fav-grid > .fiche[open], #meal-grid > .fiche[open] { grid-column: 1 / -1; }
+#fav-grid .fiche:not([open]) .fiche-h, #meal-grid .fiche:not([open]) .fiche-h { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "ck hr . xx" "bg bg bg bg" "tt tt tt tt" "sb sb sb sb"; gap: 2px 0; justify-items: center; align-content: start; padding: 8px 6px 10px; height: 100%; box-sizing: border-box; }
+#fav-grid .fiche:not([open]) .fiche-h::after, #meal-grid .fiche:not([open]) .fiche-h::after { content: none; }
+#fav-grid .fiche:not([open]) .fiche-h > :nth-child(1), #meal-grid .fiche:not([open]) .fiche-h > :nth-child(1) { grid-area: ck; }
+#fav-grid .fiche:not([open]) .fiche-h > :nth-child(2), #meal-grid .fiche:not([open]) .fiche-h > :nth-child(2) { grid-area: hr; }
+#fav-grid .fiche:not([open]) .fiche-h .big, #meal-grid .fiche:not([open]) .fiche-h .big { grid-area: bg; font-size: 2.2rem; margin-top: 2px; }
+#fav-grid .fiche:not([open]) .fiche-h h3, #meal-grid .fiche:not([open]) .fiche-h h3 { grid-area: tt; text-align: center; font-size: .92rem; line-height: 1.2; flex: none; }
+#fav-grid .fiche:not([open]) .fiche-h .x, #meal-grid .fiche:not([open]) .fiche-h .x { grid-area: xx; justify-self: end; }
+#fav-grid .fiche:not([open]) .fiche-sub, #meal-grid .fiche:not([open]) .fiche-sub { grid-area: sb; text-align: center; padding: 0; margin-top: 2px; }
+#fav-grid .fiche:not([open]) .fiche-h .cook, #meal-grid .fiche:not([open]) .fiche-h .cook { min-width: 32px; min-height: 40px; padding: 4px 2px; font-size: 1.35rem; }
 .fav-sec { margin: 14px 0 4px; font-size: 1rem; color: var(--f-h, #b4521f); } .fiche-b { padding: 12px; } .fiche-b h4 { margin: 14px 0 6px; color: var(--f-h); font-size: 1rem; }
 .fiche-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
 .chip { border: 2px solid var(--f-bd); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
@@ -1102,13 +1115,13 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
     <article class="card" data-sec="meals" id="myrec-card">
       <h2 id="myrec-title">✍️ Ajouter ma recette</h2>
       <div class="row"><button class="btn primary" type="button" id="myrec-photo">📷 Photo ou capture d'écran</button><button class="btn" type="button" id="myrec-clear" hidden>↩️ Recommencer</button></div>
-      <p class="small muted" id="myrec-msg">Prends une photo ou choisis une capture : je lis le texte et je remplis la fiche. Tu vérifies, puis tu ranges.</p>
+      <p class="small muted" id="myrec-msg">Prends une photo ou choisis une capture (plusieurs pages possibles) : je lis le texte et je remplis la fiche. Tu vérifies, puis tu ajoutes.</p>
       <div class="row"><button class="btn" type="button" id="book-export">💾 Exporter mon livre de recettes</button><button class="btn" type="button" id="book-import">📥 Restaurer</button><input type="file" id="book-file" accept=".json,application/json" hidden></div>
       <div class="row"><button class="btn primary" type="button" id="book-find">🔎 Retrouver mes recettes perdues</button></div>
       <details id="hidden-box" hidden><summary class="small">🙈 Idées écartées (<span id="hidden-n">0</span>)</summary><div id="hidden-list" style="display:grid;gap:6px;margin-top:6px"></div></details>
       <p class="small muted" id="book-msg">Toutes tes recettes sont gardées sur ton appareil et dans ton compte. L'export est un fichier de secours en plus.</p>
       <form id="myrec-form" style="display:grid;gap:8px">
-        <div class="row" id="myrec-draftbar" hidden><button class="btn primary" type="button" id="myrec-again">🔄 Recommencer avec une autre photo</button><button class="btn" type="button" id="myrec-wipe">🗑️ Tout effacer</button></div>
+        <div class="row" id="myrec-draftbar" hidden><button class="btn primary" type="button" id="myrec-more">➕ Ajouter une page</button><button class="btn" type="button" id="myrec-again">🔄 Recommencer avec une autre photo</button><button class="btn" type="button" id="myrec-wipe">🗑️ Tout effacer</button></div>
         <details id="myrec-raw" hidden><summary class="small">👁️ Texte lu sur la photo</summary><pre id="myrec-rawtxt" style="white-space:pre-wrap;font-size:.8rem;margin:6px 0"></pre></details>
         <input type="text" id="myrec-name" placeholder="Nom (ex. Tajine de légumes)" required aria-label="Nom de la recette" autocomplete="off">
         <select id="myrec-cat" aria-label="Rubrique" hidden><option value="entree">🥗 Entrée</option><option value="plat">🍽️ Plat principal</option><option value="dessert">🍰 Dessert</option><option value="boisson">🥤 Boisson</option><option value="fete">🎉 Repas de fête</option><option value="ramadan">🌙 Repas du ramadan</option><option value="pain">🍞 Pain</option><option value="healthy">🌿 Sans gluten / Healthy</option><option value="monde">🌍 Du monde</option></select>
@@ -3253,7 +3266,7 @@ function recipeFiche(key) {
   const chip = (txt, on, fn, extra) => el("button", { class: "chip" + (on ? " on" : ""), type: "button", text: txt, onclick: fn, ...(extra || {}) });
   const meta = k2 => { recipeMeta[key] = Object.assign({}, recipeMeta[key], k2); saveMeta(); renderMeals(); };
   return el("details", { class: "fiche", open: ficheOpen === key, ontoggle: ev => { const d = ev.target; if (d.open) { ficheOpen = key; document.querySelectorAll("#view-recettes details.fiche[open]").forEach(o => { if (o !== d) o.open = false; }); } else if (ficheOpen === key) ficheOpen = null; } },
-    el("summary", { class: "fiche-h" }, el("button", { class: "cook", type: "button", "aria-label": "À cuisiner : " + n, "aria-pressed": String(mealPick.includes(key)), text: mealPick.includes(key) ? "✅" : "☐", onclick: ev => { ev.preventDefault(); ev.stopPropagation(); mealPick = mealPick.includes(key) ? mealPick.filter(x => x !== key) : [...mealPick, key]; store.set("mealCook", mealPick); renderMeals(); renderTiles(); } }), el("button", { class: "cook", type: "button", "aria-label": (fav ? "Retirer des préférées : " : "Garder dans mes préférées : ") + n, "aria-pressed": String(fav), text: fav ? "❤️" : "🤍", onclick: ev => { ev.preventDefault(); ev.stopPropagation(); mealFav = fav ? mealFav.filter(x => x !== key) : [...mealFav, key]; store.set("mealFav", mealFav); renderMeals(); } }), el("span", { class: "big", text: e }), el("h3", { text: n }), mine ? null : el("button", { class: "cook", type: "button", "aria-label": "Écarter cette recette : " + n, text: "✕", style: "font-size:1.2rem;opacity:.6", onclick: ev => { ev.preventDefault(); ev.stopPropagation(); hideIdea(key); } }), el("span", { class: "fiche-sub", text: [mm ? `⏱️ ${mm} min` : "", applOf(key).map(c => (APPL[c] || "").split(" ")[0]).join(""), dd ? DIFF_EMO[dd] : ""].filter(Boolean).join(" ") })),
+    el("summary", { class: "fiche-h" }, el("button", { class: "cook", type: "button", "aria-label": "À cuisiner : " + n, "aria-pressed": String(mealPick.includes(key)), text: mealPick.includes(key) ? "✅" : "☐", onclick: ev => { ev.preventDefault(); ev.stopPropagation(); mealPick = mealPick.includes(key) ? mealPick.filter(x => x !== key) : [...mealPick, key]; store.set("mealCook", mealPick); renderMeals(); renderTiles(); } }), el("button", { class: "cook", type: "button", "aria-label": (fav ? "Retirer des préférées : " : "Garder dans mes préférées : ") + n, "aria-pressed": String(fav), text: fav ? "❤️" : "🤍", onclick: ev => { ev.preventDefault(); ev.stopPropagation(); mealFav = fav ? mealFav.filter(x => x !== key) : [...mealFav, key]; store.set("mealFav", mealFav); renderMeals(); } }), el("span", { class: "big", text: e }), el("h3", { text: n }), mine ? null : el("button", { class: "cook x", type: "button", "aria-label": "Écarter cette recette : " + n, text: "✕", style: "font-size:1.2rem;opacity:.6", onclick: ev => { ev.preventDefault(); ev.stopPropagation(); hideIdea(key); } }), el("span", { class: "fiche-sub", text: [mm ? `⏱️ ${mm} min` : "", applOf(key).map(c => (APPL[c] || "").split(" ")[0]).join(""), dd ? DIFF_EMO[dd] : ""].filter(Boolean).join(" ") })),
     el("div", { class: "fiche-b" },
       el("div", { class: "fiche-line" }, el("b", { text: "⏱️ Préparation" }), chip(mm ? `${mm} min` : "à noter", !!mm, () => { const v = prompt("Combien de minutes pour préparer ?", mm || ""); if (v === null) return; const x = parseInt(v, 10); meta({ m: x > 0 ? x : 0 }); })),
       applOf(key).length ? el("div", { class: "fiche-line" }, el("b", { text: "🔧 Avec" }), ...applOf(key).map(c => el("span", { class: "chip on", text: APPL[c] || c }))) : null,
@@ -3355,7 +3368,7 @@ $("#meal-add").addEventListener("click", () => {
   $("#meal-msg").replaceChildren(`✅ ${n} ingrédients ajoutés à ton panier (tes cases sont décochées) `, el("button", { class: "btn", type: "button", "data-goto": "home2", text: "🛒 Voir mon panier" }));
 });
 // Mes recettes à moi : « Carottes 4 », « Riz 300 g » ou juste « Persil »
-let myrecEdit = null, myrecFrom = null;
+let myrecEdit = null, myrecFrom = null, ocrTexts = [];
 function hideIdea(key) {
   const r = recipeOf(key); if (!r || !confirm(`Écarter « ${r[1]} » ?\nElle ne reviendra plus. Tu pourras la remettre tout en bas de la page.`)) return;
   if (!recipeHidden.includes(key)) recipeHidden.push(key);
@@ -3376,7 +3389,7 @@ function drawCatChips() {
   const cur = $("#myrec-cat").value || "plat";
   $("#myrec-catchips").replaceChildren(...CATCHIPS.map(([c, t]) => el("button", { class: "chip" + (cur === c ? " on" : ""), type: "button", "aria-pressed": String(cur === c), onclick: () => { $("#myrec-cat").value = c; drawCatChips(); } }, el("span", { class: "ci", text: t.split(" ")[0] }), el("span", { text: t.split(" ").slice(1).join(" ") }))));
 }
-const myrecReset = () => { myrecEdit = null; myrecFrom = null; $("#myrec-form").reset(); $("#myrec-cat").value = (["fav", "carnet"].includes(mealCat) ? "plat" : mealCat); $("#myrec-people").value = String([2, 3, 4, 5, 6, 8].includes(mealPeople) ? mealPeople : 4); $("#myrec-title").textContent = "✍️ Ajouter ma recette"; $("#myrec-save").textContent = "➕ Ajouter à mes recettes"; $("#myrec-clear").hidden = true; $("#myrec-draftbar").hidden = true; $("#myrec-raw").hidden = true; drawCatChips(); };
+const myrecReset = () => { ocrTexts = []; myrecEdit = null; myrecFrom = null; $("#myrec-form").reset(); $("#myrec-cat").value = (["fav", "carnet"].includes(mealCat) ? "plat" : mealCat); $("#myrec-people").value = String([2, 3, 4, 5, 6, 8].includes(mealPeople) ? mealPeople : 4); $("#myrec-title").textContent = "✍️ Ajouter ma recette"; $("#myrec-save").textContent = "➕ Ajouter à mes recettes"; $("#myrec-clear").hidden = true; $("#myrec-draftbar").hidden = true; $("#myrec-raw").hidden = true; drawCatChips(); };
 myrecReset();
 function myrecFill(o, msg) {
   $("#myrec-name").value = o.n || ""; $("#myrec-cat").value = o.c || "plat"; document.querySelectorAll("#myrec-appl input").forEach(x => { x.checked = (o.a || []).includes(x.value); }); $("#myrec-min").value = o.m || ""; $("#myrec-diff").value = o.d || "";
@@ -3391,7 +3404,7 @@ function myrecLoad(key) {
   $("#myrec-title").textContent = "✏️ Modifier ma recette"; $("#myrec-save").textContent = "💾 Enregistrer les changements";
   $("#myrec-card").scrollIntoView({ behavior: "smooth", block: "start" });
 }
-$("#myrec-clear").addEventListener("click", () => { myrecReset(); $("#myrec-msg").textContent = "Prends une photo ou choisis une capture : je lis le texte et je remplis la fiche. Tu vérifies, puis tu ranges."; });
+$("#myrec-clear").addEventListener("click", () => { myrecReset(); $("#myrec-msg").textContent = "Prends une photo ou choisis une capture (plusieurs pages possibles) : je lis le texte et je remplis la fiche. Tu vérifies, puis tu ajoutes."; });
 $("#myrec-form").addEventListener("submit", e => {
   e.preventDefault();
   const n = $("#myrec-name").value.trim(); if (!n) return;
@@ -3422,21 +3435,31 @@ async function ocrImage(file, say) {
   return data.text || "";
 }
 $("#myrec-wipe").addEventListener("click", () => { if (!confirm("Tout effacer ce que j'ai lu et tout ce qui est dans la fiche ?")) return; myrecReset(); $("#myrec-msg").textContent = "🗑️ C'est effacé. Tu peux prendre une autre photo ou écrire à la main."; });
-$("#myrec-again").addEventListener("click", () => { myrecReset(); $("#myrec-photo").click(); });
-$("#myrec-photo").addEventListener("click", () => {
-  const inp = el("input", { type: "file", accept: "image/*" }), say = t => { $("#myrec-msg").textContent = t; };
-  inp.onchange = async () => {
-    const f = inp.files[0]; if (!f) return;
-    try {
-      const text = await ocrImage(f, say);
-      if (text.replace(/\s/g, "").length < 20) { say("😕 Je n'ai presque rien lu. Reprends la photo bien à plat, avec de la lumière, ou écris la recette à la main."); return; }
-      const r = parseRecipeText(text); $("#myrec-rawtxt").textContent = text.trim(); $("#myrec-raw").hidden = false;
-      myrecEdit = null; myrecFill({ n: r.n, c: r.c, m: r.m, d: r.d, people: r.people, ing: r.ing, steps: r.steps, ingText: r.ing.map(([a, q, u]) => q == null ? a : `${a} ${String(q).replace(".", ",")}${u ? " " + u : ""}`).join("\n") }, "👀 Voilà ce que j'ai lu. Relis, corrige les petites erreurs (c'est normal), puis touche « Ranger ».");
-      $("#myrec-name").scrollIntoView({ behavior: "smooth", block: "center" });
-    } catch { say("😕 Je n'ai pas pu lire la photo (il faut une connexion la première fois). Tu peux écrire la recette à la main."); }
-  };
-  inp.click();
-});
+$("#myrec-again").addEventListener("click", () => { myrecReset(); pickPhotos(false); });
+async function readPages(files, append) {
+  const say = t => { $("#myrec-msg").textContent = t; };
+  if (!files.length) return;
+  const keep = ocrTexts.slice();
+  try {
+    const texts = append ? keep : [];
+    for (let n = 0; n < files.length; n++) {
+      if (files.length > 1 || texts.length) say(`⏳ Je lis la page ${texts.length + 1}…`);
+      const t = await ocrImage(files[n], say);
+      if (t.replace(/\s/g, "").length >= 15) texts.push(t); else say("😕 Page presque vide, je l'ignore. Reprends-la bien à plat, avec de la lumière.");
+    }
+    if (!texts.length) { say("😕 Je n'ai presque rien lu. Reprends la photo bien à plat, avec de la lumière, ou écris la recette à la main."); return; }
+    ocrTexts = texts;
+    const text = texts.join("\n");
+    const r = parseRecipeText(text);
+    myrecEdit = null; myrecFrom = null;
+    myrecFill({ n: r.n, c: r.c, m: r.m, d: r.d, people: r.people, ing: r.ing, steps: r.steps, ingText: r.ing.map(([a, q, u]) => q == null ? a : `${a} ${String(q).replace(".", ",")}${u ? " " + u : ""}`).join("\n") }, `👀 ${texts.length} page${texts.length > 1 ? "s lues" : " lue"}. Si la recette continue sur une autre page, touche « ➕ Ajouter une page ». Relis, corrige, puis « Ajouter à mes recettes ».`);
+    $("#myrec-rawtxt").textContent = texts.map((t, k) => `— page ${k + 1} —\n${t.trim()}`).join("\n\n"); $("#myrec-raw").hidden = false;
+    $("#myrec-name").scrollIntoView({ behavior: "smooth", block: "center" });
+  } catch { say("😕 Je n'ai pas pu lire la photo (il faut une connexion la première fois). Tu peux écrire la recette à la main."); }
+}
+const pickPhotos = append => { const inp = el("input", { type: "file", accept: "image/*", multiple: "multiple" }); inp.onchange = () => readPages([...inp.files], append); inp.click(); };
+$("#myrec-photo").addEventListener("click", () => pickPhotos(false));
+$("#myrec-more").addEventListener("click", () => pickPhotos(true));
 function renderLeclerc() {
   const items = shop.filter(i => !i.done);
   $("#shop-leclerc").replaceChildren(...(items.length ? items.map(i => el("a", { class: "leg link", href: `https://www.e.leclerc/recherche?q=${encodeURIComponent(i.name)}`, target: "_blank", rel: "noopener", text: "🔎 " + i.name }))
