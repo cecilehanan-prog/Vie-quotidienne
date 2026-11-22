@@ -71,3 +71,4 @@ Recettes : vocabulaire « panier » = liste de courses. Aide en 2 étapes (1 coc
 Ordre des rubriques : Entrées, Plats, Desserts / Boissons, Healthy, Pains / Monde, Fête, Ramadan (grille, boutons d'ajout, groupes Préférées/Carnet).
 Picto pain : 🥖 (jamais 🥐, réservé aux brioches/croissants). Anciennes recettes perso corrigées une fois (painEmo).
 Liste de recettes (22/11) : cartes carrées, 2 par ligne (case ☐, cœur ❤️, picto, titre, temps/appareils, ✕) ; la fiche ouverte prend toute la largeur. Import photo : plusieurs pages pour une même recette (« ➕ Ajouter une page », texte des pages lu dans l'ordre puis une seule fiche).
+Import photo (v2) : « 📷 Photographier ma recette » → vignettes + compteur + « ➕ Page suivante » / « ✅ C'est tout, lire la recette » ; UNE lecture de toutes les pages, UNE fiche. Choix de plusieurs photos en bibliothèque possible.

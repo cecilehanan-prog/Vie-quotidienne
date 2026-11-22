@@ -1114,14 +1114,19 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
     </article>
     <article class="card" data-sec="meals" id="myrec-card">
       <h2 id="myrec-title">✍️ Ajouter ma recette</h2>
-      <div class="row"><button class="btn primary" type="button" id="myrec-photo">📷 Photo ou capture d'écran</button><button class="btn" type="button" id="myrec-clear" hidden>↩️ Recommencer</button></div>
-      <p class="small muted" id="myrec-msg">Prends une photo ou choisis une capture (plusieurs pages possibles) : je lis le texte et je remplis la fiche. Tu vérifies, puis tu ajoutes.</p>
+      <div class="row"><button class="btn primary" type="button" id="myrec-photo">📷 Photographier ma recette</button><button class="btn" type="button" id="myrec-clear" hidden>↩️ Recommencer</button></div>
+      <div id="myrec-shots" hidden style="border:2px dashed var(--f-bd,#eebb9b);border-radius:16px;padding:10px;margin:8px 0">
+        <div class="row" id="shots-thumbs" style="gap:8px;flex-wrap:wrap"></div>
+        <div style="font-weight:700;margin:8px 0" id="shots-count"></div>
+        <div style="display:grid;gap:8px"><button class="btn" type="button" id="shots-more" style="font-size:1.1rem;padding:14px">➕ Page suivante</button><button class="btn primary" type="button" id="shots-go" style="font-size:1.1rem;padding:14px">✅ C'est tout, lire la recette</button><button class="btn" type="button" id="shots-cancel">🗑️ Annuler</button></div>
+      </div>
+      <p class="small muted" id="myrec-msg"></p>
       <div class="row"><button class="btn" type="button" id="book-export">💾 Exporter mon livre de recettes</button><button class="btn" type="button" id="book-import">📥 Restaurer</button><input type="file" id="book-file" accept=".json,application/json" hidden></div>
       <div class="row"><button class="btn primary" type="button" id="book-find">🔎 Retrouver mes recettes perdues</button></div>
       <details id="hidden-box" hidden><summary class="small">🙈 Idées écartées (<span id="hidden-n">0</span>)</summary><div id="hidden-list" style="display:grid;gap:6px;margin-top:6px"></div></details>
       <p class="small muted" id="book-msg">Toutes tes recettes sont gardées sur ton appareil et dans ton compte. L'export est un fichier de secours en plus.</p>
       <form id="myrec-form" style="display:grid;gap:8px">
-        <div class="row" id="myrec-draftbar" hidden><button class="btn primary" type="button" id="myrec-more">➕ Ajouter une page</button><button class="btn" type="button" id="myrec-again">🔄 Recommencer avec une autre photo</button><button class="btn" type="button" id="myrec-wipe">🗑️ Tout effacer</button></div>
+        <div class="row" id="myrec-draftbar" hidden><button class="btn" type="button" id="myrec-again">🔄 Recommencer avec une autre photo</button><button class="btn" type="button" id="myrec-wipe">🗑️ Tout effacer</button></div>
         <details id="myrec-raw" hidden><summary class="small">👁️ Texte lu sur la photo</summary><pre id="myrec-rawtxt" style="white-space:pre-wrap;font-size:.8rem;margin:6px 0"></pre></details>
         <input type="text" id="myrec-name" placeholder="Nom (ex. Tajine de légumes)" required aria-label="Nom de la recette" autocomplete="off">
         <select id="myrec-cat" aria-label="Rubrique" hidden><option value="entree">🥗 Entrée</option><option value="plat">🍽️ Plat principal</option><option value="dessert">🍰 Dessert</option><option value="boisson">🥤 Boisson</option><option value="fete">🎉 Repas de fête</option><option value="ramadan">🌙 Repas du ramadan</option><option value="pain">🍞 Pain</option><option value="healthy">🌿 Sans gluten / Healthy</option><option value="monde">🌍 Du monde</option></select>
@@ -3368,7 +3373,7 @@ $("#meal-add").addEventListener("click", () => {
   $("#meal-msg").replaceChildren(`✅ ${n} ingrédients ajoutés à ton panier (tes cases sont décochées) `, el("button", { class: "btn", type: "button", "data-goto": "home2", text: "🛒 Voir mon panier" }));
 });
 // Mes recettes à moi : « Carottes 4 », « Riz 300 g » ou juste « Persil »
-let myrecEdit = null, myrecFrom = null, ocrTexts = [];
+let myrecEdit = null, myrecFrom = null, ocrTexts = [], shots = [];
 function hideIdea(key) {
   const r = recipeOf(key); if (!r || !confirm(`Écarter « ${r[1]} » ?\nElle ne reviendra plus. Tu pourras la remettre tout en bas de la page.`)) return;
   if (!recipeHidden.includes(key)) recipeHidden.push(key);
@@ -3389,7 +3394,7 @@ function drawCatChips() {
   const cur = $("#myrec-cat").value || "plat";
   $("#myrec-catchips").replaceChildren(...CATCHIPS.map(([c, t]) => el("button", { class: "chip" + (cur === c ? " on" : ""), type: "button", "aria-pressed": String(cur === c), onclick: () => { $("#myrec-cat").value = c; drawCatChips(); } }, el("span", { class: "ci", text: t.split(" ")[0] }), el("span", { text: t.split(" ").slice(1).join(" ") }))));
 }
-const myrecReset = () => { ocrTexts = []; myrecEdit = null; myrecFrom = null; $("#myrec-form").reset(); $("#myrec-cat").value = (["fav", "carnet"].includes(mealCat) ? "plat" : mealCat); $("#myrec-people").value = String([2, 3, 4, 5, 6, 8].includes(mealPeople) ? mealPeople : 4); $("#myrec-title").textContent = "✍️ Ajouter ma recette"; $("#myrec-save").textContent = "➕ Ajouter à mes recettes"; $("#myrec-clear").hidden = true; $("#myrec-draftbar").hidden = true; $("#myrec-raw").hidden = true; drawCatChips(); };
+const myrecReset = () => { ocrTexts = []; shots = []; myrecEdit = null; myrecFrom = null; $("#myrec-form").reset(); $("#myrec-cat").value = (["fav", "carnet"].includes(mealCat) ? "plat" : mealCat); $("#myrec-people").value = String([2, 3, 4, 5, 6, 8].includes(mealPeople) ? mealPeople : 4); $("#myrec-title").textContent = "✍️ Ajouter ma recette"; $("#myrec-save").textContent = "➕ Ajouter à mes recettes"; $("#myrec-clear").hidden = true; $("#myrec-draftbar").hidden = true; $("#myrec-raw").hidden = true; drawCatChips(); };
 myrecReset();
 function myrecFill(o, msg) {
   $("#myrec-name").value = o.n || ""; $("#myrec-cat").value = o.c || "plat"; document.querySelectorAll("#myrec-appl input").forEach(x => { x.checked = (o.a || []).includes(x.value); }); $("#myrec-min").value = o.m || ""; $("#myrec-diff").value = o.d || "";
@@ -3404,7 +3409,7 @@ function myrecLoad(key) {
   $("#myrec-title").textContent = "✏️ Modifier ma recette"; $("#myrec-save").textContent = "💾 Enregistrer les changements";
   $("#myrec-card").scrollIntoView({ behavior: "smooth", block: "start" });
 }
-$("#myrec-clear").addEventListener("click", () => { myrecReset(); $("#myrec-msg").textContent = "Prends une photo ou choisis une capture (plusieurs pages possibles) : je lis le texte et je remplis la fiche. Tu vérifies, puis tu ajoutes."; });
+$("#myrec-clear").addEventListener("click", () => { myrecReset(); $("#myrec-msg").textContent = ""; });
 $("#myrec-form").addEventListener("submit", e => {
   e.preventDefault();
   const n = $("#myrec-name").value.trim(); if (!n) return;
@@ -3435,31 +3440,34 @@ async function ocrImage(file, say) {
   return data.text || "";
 }
 $("#myrec-wipe").addEventListener("click", () => { if (!confirm("Tout effacer ce que j'ai lu et tout ce qui est dans la fiche ?")) return; myrecReset(); $("#myrec-msg").textContent = "🗑️ C'est effacé. Tu peux prendre une autre photo ou écrire à la main."; });
-$("#myrec-again").addEventListener("click", () => { myrecReset(); pickPhotos(false); });
-async function readPages(files, append) {
-  const say = t => { $("#myrec-msg").textContent = t; };
+$("#myrec-again").addEventListener("click", () => { myrecReset(); shots = []; drawShots(); takeShot(); });
+function drawShots() {
+  $("#myrec-shots").hidden = !shots.length;
+  $("#shots-thumbs").replaceChildren(...shots.map((f, k) => el("div", { style: "position:relative" }, el("img", { src: URL.createObjectURL(f), alt: `Page ${k + 1}`, style: "width:64px;height:84px;object-fit:cover;border-radius:10px;border:2px solid var(--f-bd,#eebb9b)" }), el("span", { text: String(k + 1), style: "position:absolute;left:4px;top:2px;background:#d9783f;color:#fff;border-radius:999px;font-size:.75rem;padding:0 6px" }))));
+  $("#shots-count").textContent = `📄 ${shots.length} page${shots.length > 1 ? "s" : ""}`;
+}
+const takeShot = () => { const inp = el("input", { type: "file", accept: "image/*", multiple: "multiple" }); inp.onchange = () => { shots.push(...[...inp.files]); if (shots.length) { $("#myrec-msg").textContent = ""; drawShots(); $("#myrec-shots").scrollIntoView({ behavior: "smooth", block: "center" }); } }; inp.click(); };
+async function readShots() {
+  const say = t => { $("#myrec-msg").textContent = t; }, files = shots.slice();
   if (!files.length) return;
-  const keep = ocrTexts.slice();
+  $("#myrec-shots").hidden = true;
   try {
-    const texts = append ? keep : [];
-    for (let n = 0; n < files.length; n++) {
-      if (files.length > 1 || texts.length) say(`⏳ Je lis la page ${texts.length + 1}…`);
-      const t = await ocrImage(files[n], say);
-      if (t.replace(/\s/g, "").length >= 15) texts.push(t); else say("😕 Page presque vide, je l'ignore. Reprends-la bien à plat, avec de la lumière.");
-    }
-    if (!texts.length) { say("😕 Je n'ai presque rien lu. Reprends la photo bien à plat, avec de la lumière, ou écris la recette à la main."); return; }
-    ocrTexts = texts;
-    const text = texts.join("\n");
-    const r = parseRecipeText(text);
+    const texts = [];
+    for (let n = 0; n < files.length; n++) { say(`⏳ Je lis la page ${n + 1} sur ${files.length}…`); const t = await ocrImage(files[n], say); if (t.replace(/\s/g, "").length >= 15) texts.push(t); }
+    if (!texts.length) { say("😕 Je n'ai presque rien lu. Reprends les photos bien à plat, avec de la lumière, ou écris la recette à la main."); shots = []; return; }
+    ocrTexts = texts; shots = [];
+    const r = parseRecipeText(texts.join("\n"));
     myrecEdit = null; myrecFrom = null;
-    myrecFill({ n: r.n, c: r.c, m: r.m, d: r.d, people: r.people, ing: r.ing, steps: r.steps, ingText: r.ing.map(([a, q, u]) => q == null ? a : `${a} ${String(q).replace(".", ",")}${u ? " " + u : ""}`).join("\n") }, `👀 ${texts.length} page${texts.length > 1 ? "s lues" : " lue"}. Si la recette continue sur une autre page, touche « ➕ Ajouter une page ». Relis, corrige, puis « Ajouter à mes recettes ».`);
+    myrecFill({ n: r.n, c: r.c, m: r.m, d: r.d, people: r.people, ing: r.ing, steps: r.steps, ingText: r.ing.map(([a, q, u]) => q == null ? a : `${a} ${String(q).replace(".", ",")}${u ? " " + u : ""}`).join("\n") }, "👀 Voilà ta recette. Relis, corrige, choisis la rubrique, puis « Ajouter à mes recettes ».");
     $("#myrec-rawtxt").textContent = texts.map((t, k) => `— page ${k + 1} —\n${t.trim()}`).join("\n\n"); $("#myrec-raw").hidden = false;
     $("#myrec-name").scrollIntoView({ behavior: "smooth", block: "center" });
-  } catch { say("😕 Je n'ai pas pu lire la photo (il faut une connexion la première fois). Tu peux écrire la recette à la main."); }
+  } catch { shots = []; say("😕 Je n'ai pas pu lire les photos (il faut une connexion la première fois). Tu peux écrire la recette à la main."); }
 }
-const pickPhotos = append => { const inp = el("input", { type: "file", accept: "image/*", multiple: "multiple" }); inp.onchange = () => readPages([...inp.files], append); inp.click(); };
-$("#myrec-photo").addEventListener("click", () => pickPhotos(false));
-$("#myrec-more").addEventListener("click", () => pickPhotos(true));
+const pickPhotos = () => takeShot();
+$("#myrec-photo").addEventListener("click", () => { shots = []; drawShots(); takeShot(); });
+$("#shots-more").addEventListener("click", takeShot);
+$("#shots-go").addEventListener("click", readShots);
+$("#shots-cancel").addEventListener("click", () => { shots = []; drawShots(); $("#myrec-msg").textContent = ""; });
 function renderLeclerc() {
   const items = shop.filter(i => !i.done);
   $("#shop-leclerc").replaceChildren(...(items.length ? items.map(i => el("a", { class: "leg link", href: `https://www.e.leclerc/recherche?q=${encodeURIComponent(i.name)}`, target: "_blank", rel: "noopener", text: "🔎 " + i.name }))
