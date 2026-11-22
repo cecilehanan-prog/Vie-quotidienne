@@ -104,8 +104,10 @@ h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; mar
 .recipe .row { margin-top: 8px; }
 .meal[aria-pressed=true]::after { content: "✓"; position: absolute; top: 4px; right: 8px; font-weight: 800; }
 .fiche { border-radius: 18px; overflow: hidden; background: var(--surface); border: 2px solid var(--sec); margin-top: 12px; }
-.fiche-h { background: var(--sec); color: var(--on-sec, #fff); text-align: center; padding: 14px 10px; }
-.fiche-h .big { font-size: 2.4rem; line-height: 1.1; } .fiche-h h3 { margin: 4px 0 0; font-size: 1.25rem; }
+.fiche-h { background: var(--sec); color: var(--on-sec, #fff); padding: 10px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; list-style: none; }
+.fiche-h::-webkit-details-marker { display: none; } .fiche-h::after { content: "▾"; margin-left: auto; font-size: 1.1rem; } .fiche[open] .fiche-h::after { content: "▴"; }
+.fiche-h .big { font-size: 1.6rem; line-height: 1; } .fiche-h h3 { margin: 0; font-size: 1.05rem; } .fiche-sub { font-size: .75rem; opacity: .9; white-space: nowrap; }
+.fiche { margin-top: 8px; }
 .fiche-b { padding: 12px; } .fiche-b h4 { margin: 14px 0 6px; color: var(--sec); font-size: 1rem; }
 .fiche-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
 .chip { border: 2px solid var(--sec); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
@@ -3088,13 +3090,14 @@ function ktStart(min, label) {
 if (kt) { ktTick = setInterval(ktDraw, 500); setTimeout(ktDraw, 0); }
 const stepMinutes = t => { const m = /(\d+)\s*(?:min(?:utes?)?|h(?:eures?)?)\b/i.exec(t || ""); if (!m) return 0; return /h/i.test(m[0].replace(/min/i, "")) && !/min/i.test(m[0]) ? parseInt(m[1], 10) * 60 : parseInt(m[1], 10); };
 /* La fiche recette : même présentation pour toutes les recettes */
+let ficheOpen = null;
 function recipeFiche(key) {
   const r = recipeOf(key), [e, n, , ing, steps, base = 4] = r, mine = typeof key === "string", fav = favKeys().includes(key);
   const people = recPeopleOf(key), k = people / base, mm = recMin(key, r), dd = recDiff(key, r);
   const chip = (txt, on, fn, extra) => el("button", { class: "chip" + (on ? " on" : ""), type: "button", text: txt, onclick: fn, ...(extra || {}) });
   const meta = k2 => { recipeMeta[key] = Object.assign({}, recipeMeta[key], k2); saveMeta(); renderMeals(); };
-  return el("article", { class: "fiche" },
-    el("div", { class: "fiche-h" }, el("div", { class: "big", text: e }), el("h3", { text: n })),
+  return el("details", { class: "fiche", open: ficheOpen === key, ontoggle: ev => { const d = ev.target; if (d.open) { ficheOpen = key; document.querySelectorAll("#meal-chosen details.fiche[open]").forEach(o => { if (o !== d) o.open = false; }); } else if (ficheOpen === key) ficheOpen = null; } },
+    el("summary", { class: "fiche-h" }, el("span", { class: "big", text: e }), el("h3", { text: n }), el("span", { class: "fiche-sub", text: [mm ? `⏱️ ${mm} min` : "", dd ? `${DIFF_EMO[dd]} ${dd}` : ""].filter(Boolean).join(" · ") })),
     el("div", { class: "fiche-b" },
       el("div", { class: "fiche-line" }, el("b", { text: "⏱️ Préparation" }), chip(mm ? `${mm} min` : "à noter", !!mm, () => { const v = prompt("Combien de minutes pour préparer ?", mm || ""); if (v === null) return; const x = parseInt(v, 10); meta({ m: x > 0 ? x : 0 }); })),
       el("div", { class: "fiche-line" }, el("b", { text: "🎚️ Difficulté" }), ...DIFFS.map(x => chip(`${DIFF_EMO[x]} ${x}`, dd === x, () => meta({ d: dd === x ? "" : x })))),
