@@ -3189,6 +3189,7 @@ function persistShop() {
   quietSet("shop", shop); quietSet("shopDel", shopDel); quietSet("shopSnap", snap);
   store.set("shop2", { items: shop, del: shopDel });
   shopBackup(false);
+  try { kidsPublish(); } catch {}
 }
 /* Fusion article par article : le plus récent gagne pour chaque article, un article retiré (plus ancien que sa pierre tombale) reste retiré */
 function shopMerge(rem) {
@@ -4562,14 +4563,31 @@ async function kidsStart(uid) {
     const d = await meta.get({ source: "server" }); let c = d.exists && d.data().code;
     if (!c) { c = newKidsCode(); await meta.set({ code: c }); }
     kidsCode = c; kidsSay("✅ Prêt : copie le lien et envoie-le à tes enfants (ils l'ajoutent à leur écran d'accueil).");
+    kidsPublish(true);
   } catch { kidsSay("⏳ Pas encore branché : il reste à ajouter la règle dans Firebase (je te guide dans le chat)."); return; }
   kidsOff = fbDoc.collection("inbox").onSnapshot(snap => {
-    const got = []; snap.docs.forEach(d => { const x = d.data() || {}; const n = String(x.name || "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 60); if (n) got.push({ ref: d.ref, n, who: String(x.who || "").slice(0, 20) }); else d.ref.delete().catch(() => {}); });
+    let coches = 0;
+    snap.docs.forEach(d => { const x = d.data() || {}; if (x.type !== "check") return; const it = shop.find(i => i.id === String(x.id || "")); if (it && !!it.done !== !!x.done) { it.done = !!x.done; coches++; } d.ref.delete().catch(() => {}); });
+    if (coches) saveShop();
+    const got = []; snap.docs.forEach(d => { const x = d.data() || {}; if (x.type === "check") return; const n = String(x.name || "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 60); if (n) got.push({ ref: d.ref, n, who: String(x.who || "").slice(0, 20) }); else d.ref.delete().catch(() => {}); });
     if (!got.length) return;
     got.forEach(g => { if (!shop.some(i => !i.done && fold(i.name) === fold(g.n))) addToList(g.n, ""); g.ref.delete().catch(() => {}); });
     saveShop();
     kidsSay("🛒 Ajouté par les enfants : " + got.map(g => (g.who ? g.who + " : " : "") + g.n).join(", "));
   }, () => {});
+}
+/* 22/11 : copie de la liste en lecture seule pour les enfants (document nommé avec le code : sans le code, impossible de la lire) */
+let kidsLast = "", kidsTimer = null;
+function kidsPublish(now) {
+  if (!kidsCode || !fbDoc) return;
+  clearTimeout(kidsTimer);
+  const go = () => {
+    const groups = {}; shop.forEach(i => { const g = i.aisle || rayonOf(i.name); (groups[g] = groups[g] || []).push({ id: i.id, name: i.name, qty: i.qty || "", done: !!i.done }); });
+    const out = getAisleOrder().filter(c => groups[c]).map(c => ({ n: `${AISLE_EMO[c]} ${aisleName(c)}`, items: groups[c] }));
+    const j = JSON.stringify(out); if (j === kidsLast) return; kidsLast = j;
+    fbDoc.collection("kidsView").doc(kidsCode).set({ t: Date.now(), groups: out }).catch(() => { kidsLast = ""; });
+  };
+  if (now) go(); else kidsTimer = setTimeout(go, 1500);
 }
 $("#kids-copy").addEventListener("click", async () => {
   if (!kidsCode) { kidsSay("⏳ Pas encore branché : il reste à ajouter la règle dans Firebase."); return; }
@@ -4577,7 +4595,7 @@ $("#kids-copy").addEventListener("click", async () => {
 });
 $("#kids-new").addEventListener("click", async () => {
   if (!fbDoc || !confirm("Un nouveau code rend l'ancien lien inutile : il faudra renvoyer le nouveau lien aux enfants. Continuer ?")) return;
-  try { kidsCode = newKidsCode(); await fbDoc.collection("meta").doc("kids").set({ code: kidsCode }); kidsSay("✅ Nouveau code. Copie le nouveau lien pour les enfants."); } catch { kidsSay("😕 Je n'ai pas pu changer le code."); }
+  try { const vieux = kidsCode; kidsCode = newKidsCode(); await fbDoc.collection("meta").doc("kids").set({ code: kidsCode }); if (vieux) fbDoc.collection("kidsView").doc(vieux).delete().catch(() => {}); kidsLast = ""; kidsPublish(true); kidsSay("✅ Nouveau code. Copie le nouveau lien pour les enfants."); } catch { kidsSay("😕 Je n'ai pas pu changer le code."); }
 });
 /* Fusionne ce qu'il y a dans le cloud avec cet appareil. Le plus récent gagne, clé par clé.
    Premier branchement d'un appareil (ou d'une nouvelle adresse) : le cloud gagne toujours, pour qu'une liste neuve (créée par le démarrage) n'écrase pas celle de l'autre appareil. */
