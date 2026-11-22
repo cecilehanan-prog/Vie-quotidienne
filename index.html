@@ -116,7 +116,13 @@ h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; mar
 .fiche-h { background: var(--f-bg); color: var(--f-fg); padding: 10px 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; cursor: pointer; list-style: none; }
 .fiche-h::-webkit-details-marker { display: none; } .fiche-h::after { content: "▾"; margin-left: auto; font-size: 1.1rem; } .fiche[open] .fiche-h::after { content: "▴"; }
 .fiche-h .big { font-size: 1.6rem; line-height: 1; } .fiche-h h3 { margin: 0; font-size: 1.05rem; flex: 1 1 4rem; min-width: 0; overflow-wrap: anywhere; } .fiche-sub { font-size: .8rem; opacity: .9; flex: 1 0 100%; order: 9; padding-left: 4px; } .fiche-sub:empty { display: none; }
-.fiche-h .cook { min-width: 34px; padding: 6px 2px; font-size: 1.5rem; } .fav-sec { margin: 14px 0 4px; font-size: 1rem; color: var(--f-h, #b4521f); } .fiche-b { padding: 12px; } .fiche-b h4 { margin: 14px 0 6px; color: var(--f-h); font-size: 1rem; }
+.fiche-h .cook { min-width: 34px; padding: 6px 2px; font-size: 1.5rem; } .cat-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 8px 0; }
+.cat-grid .chip, .cat-grid3 .chip { grid-column: span 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 58px; padding: 6px 4px; border-radius: 16px; text-align: center; font-size: .78rem; font-weight: 600; line-height: 1.15; min-width: 0; }
+.cat-grid .chip.wide { grid-column: span 3; min-height: 54px; font-size: .9rem; }
+.cat-grid .chip .ci, .cat-grid3 .chip .ci { font-size: 1.5rem; line-height: 1; }
+.cat-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cat-grid3 .chip { grid-column: auto; }
+.fav-sec { margin: 14px 0 4px; font-size: 1rem; color: var(--f-h, #b4521f); } .fiche-b { padding: 12px; } .fiche-b h4 { margin: 14px 0 6px; color: var(--f-h); font-size: 1rem; }
 .fiche-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
 .chip { border: 2px solid var(--f-bd); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
 .chip.on { background: var(--f-on); border-color: var(--f-on); color: var(--f-fg); }
@@ -1091,7 +1097,7 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
     <button class="btn" type="button" data-goto="home" style="margin-bottom:10px">⬅️ Accueil</button>
     <article class="card" data-sec="meals">
       <div class="card-head"><h2>🍽️ Mes recettes</h2><span class="pill" id="fav-count"></span></div>
-      <div class="fiche-line" id="meal-cats" role="group" aria-label="Rubriques"></div>
+      <div class="cat-grid" id="meal-cats" role="group" aria-label="Rubriques"></div>
       <p class="small muted">☐ Coche les recettes que tu veux cuisiner, puis touche le bouton : seuls leurs ingrédients partent dans ta liste.</p>
       <div class="go-row"><span>👥</span><button class="btn" type="button" id="meal-minus">−</button><strong id="meal-people">4</strong><button class="btn" type="button" id="meal-plus">+</button><span class="small muted">personnes</span></div>
       <button class="btn primary go-btn" type="button" id="meal-add">🛒 Mettre les ingrédients dans ma liste</button>
@@ -1119,7 +1125,7 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
           <label class="small">👥 <select id="myrec-people" aria-label="Pour combien de personnes"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>8</option></select> pers.</label></div>
         <textarea id="myrec-ing" rows="5" placeholder="Ingrédients, un par ligne (ex. 200 g de farine, 2 œufs, Carottes 4)" aria-label="Ingrédients" required></textarea>
         <textarea id="myrec-steps" rows="4" placeholder="Préparation (facultatif), une étape par ligne" aria-label="Préparation"></textarea>
-        <div class="small"><b>📂 Dans quelle rubrique ?</b></div><div class="row" id="myrec-catchips" role="group" aria-label="Rubrique"></div>
+        <div class="small"><b>📂 Dans quelle rubrique ?</b></div><div class="cat-grid3" id="myrec-catchips" role="group" aria-label="Rubrique"></div>
         <button class="btn primary" type="submit" id="myrec-save">➕ Ajouter à mes recettes</button>
       </form>
     </article>
@@ -3095,7 +3101,7 @@ const RECIPES = [
 ];
 /* Recettes de saison : chaque recette a ses saisons (aut = automne, hiv, pri, ete). Sans étiquette = toute l'année. Les suggestions changent toutes seules avec le mois. */
 const SEASON_TAGS = { 0: "ete", 2: "aut hiv", 6: "aut hiv", 7: "aut hiv", 9: "ete", 11: "aut hiv pri", 12: "hiv", 15: "aut hiv", 16: "aut hiv", 18: "aut hiv", 19: "aut", 20: "aut hiv", 21: "aut hiv", 22: "aut hiv", 23: "aut hiv", 24: "pri", 25: "pri ete", 26: "pri", 27: "pri", 28: "ete", 29: "ete", 30: "ete", 31: "ete", 32: "aut hiv", 33: "aut hiv", 36: "pri ete", 37: "ete", 39: "aut hiv", 40: "hiv", 43: "aut hiv", 44: "ete", 45: "ete", 46: "aut hiv", 47: "ete", 48: "ete", 49: "aut hiv", 50: "pri ete", 51: "aut hiv", 52: "hiv", 57: "aut hiv", 68: "aut hiv", 69: "aut hiv", 77: "aut hiv", 82: "ete", 81: "pri ete" };
-const CATS = [["fav", "❤️", "Préférées"], ["carnet", "📒", "Mon carnet"], ["entree", "🥗", "Entrées"], ["plat", "🍽️", "Plats"], ["dessert", "🍰", "Desserts"], ["boisson", "🥤", "Boissons"], ["fete", "🎉", "Fête"], ["ramadan", "🌙", "Ramadan"], ["pain", "🍞", "Pains"], ["healthy", "🌿", "Healthy"], ["monde", "🌍", "Du monde"]];
+const CATS = [["fav", "❤️", "Préférées"], ["carnet", "📒", "Mon carnet"], ["entree", "🥗", "Entrées"], ["plat", "🍽️", "Plats"], ["dessert", "🍰", "Desserts"], ["boisson", "🥤", "Boissons"], ["fete", "🎉", "Fête"], ["ramadan", "🌙", "Ramadan"], ["pain", "🍞", "Pains"], ["healthy", "🌿", "Healthy"], ["monde", "🌍", "Monde"]];
 const RCAT = {}; const setCat = (c, ...ix) => ix.forEach(i => { RCAT[i] = c; });
 setCat("entree", 7, 15, 20, 23, 25, 26, 27, 28, 30, 41, 42, 43, 44, 45, 46);
 setCat("dessert", 32, 33, 34, 35, 36, 37, 38, 39, 40);
@@ -3324,7 +3330,7 @@ function renderMeals() {
   $("#meal-people").textContent = mealPeople;
   const favs = favKeys();
   $("#fav-count").textContent = favs.length ? `${favs.length} ❤️` : "";
-  $("#meal-cats").replaceChildren(...CATS.map(([c, e, n]) => el("button", { class: "chip" + (mealCat === c ? " on" : ""), type: "button", text: `${e} ${n}`, onclick: () => { mealCat = c; store.set("mealCat", c); renderMeals(); } })));
+  $("#meal-cats").replaceChildren(...CATS.map(([c, e, n]) => el("button", { class: "chip" + (mealCat === c ? " on" : "") + (c === "fav" || c === "carnet" ? " wide" : ""), type: "button", "aria-pressed": String(mealCat === c), onclick: () => { mealCat = c; store.set("mealCat", c); renderMeals(); } }, el("span", { class: "ci", text: e }), el("span", { text: n }))));
   const grouped = mealCat === "fav" || mealCat === "carnet", book = mineKeys();
   const mine = mealCat === "fav" ? favs : mealCat === "carnet" ? carnetKeys() : book.filter(k => catOf(k) === mealCat);
   const cname = (CATS.find(x => x[0] === mealCat) || [])[2] || "";
@@ -3371,10 +3377,10 @@ function myrecFromIdea(key) {
   $("#myrec-title").textContent = "✏️ Ma version de « " + r[1] + " »"; $("#myrec-save").textContent = "💾 Enregistrer ma version";
   $("#myrec-card").scrollIntoView({ behavior: "smooth", block: "start" });
 }
-const CATCHIPS = [["entree", "🥗 Entrée"], ["plat", "🍽️ Plat"], ["dessert", "🍰 Dessert"], ["boisson", "🥤 Boisson"], ["fete", "🎉 Fête"], ["ramadan", "🌙 Ramadan"], ["pain", "🍞 Pain"], ["healthy", "🌿 Healthy"], ["monde", "🌍 Du monde"]];
+const CATCHIPS = [["entree", "🥗 Entrée"], ["plat", "🍽️ Plat"], ["dessert", "🍰 Dessert"], ["boisson", "🥤 Boisson"], ["fete", "🎉 Fête"], ["ramadan", "🌙 Ramadan"], ["pain", "🍞 Pain"], ["healthy", "🌿 Healthy"], ["monde", "🌍 Monde"]];
 function drawCatChips() {
   const cur = $("#myrec-cat").value || "plat";
-  $("#myrec-catchips").replaceChildren(...CATCHIPS.map(([c, t]) => el("button", { class: "chip" + (cur === c ? " on" : ""), type: "button", "aria-pressed": String(cur === c), style: "font-size:1rem;padding:10px 14px", text: t, onclick: () => { $("#myrec-cat").value = c; drawCatChips(); } })));
+  $("#myrec-catchips").replaceChildren(...CATCHIPS.map(([c, t]) => el("button", { class: "chip" + (cur === c ? " on" : ""), type: "button", "aria-pressed": String(cur === c), onclick: () => { $("#myrec-cat").value = c; drawCatChips(); } }, el("span", { class: "ci", text: t.split(" ")[0] }), el("span", { text: t.split(" ").slice(1).join(" ") }))));
 }
 const myrecReset = () => { myrecEdit = null; myrecFrom = null; $("#myrec-form").reset(); $("#myrec-cat").value = (["fav", "carnet"].includes(mealCat) ? "plat" : mealCat); $("#myrec-people").value = String([2, 3, 4, 5, 6, 8].includes(mealPeople) ? mealPeople : 4); $("#myrec-title").textContent = "✍️ Ajouter ma recette"; $("#myrec-save").textContent = "➕ Ajouter à mes recettes"; $("#myrec-clear").hidden = true; $("#myrec-draftbar").hidden = true; $("#myrec-raw").hidden = true; drawCatChips(); };
 myrecReset();
