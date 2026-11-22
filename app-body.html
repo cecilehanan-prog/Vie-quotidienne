@@ -113,7 +113,7 @@ h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; mar
 .fiche-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
 .chip { border: 2px solid var(--f-bd); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
 .chip.on { background: var(--f-on); border-color: var(--f-on); color: var(--f-fg); }
-.cook { border: 0; background: transparent; font-size: 1.5rem; line-height: 1; padding: 0 2px; cursor: pointer; flex: none; }
+.cook { border: 0; background: transparent; font-size: 1.7rem; line-height: 1; padding: 8px 6px; min-width: 44px; min-height: 44px; cursor: pointer; flex: none; }
 .fiche-ing { margin: 0; padding-left: 20px; } .fiche-ing li { margin: 3px 0; }
 .fiche-steps { margin: 0; padding-left: 22px; } .fiche-steps li { margin: 8px 0; } .fiche-steps .chip { margin-left: 8px; padding: 2px 10px; font-size: .78rem; }
 #ktimer { white-space: nowrap; max-width: 94vw; position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 30; background: #d9783f; color: #fff; border-radius: 999px; padding: 8px 8px 8px 16px; display: flex; gap: 10px; align-items: center; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,.3); }
@@ -1098,6 +1098,7 @@ header.top #today-date .dm { font-size: 1rem; font-weight: 600; color: var(--fg)
       <div class="row"><button class="btn primary" type="button" id="myrec-photo">📷 Photo ou capture d'écran</button><button class="btn" type="button" id="myrec-clear" hidden>↩️ Recommencer</button></div>
       <p class="small muted" id="myrec-msg">Prends une photo ou choisis une capture : je lis le texte et je remplis la fiche. Tu vérifies, puis tu ranges.</p>
       <div class="row"><button class="btn" type="button" id="book-export">💾 Exporter mon livre de recettes</button><button class="btn" type="button" id="book-import">📥 Restaurer</button><input type="file" id="book-file" accept=".json,application/json" hidden></div>
+      <div class="row"><button class="btn primary" type="button" id="book-find">🔎 Retrouver mes recettes perdues</button></div>
       <p class="small muted" id="book-msg">Toutes tes recettes sont gardées sur ton appareil et dans ton compte. L'export est un fichier de secours en plus.</p>
       <form id="myrec-form" style="display:grid;gap:8px">
         <input type="text" id="myrec-name" placeholder="Nom (ex. Tajine de légumes)" required aria-label="Nom de la recette" autocomplete="off">
@@ -3210,7 +3211,7 @@ function recipeFiche(key) {
   const chip = (txt, on, fn, extra) => el("button", { class: "chip" + (on ? " on" : ""), type: "button", text: txt, onclick: fn, ...(extra || {}) });
   const meta = k2 => { recipeMeta[key] = Object.assign({}, recipeMeta[key], k2); saveMeta(); renderMeals(); };
   return el("details", { class: "fiche", open: ficheOpen === key, ontoggle: ev => { const d = ev.target; if (d.open) { ficheOpen = key; document.querySelectorAll("#view-recettes details.fiche[open]").forEach(o => { if (o !== d) o.open = false; }); } else if (ficheOpen === key) ficheOpen = null; } },
-    el("summary", { class: "fiche-h" }, el("button", { class: "cook", type: "button", "aria-label": "À cuisiner : " + n, "aria-pressed": String(mealPick.includes(key)), text: mealPick.includes(key) ? "✅" : "☐", onclick: ev => { ev.preventDefault(); ev.stopPropagation(); mealPick = mealPick.includes(key) ? mealPick.filter(x => x !== key) : [...mealPick, key]; store.set("mealCook", mealPick); renderMeals(); renderTiles(); } }), el("span", { class: "big", text: e }), el("h3", { text: n }), el("span", { class: "fiche-sub", text: [mm ? `⏱️ ${mm} min` : "", applOf(key).map(c => (APPL[c] || "").split(" ")[0]).join(""), dd ? DIFF_EMO[dd] : ""].filter(Boolean).join(" ") })),
+    el("summary", { class: "fiche-h" }, el("button", { class: "cook", type: "button", "aria-label": "À cuisiner : " + n, "aria-pressed": String(mealPick.includes(key)), text: mealPick.includes(key) ? "✅" : "☐", onclick: ev => { ev.preventDefault(); ev.stopPropagation(); mealPick = mealPick.includes(key) ? mealPick.filter(x => x !== key) : [...mealPick, key]; store.set("mealCook", mealPick); renderMeals(); renderTiles(); } }), mine ? null : el("button", { class: "cook", type: "button", "aria-label": (fav ? "Retirer des préférées : " : "Garder dans mes préférées : ") + n, "aria-pressed": String(fav), text: fav ? "❤️" : "🤍", onclick: ev => { ev.preventDefault(); ev.stopPropagation(); mealFav = fav ? mealFav.filter(x => x !== key) : [...mealFav, key]; store.set("mealFav", mealFav); renderMeals(); } }), el("span", { class: "big", text: e }), el("h3", { text: n }), el("span", { class: "fiche-sub", text: [mm ? `⏱️ ${mm} min` : "", applOf(key).map(c => (APPL[c] || "").split(" ")[0]).join(""), dd ? DIFF_EMO[dd] : ""].filter(Boolean).join(" ") })),
     el("div", { class: "fiche-b" },
       el("div", { class: "fiche-line" }, el("b", { text: "⏱️ Préparation" }), chip(mm ? `${mm} min` : "à noter", !!mm, () => { const v = prompt("Combien de minutes pour préparer ?", mm || ""); if (v === null) return; const x = parseInt(v, 10); meta({ m: x > 0 ? x : 0 }); })),
       applOf(key).length ? el("div", { class: "fiche-line" }, el("b", { text: "🔧 Avec" }), ...applOf(key).map(c => el("span", { class: "chip on", text: APPL[c] || c }))) : null,
@@ -3244,6 +3245,19 @@ $("#book-export").addEventListener("click", () => {
   const data = JSON.stringify({ livre: "Mon Quotidien", f: mealFav, r: myRecipes, t: Date.now() }), a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([data], { type: "application/json" })); a.download = "mon-livre-de-recettes.json"; document.body.appendChild(a); a.click(); a.remove();
   $("#book-msg").textContent = `✅ Fichier enregistré (${myRecipes.length} recette${myRecipes.length > 1 ? "s" : ""} à toi). Garde-le bien.`;
+});
+$("#book-find").addEventListener("click", async () => {
+  const say = t => { $("#book-msg").textContent = t; }, nums = a => (Array.isArray(a) ? a : []);
+  say("🔎 Je cherche partout…");
+  const favs = new Set(mealFav), ids = new Set(myRecipes.map(x => x.id)), before = favs.size + ids.size, found = [];
+  const addFav = (arr, from) => { let n = 0; nums(arr).forEach(k => { if ((typeof k === "number" || typeof k === "string") && !favs.has(k) && (typeof k === "number" ? RECIPES[k] : true)) { favs.add(k); n++; } }); if (n) found.push(`${n} (${from})`); };
+  const addRec = (arr, from) => { let n = 0; nums(arr).forEach(x => { if (x && x.id && x.n && !ids.has(x.id)) { ids.add(x.id); myRecipes.push(x); n++; } }); if (n) found.push(`${n} à toi (${from})`); };
+  try { const b = JSON.parse(localStorage.getItem("mq:_bkRecipes") || "null"); if (b) { addFav(b.f, "sauvegarde"); addRec(b.r, "sauvegarde"); } } catch (e) {}
+  try { addFav(JSON.parse(localStorage.getItem("mq:mealPick") || "[]"), "anciens repas choisis"); } catch (e) {}
+  let cloud = "";
+  try { if (fbDoc) { const d = (await fbDoc.get({ source: "server" })).data() || {}; try { addFav(JSON.parse((d.mealFav || {}).v || "[]"), "ton compte"); } catch (e) {} try { addRec(JSON.parse((d.myRecipes || {}).v || "[]"), "ton compte"); } catch (e) {} } else cloud = " (compte non connecté sur cet appareil)"; } catch (e) { cloud = " (compte injoignable)"; }
+  mealFav = [...favs].filter(k => typeof k === "number"); store.set("mealFav", mealFav); store.set("myRecipes", myRecipes); renderMeals();
+  say(found.length ? `✅ Retrouvé : ${found.join(", ")}.` : `😕 Rien de plus à retrouver sur cet appareil${cloud}. Essaie sur ton iMac ou ton iPad, puis dis-moi.`);
 });
 $("#book-import").addEventListener("click", () => $("#book-file").click());
 $("#book-file").addEventListener("change", ev => {

@@ -59,3 +59,4 @@ Un GPS type Waze avec trafic en temps réel demande des millions d'utilisateurs 
 - Import par photo ou capture : OCR gratuit (Tesseract, dans le navigateur), puis relecture avant de ranger.
 
 Livre de recettes (22/11) : toutes les recettes de CéHa (myRecipes, mealFav) sont son livre personnel. Jamais écrasées ni vidées : stockage local + Firebase, sauvegarde auto locale (mq:_bkRecipes, restaurée si la liste devient vide), export/restauration par fichier (mon-livre-de-recettes.json, la restauration ajoute sans rien effacer).
+Recettes (22/11, v126) : cœur ❤️ favori + case « à cuisiner » sur chaque ligne repliée (grosses zones tactiles). Bouton « Retrouver mes recettes perdues » : cherche dans la sauvegarde locale, les anciens repas choisis (mealPick) et le compte (Firestore), et fusionne sans rien effacer.
