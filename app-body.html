@@ -3649,12 +3649,15 @@ const quietSet = (k, v) => { try { localStorage.setItem("mq:" + k, JSON.stringif
 
 // Dictée vocale (Chrome, Safari) : « lait, œufs et pain » devient trois articles
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let dictRec = null;
+function dictStop() { const r = dictRec; dictRec = null; if (!r) return; try { r.onresult = r.onend = r.onerror = null; } catch {} try { r.abort(); } catch { try { r.stop(); } catch {} } }
 function dictate(btn, onText) {
   if (!SpeechRec) return;
-  const r = new SpeechRec(); r.lang = "fr-FR"; r.interimResults = false; r.maxAlternatives = 1;
-  r.onresult = e => onText(e.results[0][0].transcript);
-  r.onend = r.onerror = () => btn.classList.remove("rec");
-  btn.classList.add("rec"); r.start();
+  if (dictRec) { const r = dictRec; try { r.stop(); } catch {} setTimeout(() => { if (dictRec === r) { dictStop(); btn.classList.remove("rec"); } }, 1500); return; }
+  const r = new SpeechRec(); r.lang = "fr-FR"; r.interimResults = false; r.maxAlternatives = 1; dictRec = r;
+  r.onresult = e => { try { onText(e.results[0][0].transcript); } catch {} };
+  r.onend = r.onerror = () => { if (dictRec === r) dictRec = null; btn.classList.remove("rec"); };
+  btn.classList.add("rec"); try { r.start(); } catch { dictRec = null; btn.classList.remove("rec"); }
 }
 const isFav = name => habits.some(h => h.name.toLowerCase() === name.toLowerCase());
 function toggleFav(name) {
@@ -4856,11 +4859,14 @@ let talkTimer = 0;
 const showCompact = () => { talk.classList.add("compact"); talk.hidden = false; clearTimeout(talkTimer); talkTimer = setTimeout(() => { if (talk.classList.contains("compact")) closeTalk(); }, 14000); };
 const showFull = () => { clearTimeout(talkTimer); talk.classList.remove("compact"); talk.hidden = false; };
 const MIC_HELP = "🔒 Le micro est bloqué. Sur l'iMac : clique sur l'icône à gauche de l'adresse › Micro › Autoriser. Sur l'iPhone : Réglages › Safari › Micro › Autoriser. Tu peux aussi écrire ta demande ci-dessous.";
-function stopListen() { try { rec?.stop(); } catch {} }
-function closeTalk() { stopListen(); clearTimeout(talkTimer); talk.hidden = true; talk.classList.remove("compact"); talkFab.classList.remove("rec"); }
+function stopListen() { const r = rec; if (!r) return; try { r.stop(); } catch {} setTimeout(() => { if (rec === r) hardStop(); }, 1500); }
+// Coupe vraiment le micro : plus d'écoute, plus de résultat traité
+function hardStop() { const r = rec; rec = null; if (r) { try { r.onresult = r.onend = r.onerror = null; } catch {} try { r.abort(); } catch { try { r.stop(); } catch {} } } bigMic.classList.remove("rec"); talkFab.classList.remove("rec"); }
+document.addEventListener("visibilitychange", () => { if (document.hidden) { hardStop(); dictStop(); document.querySelectorAll(".rec").forEach(b => b.classList.remove("rec")); } });
+function closeTalk() { hardStop(); dictStop(); clearTimeout(talkTimer); talk.hidden = true; talk.classList.remove("compact"); talkFab.classList.remove("rec"); }
 function startListen() {
   if (!SpeechRec) { showFull(); setState("⌨️ Écris ta demande", false); talkIn.focus(); return; }
-  stopListen(); talkOut.replaceChildren(); talkIn.value = ""; heard = "";
+  hardStop(); talkOut.replaceChildren(); talkIn.value = ""; heard = "";
   let r; try { r = new SpeechRec(); } catch { showFull(); setState("⌨️ Le micro ne marche pas ici. Écris ta demande.", false); talkIn.focus(); return; }
   rec = r; r.lang = "fr-FR"; r.interimResults = true; r.maxAlternatives = 1; r.continuous = false;
   let failed = false;
